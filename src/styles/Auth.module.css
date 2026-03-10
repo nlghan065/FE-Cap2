@@ -1,0 +1,91 @@
+.container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f5f5f5;
+}
+
+.card {
+  width: 1000px;
+  display: flex;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* LEFT */
+
+.left {
+  flex: 0.8;
+  background: linear-gradient(135deg, #6a5af9, #8b7cff);
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.left h3,
+.left span,
+.left p {
+  color: white;
+}
+
+/* RIGHT */
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+.formGrid > div {
+  width: 100%;
+}
+
+.fullWidth {
+  grid-column: span 2;
+}
+
+.right {
+  flex: 1.2;
+  padding: 40px;
+}
+
+/* fix ant component */
+
+.right :global(.ant-select),
+.right :global(.ant-picker),
+.right :global(.ant-input-affix-wrapper) {
+  width: 100%;
+}
+
+/* BUTTON */
+
+.loginBtn {
+  margin-top: 10px;
+  height: 40px;
+  font-weight: 600;
+}
+
+/* ERROR */
+
+.error {
+  color: red;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.loginBtn {
+  margin-top: 10px;
+}
+
+.forgot {
+  text-align: right;
+}
+
+.switch {
+  margin-top: 15px;
+  text-align: center;
+}
