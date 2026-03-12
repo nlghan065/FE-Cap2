@@ -46,19 +46,29 @@ function Login() {
 
       const res = await loginApi(loginData);
 
-      // token nằm trong data.token
       const token = res?.data?.token;
+      const role = res?.data?.role;
+
+      console.log("ROLE:", role);
+      console.log(res.data);
 
       if (token) {
         if (remember) {
           localStorage.setItem("token", token);
+          localStorage.setItem("role", role);
         } else {
           sessionStorage.setItem("token", token);
+          sessionStorage.setItem("role", role);
         }
       }
 
       message.success("Đăng nhập thành công!");
-      navigate("/");
+
+      if (role === "ADMIN") {
+        navigate("/dashboard");
+      } else {
+        navigate("/home");
+      }
     } catch (error) {
       console.error("LOGIN ERROR:", error);
       message.error("Email hoặc mật khẩu không đúng");
