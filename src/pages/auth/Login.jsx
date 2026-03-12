@@ -1,15 +1,18 @@
-import { Button, Input, Typography, message } from "antd";
+import { Button, Input, Typography, Checkbox, message } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-
+import loginBg from "../../assets/login-bg.jpg";
 import { loginApi } from "../../api/authApi";
 import { Link, useNavigate } from "react-router-dom";
 import styles from "../../styles/Auth.module.css";
+import {
+  forgotPasswordApi,
+  verifyOtpApi,
+  resetPasswordApi,
+} from "../../api/authApi";
 
 const { Title, Text } = Typography;
-
-/* ================= VALIDATION ================= */
 
 const schema = yup.object({
   email: yup
@@ -23,8 +26,6 @@ const schema = yup.object({
     .required("Vui lòng nhập mật khẩu"),
 });
 
-/* ================= COMPONENT ================= */
-
 function Login() {
   const navigate = useNavigate();
 
@@ -34,80 +35,95 @@ function Login() {
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
+    defaultValues: {
+      remember: false,
+    },
   });
 
-  /* ================= SUBMIT ================= */
-
   const onSubmit = async (data) => {
-    console.log("===== LOGIN SUBMIT =====");
-    console.log("Data gửi lên BE:", data);
-
     try {
-      const res = await loginApi(data);
+      const { remember, ...loginData } = data;
 
-      console.log("===== RESPONSE FROM BE =====");
-      console.log(res);
+      const res = await loginApi(loginData);
 
-      // lưu token nếu backend trả về
-      if (res?.token) {
-        localStorage.setItem("token", res.token);
-        console.log("Token đã lưu:", res.token);
+      // token nằm trong data.token
+      const token = res?.data?.token;
+
+      if (token) {
+        if (remember) {
+          localStorage.setItem("token", token);
+        } else {
+          sessionStorage.setItem("token", token);
+        }
       }
 
       message.success("Đăng nhập thành công!");
-
-      // chuyển trang sau login
       navigate("/");
     } catch (error) {
-      console.log("===== LOGIN ERROR =====");
-
-      if (error.response) {
-        console.log("Status:", error.response.status);
-        console.log("Data:", error.response.data);
-      } else {
-        console.log("Error:", error.message);
-      }
-
+      console.error("LOGIN ERROR:", error);
       message.error("Email hoặc mật khẩu không đúng");
     }
   };
 
-  /* ================= UI ================= */
-
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        {/* LEFT SIDE */}
+        {/* LEFT */}
+        {/* LEFT */}
 
         <div className={styles.left}>
-          <Title level={2} style={{ color: "white" }}>
-            VirtuSpace
-          </Title>
+          <img src={loginBg} alt="background" className={styles.leftBg} />
 
-          <Text style={{ color: "white", fontSize: 16 }}>
-            Mở khóa không gian sáng tạo của bạn với AI.
-          </Text>
+          <div className={styles.leftContent}>
+            <Title className={styles.brand}>VirtuSpace</Title>
+
+            <Title level={2} className={styles.heroTitle}>
+              Mở khóa không gian sáng tạo của bạn
+            </Title>
+
+            <Text className={styles.heroDesc}>
+              Đăng nhập để tiếp tục hành trình thiết kế nội thất cùng trợ lý AI
+              và không gian 3D.
+            </Text>
+
+            <div className={styles.featureTags}>
+              <span>AI Visualizer</span>
+              <span>3D Workspace</span>
+            </div>
+          </div>
         </div>
 
-        {/* RIGHT SIDE */}
-
+        {/* RIGHT */}
         <div className={styles.right}>
-          <Title level={3}>Chào mừng trở lại</Title>
+          <Title level={3} className={styles.title}>
+            Chào mừng trở lại
+          </Title>
 
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <Text type="secondary">
+            Vui lòng nhập thông tin để truy cập vào VirtuSpace.
+          </Text>
+
+          <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
             {/* EMAIL */}
+            <label>ĐỊA CHỈ EMAIL</label>
 
             <Controller
               name="email"
               control={control}
               render={({ field }) => (
-                <Input {...field} placeholder="Địa chỉ email" size="large" />
+                <Input
+                  {...field}
+                  placeholder="name@gmail.com"
+                  size="large"
+                  className={styles.input}
+                />
               )}
             />
 
             <p className={styles.error}>{errors.email?.message}</p>
 
             {/* PASSWORD */}
+            <label>MẬT KHẨU</label>
 
             <Controller
               name="password"
@@ -115,36 +131,44 @@ function Login() {
               render={({ field }) => (
                 <Input.Password
                   {...field}
-                  placeholder="Mật khẩu"
                   size="large"
+                  className={styles.input}
                 />
               )}
             />
 
             <p className={styles.error}>{errors.password?.message}</p>
 
-            {/* FORGOT PASSWORD */}
+            {/* REMEMBER + FORGOT */}
+            <div className={styles.options}>
+              <Controller
+                name="remember"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox {...field} checked={field.value}>
+                    Ghi nhớ đăng nhập
+                  </Checkbox>
+                )}
+              />
 
-            <div className={styles.forgot}>
-              <Link to="/forgot-password">Quên mật khẩu?</Link>
+              <Link to="/forgot-password" className={styles.forgot}>
+                Quên mật khẩu?
+              </Link>
             </div>
 
-            {/* LOGIN BUTTON */}
-
+            {/* LOGIN */}
             <Button
-              type="primary"
               htmlType="submit"
-              block
               size="large"
+              block
               className={styles.loginBtn}
             >
-              Đăng nhập
+              ĐĂNG NHẬP
             </Button>
 
             {/* REGISTER */}
-
             <p className={styles.switch}>
-              Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
+              Chưa có tài khoản? <Link to="/register">Đăng ký miễn phí</Link>
             </p>
           </form>
         </div>

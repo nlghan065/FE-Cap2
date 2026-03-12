@@ -7,7 +7,16 @@ const apiClient = axios.create({
     "Content-Type": "application/json",
   },
 });
+apiClient.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem("token") || sessionStorage.getItem("token");
 
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
 /* ================= REGISTER ================= */
 
 export const registerApi = async (data) => {
@@ -40,6 +49,49 @@ export const loginApi = async (data) => {
     return res.data;
   } catch (error) {
     console.error("Login error:", error.response?.data || error);
+    throw error;
+  }
+};
+
+/* ================= FORGOT PASSWORD ================= */
+
+export const forgotPasswordApi = async (data) => {
+  try {
+    console.log("CALL FORGOT PASSWORD API");
+    console.log("Forgot password payload:", data);
+
+    const res = await apiClient.post("/auth/forgot-password", data);
+
+    console.log("OTP sent response:", res.data);
+
+    return res.data;
+  } catch (error) {
+    console.error("Forgot password error:", error.response?.data || error);
+    throw error;
+  }
+};
+export const verifyOtpApi = (data) => {
+  return axios.post("/auth/verify-otp", data);
+};
+
+/* ================= RESET PASSWORD ================= */
+
+export const resetPasswordApi = async (data) => {
+  try {
+    console.log("CALL RESET PASSWORD API");
+    console.log("Reset password payload:", data);
+
+    const res = await apiClient.post("/auth/reset-password", {
+      email: data.email,
+      otp: data.otp,
+      newPassword: data.password,
+    });
+
+    console.log("Reset password success:", res.data);
+
+    return res.data;
+  } catch (error) {
+    console.error("Reset password error:", error.response?.data || error);
     throw error;
   }
 };

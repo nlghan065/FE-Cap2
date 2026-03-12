@@ -1,91 +1,564 @@
+/* RESET */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body,
+input,
+button,
+select,
+textarea {
+  font-family: "Inter", sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* CONTAINER */
+
 .container {
-  height: 100vh;
+  min-height: 100vh;
+
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #f5f5f5;
+
+  padding: 20px;
+
+  background: linear-gradient(180deg, #f8fafc, #eef2ff);
 }
+
+/* CARD */
 
 .card {
-  width: 1000px;
+  width: 100%;
+  max-width: 1100px;
+  min-height: 350px;
   display: flex;
+
   background: white;
-  border-radius: 10px;
+
+  border-radius: 20px;
+
   overflow: hidden;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.08);
 }
 
-/* LEFT */
+/* LEFT PANEL */
 
 .left {
-  flex: 0.8;
-  background: linear-gradient(135deg, #6a5af9, #8b7cff);
+  flex: 1;
+
+  position: relative; /* FIX */
+
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   padding: 40px;
+
+  overflow: hidden;
+}
+
+/* BACKGROUND IMAGE */
+
+.leftBg {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+  object-position: center right; /* hiển thị phần đẹp */
+
+  z-index: 0;
+}
+
+/* OVERLAY */
+
+.left::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background: rgba(0, 0, 0, 0.35);
+
+  z-index: 1;
+}
+
+/* LEFT CONTENT */
+
+.leftContent {
+  max-width: 280px;
+
+  position: absolute;
+  left: 40px;
+  top: 60px;
+
+  z-index: 2;
+
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: 12px;
 }
 
-.left h3,
-.left span,
-.left p {
-  color: white;
+.heroTitle {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: white !important;
 }
 
-/* RIGHT */
+.heroDesc {
+  font-size: 15px;
+  opacity: 0.9;
+  color: white !important;
+}
+
+/* RIGHT PANEL */
+
+.right {
+  flex: 1.4;
+
+  padding: 30px 40px;
+}
+
+/* TITLE */
+
+.titleBox {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.title {
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  margin-bottom: 4px !important;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* FORM GRID */
 
 .formGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  width: 100%;
-}
+  margin-top: 12px;
 
-.formGrid > div {
-  width: 100%;
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 14px 18px;
 }
 
 .fullWidth {
   grid-column: span 2;
 }
 
-.right {
-  flex: 1.2;
-  padding: 40px;
-}
+/* LABEL */
 
-/* fix ant component */
+label {
+  display: block;
 
-.right :global(.ant-select),
-.right :global(.ant-picker),
-.right :global(.ant-input-affix-wrapper) {
-  width: 100%;
-}
+  font-size: 11px;
 
-/* BUTTON */
-
-.loginBtn {
-  margin-top: 10px;
-  height: 40px;
   font-weight: 600;
+
+  letter-spacing: 0.4px;
+
+  color: #4b5563;
+
+  margin-bottom: 4px;
+
+  text-transform: uppercase;
+}
+
+/* INPUT */
+
+.ant-input,
+.ant-picker,
+.ant-select-selector {
+  height: 40px !important;
+
+  border-radius: 10px !important;
+
+  border: 1px solid #e5e7eb !important;
+
+  font-size: 14px !important;
+
+  padding: 0 12px !important;
+
+  transition: all 0.2s;
+}
+
+/* FOCUS */
+
+.ant-input:focus,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
+  border-color: #6366f1 !important;
+
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* PASSWORD */
+
+.ant-input-password {
+  height: 40px !important;
+}
+
+/* DATE PICKER */
+
+.ant-picker {
+  display: flex;
+  align-items: center;
+}
+
+/* SELECT */
+
+.ant-select-selector {
+  display: flex;
+  align-items: center;
+}
+
+/* PASSWORD HINT */
+
+.passwordHint {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 3px;
+
+  grid-column: span 2;
 }
 
 /* ERROR */
 
 .error {
-  color: red;
-  font-size: 12px;
-  margin-bottom: 6px;
-}
-.loginBtn {
-  margin-top: 10px;
+  font-size: 11px;
+  color: #ef4444;
+  margin-top: 3px;
 }
 
-.forgot {
-  text-align: right;
+/* BUTTON */
+
+.registerBtn {
+  margin-top: 8px;
+
+  height: 42px;
+
+  border-radius: 12px;
+
+  font-weight: 600;
+
+  font-size: 15px;
+
+  background: linear-gradient(135deg, #6366f1, #7c3aed);
+
+  border: none;
 }
+
+/* SWITCH */
 
 .switch {
-  margin-top: 15px;
   text-align: center;
+
+  margin-top: 14px;
+
+  font-size: 13px;
+
+  color: #6b7280;
+}
+
+.switch a {
+  color: #38b2ac;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.switch a:hover {
+  text-decoration: underline;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+  .card {
+    flex-direction: column;
+  }
+
+  .left {
+    padding: 30px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .right {
+    padding: 28px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fullWidth {
+    grid-column: span 1;
+  }
+}
+
+/* ================= LOGIN FORM ================= */
+
+.form {
+  margin-top: 16px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+/* remember + forgot */
+
+.options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  font-size: 13px;
+
+  margin-top: 4px;
+}
+
+/* LOGIN BUTTON */
+
+.loginBtn {
+  margin-top: 6px;
+  height: 42px;
+  border-radius: 12px;
+
+  font-weight: 600;
+  font-size: 15px;
+
+  background: linear-gradient(135deg, #2c7a7b, #38b2ac);
+  border: none;
+  color: white;
+}
+
+/* INPUT FIX FOR LOGIN */
+
+.input {
+  height: 40px !important;
+
+  border-radius: 10px !important;
+
+  border: 1px solid #e5e7eb !important;
+}
+
+/* LEFT PANEL LOGIN EXTRA */
+
+.brand {
+  color: white !important;
+  font-size: 36px !important;
+  font-weight: 700 !important;
+}
+
+.featureTags {
+  margin-top: 10px;
+
+  display: flex;
+  gap: 10px;
+}
+
+.featureTags span {
+  background: rgba(255, 255, 255, 0.15);
+
+  padding: 6px 12px;
+
+  border-radius: 20px;
+
+  font-size: 12px;
+}
+
+.options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  font-size: 13px;
+}
+
+/* chỉnh text của checkbox */
+
+.options :global(.ant-checkbox-wrapper) {
+  font-size: 13px;
+  color: #374151;
+}
+
+/* forgot password */
+
+.forgot {
+  font-size: 13px;
+  color: #38b2ac;
+  text-decoration: none;
+}
+
+.forgot:hover {
+  text-decoration: underline;
+}
+
+/* OTP INPUT */
+
+.otpContainer {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px 0 15px;
+}
+
+.otpInput {
+  width: 48px;
+  height: 48px;
+
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+
+  font-size: 20px;
+  text-align: center;
+
+  transition: all 0.2s;
+}
+
+.otpInput:focus {
+  outline: none;
+
+  border-color: #6366f1;
+
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* LEFT PANEL FOR FORGOT PASSWORD */
+
+.leftForgot {
+  flex: 1; /* thay vì width */
+
+  position: relative;
+
+  border-radius: 20px 0 0 20px;
+
+  overflow: hidden;
+}
+/* overlay nhẹ hơn login */
+
+/* FORM GROUP */
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+/* LABEL */
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: #4b5563;
+  text-transform: uppercase;
+}
+
+/* INPUT */
+
+.input {
+  height: 44px !important;
+  border-radius: 12px !important;
+  border: 1px solid #e5e7eb !important;
+  font-size: 14px !important;
+  padding: 0 14px !important;
+}
+
+/* CARD HEIGHT */
+
+/* LEFT TEXT FIX */
+
+.leftForgot .leftContent {
+  position: absolute;
+  left: 40px;
+  bottom: 80px;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 2;
+}
+
+/* OVERLAY */
+
+.leftForgot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background: rgba(0, 0, 0, 0.18); /* trước là 0.35 */
+
+  z-index: 1;
+}
+
+.resend {
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.resendBtn {
+  color: #38b2ac;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.resendBtn:hover {
+  text-decoration: underline;
+}
+
+.featureGrid {
+  margin-top: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.featureBox {
+  display: flex;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  backdrop-filter: blur(6px);
+  color: white;
+  font-size: 13px;
+}
+
+.featureBox b {
+  display: block;
+  font-size: 14px;
+}
+
+.featureIcon {
+  font-size: 18px;
 }

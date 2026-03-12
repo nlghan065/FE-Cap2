@@ -1,8 +1,8 @@
-import { Button, Input, Typography, message, Select, DatePicker } from "antd";
+import { Button, Input, Typography, Select, DatePicker, message } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-
+import loginBg from "../../assets/login-bg.png";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -17,16 +17,29 @@ const { Title, Text } = Typography;
 /* ================= VALIDATION ================= */
 
 const schema = yup.object({
-  fullName: yup.string().required("Nhập họ tên"),
+  fullName: yup
+    .string()
+    .required("Nhập họ tên")
+    .min(2, "Ít nhất 2 ký tự")
+    .max(100, "Tối đa 100 ký tự")
+    .matches(/^[\p{L}\s]+$/u, "Chỉ chứa chữ cái và khoảng trắng"),
 
-  email: yup.string().email("Email không hợp lệ").required("Nhập email"),
+  gender: yup
+    .string()
+    .oneOf(["male", "female", "other"])
+    .required("Chọn giới tính"),
 
   phoneNumber: yup
     .string()
     .required("Nhập số điện thoại")
-    .matches(/^[0-9]{9,11}$/, "Số điện thoại không hợp lệ"),
+    .matches(/^[0-9]{9,11}$/, "SĐT không hợp lệ"),
 
-  birthDate: yup.date().required("Chọn ngày sinh"),
+  birthDate: yup
+    .date()
+    .required("Chọn ngày sinh")
+    .max(new Date(), "Ngày sinh phải trong quá khứ"),
+
+  email: yup.string().email("Email không hợp lệ").required("Nhập email"),
 
   address: yup.string().required("Nhập địa chỉ"),
 
@@ -36,13 +49,12 @@ const schema = yup.object({
 
   password: yup
     .string()
-    .min(6, "Mật khẩu ít nhất 6 ký tự")
-    .max(50, "Mật khẩu tối đa 50 ký tự")
-    .matches(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
-      "Mật khẩu phải có chữ hoa, chữ thường và số",
-    )
-    .required("Nhập mật khẩu"),
+    .required("Nhập mật khẩu")
+    .min(6, "Ít nhất 6 ký tự")
+    .max(50, "Tối đa 50 ký tự")
+    .matches(/[a-z]/, "Phải có chữ thường")
+    .matches(/[A-Z]/, "Phải có chữ hoa")
+    .matches(/[0-9]/, "Phải có số"),
 
   confirmPassword: yup
     .string()
@@ -57,24 +69,6 @@ function Register() {
   const [wards, setWards] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  /* PASSWORD CHECK REALTIME */
-
-  const [passwordChecks, setPasswordChecks] = useState({
-    length: false,
-    upper: false,
-    lower: false,
-    number: false,
-  });
-
-  const checkPassword = (value) => {
-    setPasswordChecks({
-      length: value.length >= 6 && value.length <= 50,
-      upper: /[A-Z]/.test(value),
-      lower: /[a-z]/.test(value),
-      number: /\d/.test(value),
-    });
-  };
-
   const {
     handleSubmit,
     control,
@@ -87,60 +81,51 @@ function Register() {
 
   const selectedCity = watch("city");
 
-  /* ================= LOAD CITIES ================= */
+  /* LOAD CITY */
 
   useEffect(() => {
     const fetchCities = async () => {
-      try {
-        const cityData = await getCitiesApi();
-        setCities(cityData);
-      } catch (error) {
-        console.error("Load cities error:", error);
-        setCities([]);
-      }
+      const data = await getCitiesApi();
+      setCities(data || []);
     };
 
     fetchCities();
   }, []);
 
-  /* ================= LOAD WARDS ================= */
+  /* LOAD WARD */
 
   useEffect(() => {
     if (!selectedCity) return;
 
     const fetchWards = async () => {
-      try {
-        const wardData = await getWardsApi(selectedCity);
-        setWards(wardData);
-
-        setValue("ward", "");
-      } catch (error) {
-        console.error("Load wards error:", error);
-        setWards([]);
-      }
+      const data = await getWardsApi(selectedCity);
+      setWards(data || []);
+      setValue("ward", "");
     };
 
     fetchWards();
   }, [selectedCity, setValue]);
 
-  /* ================= SUBMIT ================= */
+  /* SUBMIT */
 
   const onSubmit = async (data) => {
     try {
       setLoading(true);
 
+      const cityObj = cities.find((c) => c.id === data.city);
+      const wardObj = wards.find((w) => w.id === data.ward);
+
       const payload = {
         fullName: data.fullName,
         email: data.email,
         phone: data.phoneNumber,
-        birthDate: dayjs(data.birthDate).format("YYYY-MM-DD"),
+        gender: data.gender,
+        dateOfBirth: dayjs(data.birthDate).format("YYYY-MM-DD"),
         address: data.address,
-        cityId: data.city,
-        wardId: data.ward,
+        city: cityObj?.name,
+        ward: wardObj?.name,
         password: data.password,
       };
-
-      console.log("REGISTER PAYLOAD:", payload);
 
       await registerApi(payload);
 
@@ -149,14 +134,8 @@ function Register() {
       setTimeout(() => {
         navigate("/login");
       }, 1200);
-    } catch (error) {
-      console.error(error);
-
-      if (error.response) {
-        message.error(error.response.data.message || "Lỗi server");
-      } else {
-        message.error("Không kết nối được server");
-      }
+    } catch (err) {
+      message.error(err?.response?.data?.message || "Lỗi server");
     } finally {
       setLoading(false);
     }
@@ -168,68 +147,126 @@ function Register() {
         {/* LEFT */}
 
         <div className={styles.left}>
-          <Title level={3} style={{ color: "white" }}>
-            Mở khóa không gian sáng tạo của bạn
-          </Title>
+          <img src={loginBg} alt="background" className={styles.leftBg} />
 
-          <Text style={{ color: "white" }}>
-            Chọn 2 phong cách bạn yêu thích nhất
-          </Text>
+          <div className={styles.leftContent}>
+            <Title className={styles.brand}>VirtuSpace</Title>
+
+            <Title level={2} className={styles.heroTitle}>
+              Thiết kế không gian mơ ước của bạn
+            </Title>
+
+            <Text className={styles.heroDesc}>
+              Tạo tài khoản để bắt đầu trải nghiệm thiết kế nội thất với AI và
+              không gian 3D.
+            </Text>
+
+            <div className={styles.featureGrid}>
+              <div className={styles.featureBox}>
+                <div className={styles.featureIcon}>⚡</div>
+                <div>
+                  <b>AI Design</b>
+                  <p>Thiết kế nội thất bằng AI</p>
+                </div>
+              </div>
+
+              <div className={styles.featureBox}>
+                <div className={styles.featureIcon}>🧱</div>
+                <div>
+                  <b>3D Visualization</b>
+                  <p>Xem không gian 3D trực quan</p>
+                </div>
+              </div>
+
+              <div className={styles.featureBox}>
+                <div className={styles.featureIcon}>📐</div>
+                <div>
+                  <b>Smart Layout</b>
+                  <p>Gợi ý bố cục phòng tự động</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* RIGHT */}
 
         <div className={styles.right}>
-          <Title level={3}>Tạo tài khoản</Title>
+          <div className={styles.titleBox}>
+            <Title level={3} className={styles.title}>
+              Tạo tài khoản
+            </Title>
+
+            <p className={styles.subtitle}>
+              Cung cấp thông tin để AI tối ưu hóa Studio của bạn.
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className={styles.formGrid}>
-            {/* FULL NAME */}
+            {/* HỌ TÊN */}
 
             <div>
+              <label className={styles.label}>HỌ VÀ TÊN</label>
               <Controller
                 name="fullName"
                 control={control}
                 render={({ field }) => (
-                  <Input placeholder="Họ và tên" {...field} />
+                  <Input placeholder="Nguyễn Văn A" {...field} />
                 )}
               />
               <p className={styles.error}>{errors.fullName?.message}</p>
             </div>
 
-            {/* EMAIL */}
+            {/* GIỚI TÍNH */}
 
             <div>
+              <label className={styles.label}>GIỚI TÍNH</label>
               <Controller
-                name="email"
+                name="gender"
                 control={control}
-                render={({ field }) => <Input placeholder="Email" {...field} />}
+                render={({ field }) => (
+                  <Select
+                    placeholder="Chọn giới tính"
+                    style={{ width: "100%" }}
+                    value={field.value}
+                    onChange={(v) => field.onChange(v)}
+                  >
+                    <Select.Option value="male">Nam</Select.Option>
+                    <Select.Option value="female">Nữ</Select.Option>
+                    <Select.Option value="other">Khác</Select.Option>
+                  </Select>
+                )}
               />
-              <p className={styles.error}>{errors.email?.message}</p>
+              <p className={styles.error}>{errors.gender?.message}</p>
             </div>
 
             {/* PHONE */}
 
             <div>
+              <label className={styles.label}>SỐ ĐIỆN THOẠI</label>
               <Controller
                 name="phoneNumber"
                 control={control}
                 render={({ field }) => (
-                  <Input placeholder="Số điện thoại" {...field} />
+                  <Input placeholder="0901234567" {...field} />
                 )}
               />
               <p className={styles.error}>{errors.phoneNumber?.message}</p>
             </div>
 
-            {/* BIRTH DATE */}
+            {/* BIRTH */}
 
             <div>
+              <label className={styles.label}>NGÀY SINH</label>
               <Controller
                 name="birthDate"
                 control={control}
                 render={({ field }) => (
                   <DatePicker
                     style={{ width: "100%" }}
-                    placeholder="Ngày sinh"
+                    disabledDate={(current) =>
+                      current && current > dayjs().endOf("day")
+                    }
                     value={field.value ? dayjs(field.value) : null}
                     onChange={(date) => field.onChange(date)}
                   />
@@ -238,14 +275,29 @@ function Register() {
               <p className={styles.error}>{errors.birthDate?.message}</p>
             </div>
 
-            {/* ADDRESS FULL WIDTH */}
+            {/* EMAIL FULL */}
 
             <div className={styles.fullWidth}>
+              <label className={styles.label}>EMAIL</label>
+              <Controller
+                name="email"
+                control={control}
+                render={({ field }) => (
+                  <Input placeholder="name@email.com" {...field} />
+                )}
+              />
+              <p className={styles.error}>{errors.email?.message}</p>
+            </div>
+
+            {/* ADDRESS */}
+
+            <div className={styles.fullWidth}>
+              <label className={styles.label}>ĐỊA CHỈ</label>
               <Controller
                 name="address"
                 control={control}
                 render={({ field }) => (
-                  <Input placeholder="Địa chỉ cụ thể" {...field} />
+                  <Input placeholder="Số nhà, đường..." {...field} />
                 )}
               />
               <p className={styles.error}>{errors.address?.message}</p>
@@ -254,19 +306,20 @@ function Register() {
             {/* CITY */}
 
             <div>
+              <label className={styles.label}>THÀNH PHỐ</label>
               <Controller
                 name="city"
                 control={control}
                 render={({ field }) => (
                   <Select
-                    placeholder="Thành phố"
+                    placeholder="Chọn thành phố"
                     style={{ width: "100%" }}
                     value={field.value}
-                    onChange={(value) => field.onChange(value)}
+                    onChange={(v) => field.onChange(v)}
                   >
-                    {cities.map((city) => (
-                      <Select.Option key={city.id} value={city.id}>
-                        {city.name}
+                    {cities.map((c) => (
+                      <Select.Option key={c.id} value={c.id}>
+                        {c.name}
                       </Select.Option>
                     ))}
                   </Select>
@@ -278,20 +331,21 @@ function Register() {
             {/* WARD */}
 
             <div>
+              <label className={styles.label}>PHƯỜNG</label>
               <Controller
                 name="ward"
                 control={control}
                 render={({ field }) => (
                   <Select
-                    placeholder="Phường / Xã"
+                    placeholder="Chọn phường"
+                    disabled={!selectedCity}
                     style={{ width: "100%" }}
                     value={field.value}
-                    disabled={!selectedCity}
-                    onChange={(value) => field.onChange(value)}
+                    onChange={(v) => field.onChange(v)}
                   >
-                    {wards.map((ward) => (
-                      <Select.Option key={ward.id} value={ward.id}>
-                        {ward.name}
+                    {wards.map((w) => (
+                      <Select.Option key={w.id} value={w.id}>
+                        {w.name}
                       </Select.Option>
                     ))}
                   </Select>
@@ -303,43 +357,45 @@ function Register() {
             {/* PASSWORD */}
 
             <div>
+              <label className={styles.label}>MẬT KHẨU</label>
               <Controller
                 name="password"
                 control={control}
-                render={({ field }) => (
-                  <Input.Password placeholder="Mật khẩu" {...field} />
-                )}
+                render={({ field }) => <Input.Password {...field} />}
               />
+
               <p className={styles.error}>{errors.password?.message}</p>
             </div>
 
-            {/* CONFIRM PASSWORD */}
+            {/* CONFIRM */}
 
             <div>
+              <label className={styles.label}>NHẬP LẠI MẬT KHẨU</label>
               <Controller
                 name="confirmPassword"
                 control={control}
-                render={({ field }) => (
-                  <Input.Password placeholder="Nhập lại mật khẩu" {...field} />
-                )}
+                render={({ field }) => <Input.Password {...field} />}
               />
               <p className={styles.error}>{errors.confirmPassword?.message}</p>
             </div>
-
-            {/* SUBMIT */}
+            <p className={styles.passwordHint}>
+              Yêu cầu mật khẩu: 6–50 ký tự, gồm chữ hoa (A-Z), chữ thường (a-z)
+              và số (0-9).
+            </p>
+            {/* BUTTON */}
 
             <div className={styles.fullWidth}>
               <Button
                 type="primary"
                 htmlType="submit"
-                block
                 loading={loading}
+                block
                 className={styles.loginBtn}
               >
                 Đăng ký
               </Button>
 
-              <p style={{ marginTop: 15 }}>
+              <p className={styles.switch}>
                 Đã có tài khoản? <Link to="/login">Đăng nhập</Link>
               </p>
             </div>
