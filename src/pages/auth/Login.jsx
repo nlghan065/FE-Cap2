@@ -1,16 +1,14 @@
-import { Button, Input, Typography, Checkbox, message } from "antd";
+import { Button, Input, Typography, message } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+
 import loginBg from "../../assets/login-bg.jpg";
 import { loginApi } from "../../api/authApi";
+
 import { Link, useNavigate } from "react-router-dom";
+
 import styles from "../../styles/Auth.module.css";
-import {
-  forgotPasswordApi,
-  verifyOtpApi,
-  resetPasswordApi,
-} from "../../api/authApi";
 
 const { Title, Text } = Typography;
 
@@ -35,32 +33,25 @@ function Login() {
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
-    defaultValues: {
-      remember: false,
-    },
   });
 
   const onSubmit = async (data) => {
     try {
-      const { remember, ...loginData } = data;
-
-      const res = await loginApi(loginData);
+      const res = await loginApi(data);
 
       const token = res?.data?.token;
       const role = res?.data?.role;
+      const userId = res?.data?.userId;
 
-      console.log("ROLE:", role);
-      console.log(res.data);
-
-      if (token) {
-        if (remember) {
-          localStorage.setItem("token", token);
-          localStorage.setItem("role", role);
-        } else {
-          sessionStorage.setItem("token", token);
-          sessionStorage.setItem("role", role);
-        }
+      if (!token) {
+        message.error("Không nhận được token từ server");
+        return;
       }
+
+      // lưu token
+      localStorage.setItem("token", token);
+      localStorage.setItem("role", role);
+      localStorage.setItem("userId", userId);
 
       message.success("Đăng nhập thành công!");
 
@@ -79,8 +70,6 @@ function Login() {
     <div className={styles.container}>
       <div className={styles.card}>
         {/* LEFT */}
-        {/* LEFT */}
-
         <div className={styles.left}>
           <img src={loginBg} alt="background" className={styles.leftBg} />
 
@@ -149,24 +138,14 @@ function Login() {
 
             <p className={styles.error}>{errors.password?.message}</p>
 
-            {/* REMEMBER + FORGOT */}
+            {/* FORGOT PASSWORD */}
             <div className={styles.options}>
-              <Controller
-                name="remember"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox {...field} checked={field.value}>
-                    Ghi nhớ đăng nhập
-                  </Checkbox>
-                )}
-              />
-
               <Link to="/forgot-password" className={styles.forgot}>
                 Quên mật khẩu?
               </Link>
             </div>
 
-            {/* LOGIN */}
+            {/* LOGIN BUTTON */}
             <Button
               htmlType="submit"
               size="large"

@@ -1,0 +1,87 @@
+.chartCard {
+  width: 100%;
+  background: white;
+
+  border-radius: 16px;
+  padding: 22px 26px;
+
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+.chartTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #1f2937;
+}
+
+/* tooltip */
+
+.tooltip {
+  background: white;
+  padding: 10px 14px;
+
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+}
+
+.tooltipMonth {
+  font-weight: 600;
+  font-size: 13px;
+
+  margin-bottom: 4px;
+}
+
+.tooltipRevenue {
+  color: #38b2ac;
+  font-weight: 600;
+}
+
+.tooltipTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.tooltipValue {
+  font-size: 14px;
+  font-weight: 700;
+  color: #10b981;
+}
+.pieWrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pieCenter {
+  position: absolute;
+  top: 47%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pieTotal {
+  font-size: 36px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.pieLabel {
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.recharts-legend-wrapper {
+  display: flex !important;
+  justify-content: center;
+  gap: 18px;
+}

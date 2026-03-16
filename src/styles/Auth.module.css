@@ -338,10 +338,10 @@ label {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
+  justify-content: flex-end;
   font-size: 13px;
 
-  margin-top: 4px;
+  margin-top: 0px;
 }
 
 /* LOGIN BUTTON */
@@ -392,14 +392,6 @@ label {
   border-radius: 20px;
 
   font-size: 12px;
-}
-
-.options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  font-size: 13px;
 }
 
 /* chỉnh text của checkbox */

@@ -129,3 +129,20 @@ export const getWardsApi = async (provinceId) => {
     throw error;
   }
 };
+
+/* ================= GET USER BY ID ================= */
+
+export const getUserByIdApi = async (id) => {
+  try {
+    console.log("CALL GET USER API:", id);
+
+    const res = await apiClient.get(`/users/${id}`);
+
+    console.log("User info:", res.data);
+
+    return res.data.data;
+  } catch (error) {
+    console.error("Get user error:", error.response?.data || error);
+    throw error;
+  }
+};
