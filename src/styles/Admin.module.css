@@ -300,21 +300,20 @@
 /* CARD COLORS */
 
 .green {
-  border-left: 5px solid #38b2ac;
+  border-left: 5px solid #10b981;
 }
 
 .blue {
-  border-left: 5px solid #4299e1;
+  border-left: 5px solid #3b82f6;
 }
 
 .purple {
-  border-left: 5px solid #9f7aea;
+  border-left: 5px solid #8b5cf6;
 }
 
 .orange {
-  border-left: 5px solid #ed8936;
+  border-left: 5px solid #f59e0b;
 }
-
 /* ===== CHARTS ===== */
 
 .charts {
@@ -380,4 +379,93 @@ tr {
 
 tr:hover {
   background: #f8fafc;
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px; /* giảm khoảng trống */
+}
+
+.iconGreen,
+.iconBlue,
+.iconPurple,
+.iconOrange {
+  width: 56px; /* icon to hơn */
+  height: 56px;
+  border-radius: 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: white;
+}
+
+.iconGreen {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.iconBlue {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.iconPurple {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.iconOrange {
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+}
+
+.up {
+  color: #16a34a;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+}
+
+.down {
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 15px;
+}
+.card p {
+  margin-top: 6px;
+  font-size: 15px;
+  color: #6b7280;
+}
+
+.card h2 {
+  margin-top: 2px;
+  font-size: 30px; /* số to hơn */
+  font-weight: 700;
+}
+.card {
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+.cardContent {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.cardInfo p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.cardInfo h2 {
+  margin: 2px 0 0;
+  font-size: 28px;
+  font-weight: 700;
 }

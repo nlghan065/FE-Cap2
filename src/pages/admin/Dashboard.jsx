@@ -8,6 +8,8 @@ import OrderPieChart from "../../components/admin/PieChart";
 
 import { getDashboardOverviewApi } from "../../api/dashboardApi";
 
+import { DollarSign, ShoppingCart, Package, Users } from "lucide-react";
+
 import styles from "../../styles/Admin.module.css";
 
 function Dashboard() {
@@ -34,28 +36,64 @@ function Dashboard() {
       <AdminMenu />
 
       <div className={styles.stats}>
+        {/* Tổng doanh thu */}
         <div className={`${styles.card} ${styles.green}`}>
-          <p>Tổng doanh thu</p>
-          <h2>
-            {overview
-              ? overview.totalRevenue.toLocaleString("vi-VN") + " ₫"
-              : "0 ₫"}
-          </h2>
+          <div className={styles.cardContent}>
+            <div className={styles.iconGreen}>
+              <DollarSign size={26} />
+            </div>
+
+            <div className={styles.cardInfo}>
+              <p>Tổng doanh thu</p>
+              <h2>
+                {overview
+                  ? overview.totalRevenue.toLocaleString("vi-VN") + " ₫"
+                  : "0 ₫"}
+              </h2>
+            </div>
+          </div>
         </div>
 
+        {/* Đơn hàng */}
         <div className={`${styles.card} ${styles.blue}`}>
-          <p>Đơn hàng mới</p>
-          <h2>{overview ? overview.totalOrders : 0}</h2>
+          <div className={styles.cardContent}>
+            <div className={styles.iconBlue}>
+              <ShoppingCart size={26} />
+            </div>
+
+            <div className={styles.cardInfo}>
+              <p>Đơn hàng mới</p>
+              <h2>{overview ? overview.totalOrders : 0}</h2>
+            </div>
+          </div>
         </div>
 
+        {/* Sản phẩm */}
         <div className={`${styles.card} ${styles.purple}`}>
-          <p>Sản phẩm</p>
-          <h2>{overview ? overview.totalProducts : 0}</h2>
+          <div className={styles.cardContent}>
+            <div className={styles.iconPurple}>
+              <Package size={26} />
+            </div>
+
+            <div className={styles.cardInfo}>
+              <p>Sản phẩm</p>
+              <h2>{overview ? overview.totalProducts : 0}</h2>
+            </div>
+          </div>
         </div>
 
+        {/* Khách hàng */}
         <div className={`${styles.card} ${styles.orange}`}>
-          <p>Khách hàng</p>
-          <h2>{overview ? overview.totalCustomers : 0}</h2>
+          <div className={styles.cardContent}>
+            <div className={styles.iconOrange}>
+              <Users size={26} />
+            </div>
+
+            <div className={styles.cardInfo}>
+              <p>Khách hàng</p>
+              <h2>{overview ? overview.totalCustomers : 0}</h2>
+            </div>
+          </div>
         </div>
       </div>
 
