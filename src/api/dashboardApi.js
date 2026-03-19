@@ -64,3 +64,37 @@ export const getDashboardOverviewApi = async () => {
     throw error;
   }
 };
+
+export const getRecentOrdersApi = async (limit = 5) => {
+  try {
+    console.log("CALL RECENT ORDERS DASHBOARD API");
+
+    const res = await apiClient.get("/admin/dashboard/orders/recent", {
+      params: { limit },
+    });
+
+    console.log("Recent orders:", res.data);
+
+    return res.data.data; // 🔥 trả thẳng list
+  } catch (error) {
+    console.error("Recent orders API error:", error.response?.data || error);
+    throw error;
+  }
+};
+
+export const getBestSellingProductsApi = async (limit = 5) => {
+  try {
+    console.log("CALL BEST SELLING PRODUCTS API");
+
+    const res = await apiClient.get("/admin/dashboard/products/best-selling", {
+      params: { limit },
+    });
+
+    console.log("Best selling products:", res.data);
+
+    return res.data.data;
+  } catch (error) {
+    console.error("Best selling API error:", error.response?.data || error);
+    throw error;
+  }
+};

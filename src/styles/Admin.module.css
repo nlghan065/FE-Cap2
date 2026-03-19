@@ -298,21 +298,20 @@
 }
 
 /* CARD COLORS */
-
 .green {
-  border-left: 5px solid #10b981;
+  border-left: 5px solid #34d399; /* dịu hơn emerald */
 }
 
 .blue {
-  border-left: 5px solid #3b82f6;
+  border-left: 5px solid #60a5fa; /* nhẹ hơn */
 }
 
 .purple {
-  border-left: 5px solid #8b5cf6;
+  border-left: 5px solid #a78bfa; /* pastel hơn */
 }
 
 .orange {
-  border-left: 5px solid #f59e0b;
+  border-left: 5px solid #fbbf24; /* 👈 vàng dịu hơn */
 }
 /* ===== CHARTS ===== */
 
@@ -444,9 +443,6 @@ tr:hover {
   font-size: 30px; /* số to hơn */
   font-weight: 700;
 }
-.card {
-  transition: all 0.2s ease;
-}
 
 .card:hover {
   transform: translateY(-4px);
@@ -468,4 +464,386 @@ tr:hover {
   margin: 2px 0 0;
   font-size: 28px;
   font-weight: 700;
+}
+
+.recentOrders {
+  margin-top: 30px;
+}
+
+.recentOrders h3 {
+  margin-bottom: 16px;
+}
+
+.orderItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 16px 18px;
+  margin-bottom: 12px;
+
+  border-radius: 14px;
+  border: 1px solid #ccfbf1;
+  background: #f0fdfa;
+}
+
+.orderItem h4 {
+  margin: 0;
+  color: #0f766e;
+}
+
+.orderItem p {
+  margin: 4px 0 0;
+  color: #444;
+}
+
+.orderRight {
+  text-align: right;
+}
+
+.orderRight strong {
+  display: block;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+/* STATUS */
+
+.statusProcessing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  background: #dbeafe;
+  color: #2563eb;
+
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.statusShipping {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  background: #fef3c7;
+  color: #b45309;
+
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.statusDelivered {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  background: #dcfce7;
+  color: #15803d;
+
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.statusCancelled {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  background: #fee2e2;
+  color: #dc2626;
+
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.recentOrdersCard {
+  background: white;
+
+  border-radius: 16px;
+  padding: 20px;
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.recentOrders {
+  margin-top: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon {
+  background: linear-gradient(135deg, #0d9488, #14b8a6);
+  color: white;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+.viewAll {
+  color: #0d9488;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 15px;
+  border-radius: 16px;
+
+  border: 1px solid #ccfbf1;
+  background: #f0fdfa;
+
+  transition: all 0.2s ease;
+}
+.item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(13, 148, 136, 0.15);
+}
+
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.orderCode {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0d9488;
+}
+
+.customerName {
+  font-size: 14px;
+  color: #666;
+}
+
+.right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.price {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+/* STATUS */
+
+.pagination {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.processing {
+  background: #e0f2fe;
+  color: #60a5fa;
+}
+
+.shipping {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.delivered {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.confirmed {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+/* payment */
+.payment {
+  margin-top: 4px;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.paid {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* highlight đơn lỗi */
+/* lỗi nhưng không gắt */
+.failedBorder {
+  border: 1px dashed #fca5a5; /* đỏ nhạt */
+  background: #fffafa; /* nền nhẹ */
+}
+
+/* ===== TOP PRODUCTS ===== */
+
+.topProducts {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* tăng khoảng cách giữa các item */
+}
+
+/* item */
+.productItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 18px 20px; /* tăng padding cho thoáng */
+  border-radius: 16px;
+
+  border: 1px solid #ccfbf1;
+  background: #f0fdfa;
+
+  transition: all 0.2s ease;
+}
+
+.productItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(13, 148, 136, 0.15);
+}
+
+/* TOP 1 */
+.top1 {
+  border: 1px solid #0d9488;
+  background: #ecfdf5;
+}
+
+/* ===== LEFT ===== */
+.productLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px; /* tăng khoảng cách ảnh và text */
+}
+
+.productLeft img {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+
+  object-fit: cover;
+  border: 1px solid #ccfbf1;
+}
+
+/* text */
+.productLeft h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.productLeft p {
+  margin: 6px 0 0; /* dãn dòng */
+  font-size: 14px;
+  color: #555;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== RIGHT ===== */
+.productRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px; /* tăng khoảng cách */
+}
+
+.productRight strong {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.productRight p {
+  margin: 0;
+  font-size: 14px;
+  color: #555;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* ===== ICON ===== */
+.productLeft svg,
+.productRight svg {
+  width: 14px;
+  height: 14px;
+}
+.resetBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 12px;
+  font-size: 13px;
+  margin-left: 4px;
+  border-radius: 8px;
+  border: 1px solid #99f6e4;
+
+  background: #f0fdfa;
+  color: #0d9488;
+
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.resetBtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.resetBtn:hover {
+  background: #ccfbf1;
+  border-color: #5eead4;
 }

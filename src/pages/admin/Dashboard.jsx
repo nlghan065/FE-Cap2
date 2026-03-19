@@ -5,6 +5,8 @@ import AdminMenu from "../../layout/admin/AdminMenu";
 
 import RevenueBarChart from "../../components/admin/BarChart";
 import OrderPieChart from "../../components/admin/PieChart";
+import RecentOrders from "../../components/admin/RecentOrders";
+import TopProducts from "../../components/admin/TopProducts";
 
 import { getDashboardOverviewApi } from "../../api/dashboardApi";
 
@@ -105,7 +107,16 @@ function Dashboard() {
         <div className={styles.chartBox}>
           <OrderPieChart />
         </div>
+
+        <div className={styles.topProductsSection}>
+          <TopProducts />
+        </div>
+
+        <div className={styles.recentOrdersSection}>
+          <RecentOrders />
+        </div>
       </div>
+      {/* RECENT ORDERS */}
     </div>
   );
 }
