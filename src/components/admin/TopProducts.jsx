@@ -3,11 +3,14 @@ import styles from "../../styles/Admin.module.css";
 import { getBestSellingProductsApi } from "../../api/dashboardApi";
 import { Trophy, RotateCcw } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useDashboardRefresh } from "../../context/DashboardRefreshContext";
 
 function TopProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const { refreshKey } = useDashboardRefresh();
 
   const fetchProducts = async () => {
     try {
@@ -35,16 +38,9 @@ function TopProducts() {
     }
   };
 
-  // load lần đầu + auto refresh
   useEffect(() => {
     fetchProducts();
-
-    const interval = setInterval(() => {
-      fetchProducts();
-    }, 30000); // 30 giây
-
-    return () => clearInterval(interval);
-  }, []);
+  }, [refreshKey]);
 
   const handleReset = () => {
     fetchProducts();
@@ -66,7 +62,9 @@ function TopProducts() {
           <div className={styles.icon}>
             <Trophy size={18} />
           </div>
+
           <h3>Top sản phẩm bán chạy</h3>
+
           <button
             onClick={handleReset}
             disabled={refreshing}
@@ -77,13 +75,9 @@ function TopProducts() {
           </button>
         </div>
 
-        <div style={{ display: "flex", gap: "10px" }}>
-          {/* Reset button */}
-
-          <Link to="/admin/orders" className={styles.viewAll}>
-            Xem sản phẩm →
-          </Link>
-        </div>
+        <Link to="/admin/products" className={styles.viewAll}>
+          Xem sản phẩm →
+        </Link>
       </div>
 
       <div className={styles.topProducts}>

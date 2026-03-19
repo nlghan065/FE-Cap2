@@ -14,14 +14,19 @@ import { DollarSign, ShoppingCart, Package, Users } from "lucide-react";
 
 import styles from "../../styles/Admin.module.css";
 
-function Dashboard() {
+import {
+  DashboardRefreshProvider,
+  useDashboardRefresh,
+} from "../../context/DashboardRefreshContext";
+
+function DashboardContent() {
   const [overview, setOverview] = useState(null);
+  const { refreshKey } = useDashboardRefresh();
 
   useEffect(() => {
     const fetchOverview = async () => {
       try {
         const res = await getDashboardOverviewApi();
-        console.log("Dashboard overview:", res);
         setOverview(res);
       } catch (error) {
         console.log("Overview API error:", error);
@@ -29,7 +34,7 @@ function Dashboard() {
     };
 
     fetchOverview();
-  }, []);
+  }, [refreshKey]);
 
   return (
     <div className={styles.adminDashboard}>
@@ -38,7 +43,6 @@ function Dashboard() {
       <AdminMenu />
 
       <div className={styles.stats}>
-        {/* Tổng doanh thu */}
         <div className={`${styles.card} ${styles.green}`}>
           <div className={styles.cardContent}>
             <div className={styles.iconGreen}>
@@ -56,7 +60,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Đơn hàng */}
         <div className={`${styles.card} ${styles.blue}`}>
           <div className={styles.cardContent}>
             <div className={styles.iconBlue}>
@@ -70,7 +73,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Sản phẩm */}
         <div className={`${styles.card} ${styles.purple}`}>
           <div className={styles.cardContent}>
             <div className={styles.iconPurple}>
@@ -84,7 +86,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Khách hàng */}
         <div className={`${styles.card} ${styles.orange}`}>
           <div className={styles.cardContent}>
             <div className={styles.iconOrange}>
@@ -116,8 +117,15 @@ function Dashboard() {
           <RecentOrders />
         </div>
       </div>
-      {/* RECENT ORDERS */}
     </div>
+  );
+}
+
+function Dashboard() {
+  return (
+    <DashboardRefreshProvider>
+      <DashboardContent />
+    </DashboardRefreshProvider>
   );
 }
 

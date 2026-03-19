@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import { getOrderStatusSummaryApi } from "../../api/dashboardApi";
 import styles from "../../styles/Chart.module.css";
+import { useDashboardRefresh } from "../../context/DashboardRefreshContext";
 
 const COLORS = ["#10b981", "#f59e0b", "#ef4444"];
 
@@ -17,33 +18,35 @@ function OrderPieChart() {
   const [data, setData] = useState([]);
   const [total, setTotal] = useState(0);
 
+  const { refreshKey } = useDashboardRefresh();
+
+  const fetchOrders = async () => {
+    try {
+      const res = await getOrderStatusSummaryApi();
+
+      const completed = res.delivered || 0;
+
+      const processing =
+        (res.pending || 0) + (res.confirmed || 0) + (res.shipping || 0);
+
+      const cancelled = res.cancelled || 0;
+
+      const formatted = [
+        { name: "Hoàn thành", value: completed },
+        { name: "Đang xử lý", value: processing },
+        { name: "Đã huỷ", value: cancelled },
+      ];
+
+      setData(formatted);
+      setTotal(completed + processing + cancelled);
+    } catch (error) {
+      console.log("Order API error:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const res = await getOrderStatusSummaryApi();
-
-        const completed = res.delivered || 0;
-
-        const processing =
-          (res.pending || 0) + (res.confirmed || 0) + (res.shipping || 0);
-
-        const cancelled = res.cancelled || 0;
-
-        const formatted = [
-          { name: "Hoàn thành", value: completed },
-          { name: "Đang xử lý", value: processing },
-          { name: "Đã huỷ", value: cancelled },
-        ];
-
-        setData(formatted);
-        setTotal(completed + processing + cancelled);
-      } catch (error) {
-        console.log("Order API error:", error);
-      }
-    };
-
     fetchOrders();
-  }, []);
+  }, [refreshKey]);
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -75,7 +78,6 @@ function OrderPieChart() {
               label={false}
               labelLine={false}
               animationDuration={900}
-              activeShape={{ outerRadius: 95 }}
             >
               {data.map((entry, index) => (
                 <Cell key={index} fill={COLORS[index]} />
@@ -94,7 +96,6 @@ function OrderPieChart() {
           </PieChart>
         </ResponsiveContainer>
 
-        {/* center text */}
         <div className={styles.pieCenter}>
           <span className={styles.pieTotal}>{total}</span>
           <span className={styles.pieLabel}>đơn</span>

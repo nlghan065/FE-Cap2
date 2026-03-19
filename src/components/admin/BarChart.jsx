@@ -11,51 +11,52 @@ import {
 import { useEffect, useState } from "react";
 import { getRevenueMonthlyApi } from "../../api/dashboardApi";
 import styles from "../../styles/Chart.module.css";
+import { useDashboardRefresh } from "../../context/DashboardRefreshContext";
 
 function RevenueBarChart() {
   const [data, setData] = useState([]);
 
-  useEffect(() => {
-    const fetchRevenue = async () => {
-      try {
-        const res = await getRevenueMonthlyApi(12);
+  const { refreshKey } = useDashboardRefresh();
 
-        const now = new Date();
-        const months = [];
+  const fetchRevenue = async () => {
+    try {
+      const res = await getRevenueMonthlyApi(12);
 
-        // tạo 12 tháng gần nhất
-        for (let i = 11; i >= 0; i--) {
-          const d = new Date();
-          d.setMonth(now.getMonth() - i);
+      const now = new Date();
+      const months = [];
 
-          const month = d.getMonth() + 1;
-          const year = d.getFullYear();
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(now.getMonth() - i);
 
-          months.push({
-            key: `${month}-${year}`,
-            month: `${month}/${year}`,
-            revenue: 0,
-          });
-        }
+        const month = d.getMonth() + 1;
+        const year = d.getFullYear();
 
-        // map dữ liệu API
-        res.forEach((item) => {
-          const key = `${item.month}-${item.year}`;
-          const index = months.findIndex((m) => m.key === key);
-
-          if (index !== -1) {
-            months[index].revenue = item.revenue;
-          }
+        months.push({
+          key: `${month}-${year}`,
+          month: `${month}/${year}`,
+          revenue: 0,
         });
-
-        setData(months);
-      } catch (error) {
-        console.log("Revenue API error:", error);
       }
-    };
 
+      res.forEach((item) => {
+        const key = `${item.month}-${item.year}`;
+        const index = months.findIndex((m) => m.key === key);
+
+        if (index !== -1) {
+          months[index].revenue = item.revenue;
+        }
+      });
+
+      setData(months);
+    } catch (error) {
+      console.log("Revenue API error:", error);
+    }
+  };
+
+  useEffect(() => {
     fetchRevenue();
-  }, []);
+  }, [refreshKey]);
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {

@@ -11,15 +11,15 @@ import { Link } from "react-router-dom";
 
 import styles from "../../styles/Admin.module.css";
 import { getRecentOrdersApi } from "../../api/dashboardApi";
+import { useDashboardRefresh } from "../../context/DashboardRefreshContext";
 
 function RecentOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // =========================
-  // FETCH DATA
-  // =========================
+  const { refreshKey } = useDashboardRefresh();
+
   const fetchOrders = async () => {
     try {
       setRefreshing(true);
@@ -36,21 +36,12 @@ function RecentOrders() {
 
   useEffect(() => {
     fetchOrders();
-
-    const interval = setInterval(() => {
-      fetchOrders();
-    }, 30000); // auto refresh 30s
-
-    return () => clearInterval(interval);
-  }, []);
+  }, [refreshKey]);
 
   const handleReset = () => {
     fetchOrders();
   };
 
-  // =========================
-  // FORMAT
-  // =========================
   const formatMoney = (value) => {
     if (!value) return "0 ₫";
     return Number(value).toLocaleString("vi-VN") + " ₫";
@@ -62,9 +53,6 @@ function RecentOrders() {
     return "#---";
   };
 
-  // =========================
-  // STATUS
-  // =========================
   const statusMap = {
     PENDING: {
       label: "Chờ xử lý",
@@ -109,9 +97,6 @@ function RecentOrders() {
     );
   };
 
-  // =========================
-  // PAYMENT
-  // =========================
   const paymentMap = {
     PAID: { label: "Đã thanh toán", className: styles.paid },
     FAILED: { label: "Thất bại", className: styles.failed },
@@ -127,24 +112,20 @@ function RecentOrders() {
     );
   };
 
-  // =========================
-  // UI
-  // =========================
   if (loading) {
     return <div className={styles.card}>Đang tải đơn hàng...</div>;
   }
 
   return (
     <div className={styles.card}>
-      {/* HEADER */}
       <div className={styles.header}>
         <div className={styles.title}>
           <div className={styles.icon}>
             <ShoppingCart size={18} />
           </div>
+
           <h3>Đơn hàng gần đây</h3>
 
-          {/* RESET BUTTON */}
           <button
             onClick={handleReset}
             disabled={refreshing}
@@ -160,7 +141,6 @@ function RecentOrders() {
         </Link>
       </div>
 
-      {/* LIST */}
       <div className={styles.list}>
         {orders.length === 0 ? (
           <p>Không có đơn hàng</p>
@@ -168,11 +148,8 @@ function RecentOrders() {
           orders.map((order, index) => (
             <div
               key={order._id || order.orderCode || index}
-              className={`${styles.item} ${
-                order.paymentStatus === "FAILED" ? styles.failedBorder : ""
-              }`}
+              className={styles.item}
             >
-              {/* LEFT */}
               <div className={styles.left}>
                 <span className={styles.orderCode}>
                   {formatOrderCode(order.orderCode, order._id)}
@@ -183,7 +160,6 @@ function RecentOrders() {
                 </span>
               </div>
 
-              {/* RIGHT */}
               <div className={styles.right}>
                 <strong className={styles.price}>
                   {formatMoney(order.totalAmount)}
