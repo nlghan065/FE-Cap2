@@ -1,6 +1,6 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 
-function AdminRoute({ children }) {
+function AdminRoute() {
   const token =
     localStorage.getItem("token") || sessionStorage.getItem("token");
 
@@ -14,7 +14,7 @@ function AdminRoute({ children }) {
     return <Navigate to="/home" replace />;
   }
 
-  return children;
+  return <Outlet />;
 }
 
 export default AdminRoute;
