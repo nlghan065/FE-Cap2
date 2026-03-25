@@ -1,0 +1,197 @@
+.container {
+  padding: 20px;
+}
+
+.title {
+  margin-bottom: 20px;
+  font-size: 22px;
+}
+
+/* WRAPPER */
+.wrapper {
+  display: flex;
+  gap: 20px;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 240px;
+  background: white;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid #e0f2f1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  height: fit-content;
+  position: sticky;
+  top: 20px;
+}
+
+.sidebar button {
+  width: 100%;
+  margin: 6px 0;
+  padding: 10px;
+  border: none;
+  background: #f5f5f5;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.sidebar button:hover {
+  background: #e6f7f6;
+}
+
+/* FILTER BUTTON (dùng chung) */
+.filterBtn {
+  padding: 8px 14px;
+  background: #f5f5f5;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.filterBtn:hover {
+  background: #e6f7f6;
+}
+
+/* ACTIVE (dùng chung toàn bộ filter) */
+.active {
+  background: #009688 !important;
+  color: white;
+}
+
+/* CLEAR */
+.clear {
+  background: #ef4444;
+  color: white;
+  margin-top: 10px;
+}
+
+/* CONTENT */
+.content {
+  flex: 1;
+}
+
+/* STYLE FILTER */
+.styleFilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+/* FOCUS FIX */
+button:focus {
+  outline: none;
+}
+
+button:focus-visible {
+  box-shadow: 0 0 0 2px #b2dfdb;
+}
+
+/* GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+/* CARD */
+.card {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: 0.25s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  background: #f0fdfa;
+  box-shadow: 0 10px 24px rgba(0, 150, 136, 0.15);
+}
+
+/* IMAGE */
+.card img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+/* INFO */
+.info {
+  padding: 12px;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 600;
+  height: 38px;
+  overflow: hidden;
+  transition: 0.2s;
+}
+
+.card:hover .name {
+  color: #009688;
+}
+
+.category {
+  font-size: 12px;
+  color: #888;
+}
+
+/* BOTTOM */
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+/* PRICE */
+.price {
+  color: #009688;
+  font-weight: bold;
+}
+
+/* STOCK */
+.stock {
+  color: #16a34a;
+  font-size: 12px;
+}
+
+.out {
+  color: #ef4444;
+  font-size: 12px;
+}
+
+/* PAGINATION */
+.pagination {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.pagination button {
+  margin: 0 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #e0f2f1;
+  background: white;
+  cursor: pointer;
+}
+
+.pagination button:hover {
+  background: #e6f7f6;
+}
+
+.activePage {
+  background: #009688;
+  color: white;
+  border: none;
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
