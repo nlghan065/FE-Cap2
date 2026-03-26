@@ -8,6 +8,10 @@ import Dashboard from "./pages/admin/Dashboard1";
 import UserManagement from "./pages/admin/Customers";
 import CustomerDetail from "./pages/admin/CustomerDetail";
 import CustomerEdit from "./pages/admin/CustomerEdit";
+import ProductsAdmin from "./pages/admin/ProductsAdmin";
+
+import ProductEdit from "./pages/admin/ProductEdit";
+import ProductCreate from "./pages/admin/ProductCreate";
 
 import Home from "./pages/user/Home";
 
@@ -15,6 +19,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoute from "./routes/AdminRoute";
 
 import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
+import ProductDetail from "./pages/admin/ProductDetail";
 
 // wrapper riêng cho admin
 function AdminWrapper() {
@@ -51,6 +56,11 @@ function App() {
               element={<CustomerEdit />}
             />
           </Route>
+          <Route path="/admin/products" element={<ProductsAdmin />} />
+          <Route path="/admin/products/:id" element={<ProductDetail />} />
+
+          <Route path="/admin/products/:id/edit" element={<ProductEdit />} />
+          <Route path="/admin/products/create" element={<ProductCreate />} />
         </Route>
       </Routes>
     </BrowserRouter>
