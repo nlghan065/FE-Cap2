@@ -12,6 +12,9 @@ import ProductsAdmin from "./pages/admin/ProductsAdmin";
 
 import ProductEdit from "./pages/admin/ProductEdit";
 import ProductCreate from "./pages/admin/ProductCreate";
+import OrdersAdmin from "./pages/admin/OrdersAdmin";
+import OrderDetail from "./pages/admin/OrderDetail";
+import OrderEdit from "./pages/admin/OrderEdit";
 
 import Home from "./pages/user/Home";
 
@@ -48,13 +51,21 @@ function App() {
         {/* ADMIN */}
         <Route element={<AdminRoute />}>
           <Route element={<AdminWrapper />}>
+            {/* DASHBOARD */}
             <Route path="/dashboard" element={<Dashboard />} />
+
+            {/* CUSTOMERS */}
             <Route path="/admin/customers" element={<UserManagement />} />
             <Route path="/admin/customers/:id" element={<CustomerDetail />} />
             <Route
               path="/admin/customers/:id/edit"
               element={<CustomerEdit />}
             />
+
+            {/* ORDERS */}
+            <Route path="/admin/orders" element={<OrdersAdmin />} />
+            <Route path="/admin/orders/:id" element={<OrderDetail />} />
+            <Route path="/admin/orders/:id/edit" element={<OrderEdit />} />
           </Route>
           <Route path="/admin/products" element={<ProductsAdmin />} />
           <Route path="/admin/products/:id" element={<ProductDetail />} />

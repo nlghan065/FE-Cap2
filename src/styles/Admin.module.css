@@ -822,7 +822,7 @@ tr:hover {
 
   padding: 6px 12px;
   font-size: 13px;
-  margin-left: 4px;
+  margin-left: 0px;
   border-radius: 8px;
   border: 1px solid #99f6e4;
 
@@ -1480,4 +1480,338 @@ tr:hover {
 .inactive {
   color: red;
   font-weight: 500;
+}
+/* ===== ORDER PAGE ===== */
+/* ===== LAYOUT ===== */
+.orderDashboard {
+  display: flex;
+  background: #f1f5f9;
+  min-height: 100vh;
+}
+
+.orderContainer {
+  padding: 24px;
+  width: 100%;
+}
+
+/* ===== TOP BAR ===== */
+.orderTopBar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.orderSearchBox {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  gap: 8px;
+  border: 1px solid #e5e7eb;
+  width: 280px;
+}
+
+.orderSearchBox input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+}
+
+.orderSelect {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  font-weight: 500;
+}
+
+/* ===== TABLE ===== */
+.orderTable {
+  background: #ffffff;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+/* HEADER + ROW */
+.orderThead,
+.orderRow {
+  display: grid;
+  grid-template-columns:
+    1.9fr
+    2fr
+    1fr
+    1.2fr
+    1.1fr
+    1.2fr
+    1fr
+    1.2fr;
+
+  padding: 16px 20px;
+  align-items: center;
+}
+
+.orderThead {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.orderRow {
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.orderRow:hover {
+  background: #ecfeff;
+}
+
+/* ===== TEXT ===== */
+.orderCode {
+  font-weight: 600;
+  color: #0f766e;
+}
+
+.orderProduct {
+  line-height: 1.5;
+}
+
+.orderMoney {
+  font-weight: 700;
+  color: #0d9488;
+}
+
+/* ===== PAYMENT ===== */
+.orderPayment small {
+  color: #64748b;
+}
+
+/* ===== ACTION ===== */
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actions button {
+  border: none;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.viewBtn {
+  background: #e0f2fe;
+}
+
+.editBtn {
+  background: #fef3c7;
+}
+
+.deleteBtn {
+  background: #fee2e2;
+}
+
+.actions button:hover {
+  transform: scale(1.05);
+}
+
+/* ===== STATUS SELECT ===== */
+.orderStatusSelect {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* STATUS COLORS */
+.order_pending {
+  background: rgba(251, 191, 36, 0.2);
+  color: #b45309;
+}
+
+.order_confirmed {
+  background: rgba(59, 130, 246, 0.2);
+  color: #1d4ed8;
+}
+
+.order_shipping {
+  background: rgba(20, 184, 166, 0.2);
+  color: #0f766e;
+}
+
+.order_delivered {
+  background: rgba(34, 197, 94, 0.2);
+  color: #166534;
+}
+
+.order_cancelled {
+  background: rgba(239, 68, 68, 0.2);
+  color: #991b1b;
+}
+
+/* ===== PAGINATION ===== */
+.orderPagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.orderPagination button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #0d9488;
+  color: white;
+  cursor: pointer;
+}
+
+.orderPagination button:disabled {
+  background: #cbd5f5;
+  cursor: not-allowed;
+}
+
+/* ========================= */
+/* ===== ORDER DETAIL ===== */
+/* ========================= */
+
+.orderWrapper {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.orderCard {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+}
+
+.orderCard h3 {
+  margin-bottom: 14px;
+  color: #0f766e;
+  font-size: 16px;
+}
+
+/* INFO */
+.orderCard p {
+  margin: 6px 0;
+  line-height: 1.7;
+}
+
+.orderCard b {
+  color: #0f766e;
+}
+
+/* ITEMS */
+.orderItem {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.orderItem img {
+  width: 70px;
+  height: 70px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.orderItem p {
+  margin: 2px 0;
+}
+
+/* SUMMARY */
+.orderSummary {
+  margin-top: 16px;
+  padding: 14px;
+  background: #ecfeff;
+  border-radius: 12px;
+  border: 1px solid #99f6e4;
+}
+
+.orderSummary p {
+  display: flex;
+  justify-content: space-between;
+  margin: 6px 0;
+}
+
+.orderSummary h3 {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  color: #0f766e;
+}
+
+/* ===== BUTTON ===== */
+.backBtn {
+  margin-top: 20px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: #0d9488;
+  color: white;
+  cursor: pointer;
+}
+
+.backBtn:hover {
+  background: #0f766e;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .orderWrapper {
+    grid-template-columns: 1fr;
+  }
+
+  .orderThead,
+  .orderRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+.orderStatusSelect {
+  width: fit-content; /* 🔥 không chiếm full */
+  max-width: 140px; /* 🔥 giới hạn chiều ngang */
+  padding: 4px 8px;
+  border-radius: 999px; /* pill shape */
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  appearance: none; /* 🔥 bỏ style mặc định */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  text-align: center;
+  white-space: nowrap;
+
+  /* icon dropdown custom */
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%230f766e' height='20' viewBox='0 0 20 20' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M5 7l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 14px;
+  padding-right: 24px;
+}
+
+/* disabled */
+.orderStatusSelect:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
