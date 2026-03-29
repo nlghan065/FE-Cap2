@@ -1,121 +1,113 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getProductsApi } from "../../api/productApi";
+import { searchProductsApi } from "../../api/productApi";
 import styles from "../../styles/Products.module.css";
+import { ShoppingCart } from "lucide-react";
 
 const PAGE_SIZE = 20;
 
 function Products() {
-  const [allProducts, setAllProducts] = useState([]);
   const [products, setProducts] = useState([]);
-  const [collections, setCollections] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [categoryCounts, setCategoryCounts] = useState({});
   const [page, setPage] = useState(0);
-  const [totalFiltered, setTotalFiltered] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
-
-  const styleParam = searchParams.get("style") || "";
-  const categoryParam = searchParams.get("category") || "";
-  const stockParam = searchParams.get("stock") || "";
-  const priceParam = searchParams.get("price") || "";
-
   const navigate = useNavigate();
 
-  /* ================= FETCH ================= */
-  const fetchAllProducts = async () => {
-    let all = [];
-    let page = 0;
-    let last = false;
+  const categoryParam = searchParams.get("category") || "";
+  const stockParam = searchParams.get("inStock") || "";
+  const minPriceParam = searchParams.get("minPrice") || "";
+  const maxPriceParam = searchParams.get("maxPrice") || "";
+  const sortBy = searchParams.get("sortBy") || "";
+  const sortDir = searchParams.get("sortDir") || "";
 
-    while (!last) {
-      const res = await getProductsApi(page, 50);
-      all = [...all, ...(res?.content || [])];
-      last = res?.last;
-      page++;
+  /* ================= MAP DATA ================= */
+  const mapProduct = (p) => {
+    const stock = p.stock ?? 0;
+
+    let availabilityText = "Hết hàng";
+    if (stock > 0 && stock <= 5) {
+      availabilityText = `Sắp hết (${stock})`;
+    } else if (stock > 5) {
+      availabilityText = `Còn ${stock} sản phẩm`;
     }
 
-    return all;
-  };
-
-  /* ================= BUILD STYLE ================= */
-  const buildCollections = (products) => {
-    const map = {};
-    products.forEach((item) => {
-      item.styles?.forEach((style) => {
-        if (!map[style]) {
-          map[style] = { title: style, count: 0 };
-        }
-        map[style].count++;
-      });
-    });
-    return Object.values(map).sort((a, b) => b.count - a.count);
-  };
-
-  /* ================= FILTER ================= */
-  const applyFilter = (data) => {
-    let filtered = data;
-
-    if (styleParam) {
-      filtered = filtered.filter((p) => p.styles?.includes(styleParam));
-    }
-
-    if (categoryParam) {
-      filtered = filtered.filter((p) => p.category === categoryParam);
-    }
-
-    if (stockParam) {
-      filtered = filtered.filter((p) =>
-        stockParam === "in" ? p.inStock : !p.inStock,
-      );
-    }
-
-    if (priceParam) {
-      if (priceParam === "low") {
-        filtered = filtered.filter((p) => p.price < 5000000);
-      } else if (priceParam === "mid") {
-        filtered = filtered.filter(
-          (p) => p.price >= 5000000 && p.price <= 15000000,
-        );
-      } else {
-        filtered = filtered.filter((p) => p.price > 15000000);
-      }
-    }
-
-    setTotalFiltered(filtered.length);
-
-    const start = page * PAGE_SIZE;
-    const end = start + PAGE_SIZE;
-
-    setProducts(filtered.slice(start, end));
-  };
-
-  /* ================= INIT ================= */
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-      const all = await fetchAllProducts();
-      setAllProducts(all);
-      setCollections(buildCollections(all));
-      setLoading(false);
+    return {
+      ...p,
+      image: p.images?.[0] || "/no-image.png",
+      rating: p.avgRating || 0,
+      reviews: p.reviewCount || 0,
+      sold: p.soldCount || 0,
+      colorHex: p.color?.hex || "#ccc",
+      stock,
+      availabilityText,
     };
-    init();
-  }, []);
+  };
+
+  /* ================= FETCH PRODUCTS ================= */
+  const fetchProducts = async () => {
+    setLoading(true);
+    const res = await searchProductsApi({
+      page,
+      size: PAGE_SIZE,
+      category: categoryParam,
+      minPrice: minPriceParam,
+      maxPrice: maxPriceParam,
+      inStock: stockParam,
+      sortBy,
+      sortDir,
+    });
+
+    setProducts(res.content.map(mapProduct));
+    setTotalPages(res.totalPages);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    applyFilter(allProducts);
-  }, [styleParam, categoryParam, stockParam, priceParam, page]);
+    const timeout = setTimeout(fetchProducts, 200);
+    return () => clearTimeout(timeout);
+  }, [
+    page,
+    categoryParam,
+    stockParam,
+    minPriceParam,
+    maxPriceParam,
+    sortBy,
+    sortDir,
+  ]);
+
+  /* ================= FETCH CATEGORY ================= */
+  useEffect(() => {
+    const fetch = async () => {
+      const first = await searchProductsApi({ page: 0, size: 100 });
+      const lastPage = first.totalPages - 1;
+      const res = await searchProductsApi({ page: lastPage, size: 100 });
+
+      const set = new Set();
+      const map = {};
+
+      res.content.forEach((p) => {
+        if (!p.category) return;
+        map[p.category] = (map[p.category] || 0) + 1;
+        set.add(p.category);
+      });
+
+      setCategoryCounts(map);
+      setCategories(Array.from(set));
+    };
+
+    fetch();
+  }, []);
 
   /* ================= ACTION ================= */
   const updateFilter = (newParams) => {
     setPage(0);
-    setSearchParams({
-      style: styleParam,
-      category: categoryParam,
-      stock: stockParam,
-      price: priceParam,
-      ...newParams,
-    });
+    const current = Object.fromEntries(searchParams);
+    setSearchParams({ ...current, ...newParams });
   };
 
   const clearFilter = () => {
@@ -123,70 +115,119 @@ function Products() {
     setSearchParams({});
   };
 
-  /* ================= PAGINATION ================= */
-  const totalPages = Math.ceil(totalFiltered / PAGE_SIZE);
+  const visibleCount = 3;
+  const visibleCategories = showAllCategories
+    ? categories
+    : categories.slice(0, visibleCount);
 
-  const startItem = totalFiltered === 0 ? 0 : page * PAGE_SIZE + 1;
-
-  const endItem = Math.min((page + 1) * PAGE_SIZE, totalFiltered);
-
-  /* ================= SCROLL TOP ================= */
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [page]);
+  const isFilterEmpty =
+    !categoryParam &&
+    !stockParam &&
+    !minPriceParam &&
+    !maxPriceParam &&
+    !sortBy &&
+    !sortDir;
 
   /* ================= UI ================= */
   return (
     <div className={styles.wrapper}>
-      {/* ===== SIDEBAR ===== */}
+      {/* SIDEBAR */}
       <div className={styles.sidebar}>
         <h3>Danh mục</h3>
-        {["Sofa", "Bàn", "Giường", "Đèn"].map((cat) => (
+        <div className={styles.categoryList}>
+          {visibleCategories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => updateFilter({ category: cat })}
+              className={categoryParam === cat ? styles.active : ""}
+            >
+              <span>{cat}</span>
+              <span className={styles.count}>({categoryCounts[cat] || 0})</span>
+            </button>
+          ))}
+        </div>
+        {categories.length > visibleCount && (
           <button
-            key={cat}
-            onClick={() => updateFilter({ category: cat })}
-            className={categoryParam === cat ? styles.active : ""}
+            className={styles.showMoreBtn}
+            onClick={() => setShowAllCategories(!showAllCategories)}
           >
-            {cat}
+            {showAllCategories
+              ? "▲ Thu gọn"
+              : `▼ Xem thêm (${categories.length - visibleCount})`}
           </button>
-        ))}
+        )}
 
         <h3>Kho hàng</h3>
-        <button onClick={() => updateFilter({ stock: "in" })}>Còn hàng</button>
-        <button onClick={() => updateFilter({ stock: "out" })}>Hết hàng</button>
+        <button
+          onClick={() => updateFilter({ inStock: "true" })}
+          className={stockParam === "true" ? styles.active : ""}
+        >
+          Còn hàng
+        </button>
+        <button
+          onClick={() => updateFilter({ inStock: "false" })}
+          className={stockParam === "false" ? styles.active : ""}
+        >
+          Hết hàng
+        </button>
 
         <h3>Giá</h3>
-        <button onClick={() => updateFilter({ price: "low" })}>Dưới 5tr</button>
-        <button onClick={() => updateFilter({ price: "mid" })}>
+        <button
+          onClick={() => updateFilter({ minPrice: 0, maxPrice: 5000000 })}
+          className={
+            minPriceParam == 0 && maxPriceParam == 5000000 ? styles.active : ""
+          }
+        >
+          Dưới 5tr
+        </button>
+        <button
+          onClick={() =>
+            updateFilter({ minPrice: 5000000, maxPrice: 15000000 })
+          }
+          className={
+            minPriceParam == 5000000 && maxPriceParam == 15000000
+              ? styles.active
+              : ""
+          }
+        >
           5tr - 15tr
         </button>
-        <button onClick={() => updateFilter({ price: "high" })}>
+        <button
+          onClick={() => updateFilter({ minPrice: 15000000, maxPrice: "" })}
+          className={minPriceParam == 15000000 ? styles.active : ""}
+        >
           Trên 15tr
         </button>
 
-        <button onClick={clearFilter} className={styles.clear}>
+        <h3>Sắp xếp</h3>
+        <button
+          onClick={() => updateFilter({ sortBy: "price", sortDir: "asc" })}
+          className={
+            sortBy === "price" && sortDir === "asc" ? styles.active : ""
+          }
+        >
+          Giá tăng
+        </button>
+        <button
+          onClick={() => updateFilter({ sortBy: "price", sortDir: "desc" })}
+          className={
+            sortBy === "price" && sortDir === "desc" ? styles.active : ""
+          }
+        >
+          Giá giảm
+        </button>
+
+        <button
+          onClick={clearFilter}
+          disabled={isFilterEmpty}
+          className={`${styles.clearBtn} ${!isFilterEmpty ? styles.enabled : ""}`}
+        >
           Xóa lọc
         </button>
       </div>
 
-      {/* ===== CONTENT ===== */}
+      {/* CONTENT */}
       <div className={styles.content}>
-        {/* STYLE FILTER */}
-        {/* <div className={styles.styleFilter}>
-          {collections.map((item) => (
-            <button
-              key={item.title}
-              onClick={() => updateFilter({ style: item.title })}
-              className={`${styles.filterBtn} ${
-                styleParam === item.title ? styles.active : ""
-              }`}
-            >
-              {item.title}
-            </button>
-          ))}
-        </div> */}
-
-        {/* GRID */}
         {loading ? (
           <p>Đang tải...</p>
         ) : (
@@ -197,9 +238,39 @@ function Products() {
                 className={styles.card}
                 onClick={() => navigate(`/products/${item.id}`)}
               >
-                <img src={item.images?.[0]} />
-                <h3>{item.name}</h3>
-                <p>{item.priceFormatted}</p>
+                <div className={styles.imageWrap}>
+                  <img src={item.image} alt={item.name} />
+                  <div
+                    className={styles.cartBtn}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/products/${item.id}`);
+                    }}
+                  >
+                    <ShoppingCart size={18} />
+                  </div>
+                </div>
+
+                <div className={styles.info}>
+                  <div className={styles.name}>{item.name}</div>
+                  <div className={styles.desc}>
+                    {item.description?.slice(0, 60)}
+                  </div>
+                  <div className={styles.priceWrap}>
+                    <span className={styles.price}>
+                      {item.price?.toLocaleString("vi-VN")}đ
+                    </span>
+                  </div>
+                  <div className={item.inStock ? styles.stock : styles.out}>
+                    {item.availabilityText}
+                  </div>
+                  <div className={styles.ratingSold}>
+                    <span className={styles.rating}>
+                      ⭐ {item.rating.toFixed(1)}
+                    </span>
+                    <span className={styles.sold}>| Đã bán {item.sold}</span>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -210,7 +281,6 @@ function Products() {
           <button disabled={page === 0} onClick={() => setPage(page - 1)}>
             ←
           </button>
-
           {[...Array(totalPages)].map((_, i) => (
             <button
               key={i}
@@ -220,7 +290,6 @@ function Products() {
               {i + 1}
             </button>
           ))}
-
           <button
             disabled={page >= totalPages - 1}
             onClick={() => setPage(page + 1)}

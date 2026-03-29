@@ -1,67 +1,51 @@
 import apiClient from "./apiClient";
 
-/* ================= GET PRODUCTS ================= */
-export const getProductsApi = async (page = 0, size = 8) => {
-  try {
-    const res = await apiClient.get("/products", {
-      params: { page, size },
-    });
-
-    console.log("FULL RESPONSE:", res.data);
-
-    const data = res?.data?.data;
-
-    return {
-      content: data?.content || [],
-      page: data?.page || 0,
-      size: data?.size || size,
-      totalElements: data?.totalElements || 0,
-      totalPages: data?.totalPages || 0,
-      first: data?.first ?? true,
-      last: data?.last ?? true,
-    };
-  } catch (error) {
-    console.error("Get products error:", error.response?.data || error);
-
-    return {
-      content: [],
-      page: 0,
-      size: size,
-      totalElements: 0,
-      totalPages: 0,
-      first: true,
-      last: true,
-    };
-  }
+/* ================= HELPER ================= */
+const cleanParams = (params) => {
+  Object.keys(params).forEach((key) => {
+    if (
+      params[key] === "" ||
+      params[key] === null ||
+      params[key] === undefined
+    ) {
+      delete params[key];
+    }
+  });
+  return params;
 };
 
-/* ================= GET PRODUCT DETAIL ================= */
-export const getProductByIdApi = async (id) => {
-  try {
-    const res = await apiClient.get(`/products/${id}`);
-
-    console.log("PRODUCT DETAIL:", res.data);
-
-    return res?.data?.data || null;
-  } catch (error) {
-    console.error("Get product detail error:", error.response?.data || error);
-
-    return null;
-  }
-};
-
-/* ================= SEARCH ================= */
+/* ================= SEARCH + FILTER ================= */
 export const searchProductsApi = async ({
   page = 0,
   size = 8,
-  keyword = "",
-  category = "",
-  style = "",
-}) => {
+  keyword,
+  category,
+  minPrice,
+  maxPrice,
+  inStock,
+  sortBy,
+  sortDir,
+} = {}) => {
   try {
-    const res = await apiClient.get("/products", {
-      params: { page, size, keyword, category, style },
+    const params = cleanParams({
+      page,
+      size,
+
+      // ✅ match BE
+      query: keyword,
+      category,
+
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+
+      inStock:
+        inStock === "true" ? true : inStock === "false" ? false : undefined,
+
+      sortBy,
+      sortDir,
     });
+
+    const res = await apiClient.get("/products/search", { params });
 
     const data = res?.data?.data;
 
@@ -70,19 +54,26 @@ export const searchProductsApi = async ({
       page: data?.page || 0,
       size: data?.size || size,
       totalElements: data?.totalElements || 0,
-      totalPages: data?.totalPages || 0,
+      totalPages: data?.totalPages || 1,
       first: data?.first ?? true,
       last: data?.last ?? true,
     };
-  } catch {
+  } catch (error) {
+    console.error("Search products error:", error);
     return {
       content: [],
-      page: 0,
-      size,
-      totalElements: 0,
-      totalPages: 0,
-      first: true,
-      last: true,
+      totalPages: 1,
     };
+  }
+};
+
+/* ================= GET DETAIL ================= */
+export const getProductByIdApi = async (id) => {
+  try {
+    const res = await apiClient.get(`/products/${id}`);
+    return res?.data?.data;
+  } catch (error) {
+    console.error("Get product detail error:", error);
+    return null;
   }
 };

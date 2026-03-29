@@ -12,6 +12,7 @@ import CustomerEdit from "./pages/admin/CustomerEdit";
 import UserLayout from "./layout/user/UserLayout";
 import Home from "./pages/user/Home";
 import Products from "./pages/user/Products";
+import ProductDetail from "./pages/user/ProductDetail";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoute from "./routes/AdminRoute";
@@ -41,10 +42,7 @@ function App() {
         <Route element={<UserLayout />}>
           <Route path="/home" element={<Home />} />
           <Route path="/products" element={<Products />} />
-
-          {/* 👉 sau này thêm */}
-          {/* <Route path="/products" element={<Products />} /> */}
-          {/* <Route path="/product/:id" element={<ProductDetail />} /> */}
+          <Route path="/products/:id" element={<ProductDetail />} />
         </Route>
 
         {/* ================= PROTECTED USER ================= */}

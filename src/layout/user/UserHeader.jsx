@@ -8,15 +8,16 @@ function UserHeader() {
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState(null);
 
+  const [token, setToken] = useState(
+    localStorage.getItem("token") || sessionStorage.getItem("token"),
+  );
+
   const navigate = useNavigate();
   const dropdownRef = useRef();
 
-  const token =
-    localStorage.getItem("token") || sessionStorage.getItem("token");
-
-  // 👉 logout
+  // ✅ LOGOUT CHUẨN
   const handleLogout = () => {
-    // xoá token rõ ràng
+    // clear storage
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("userId");
@@ -25,14 +26,12 @@ function UserHeader() {
     sessionStorage.removeItem("role");
     sessionStorage.removeItem("userId");
 
-    // đóng dropdown
+    // reset state
+    setToken(null);
+    setProfile(null);
     setOpen(false);
 
-    // 👉 redirect về login hoặc home
-    navigate("/login", { replace: true });
-
-    // 👉 reload để reset state toàn app (QUAN TRỌNG)
-    window.location.reload();
+    navigate("/login");
   };
 
   // 👉 avatar fallback
@@ -41,23 +40,38 @@ function UserHeader() {
     return name.trim().split(" ").slice(-1)[0].charAt(0).toUpperCase();
   };
 
-  // 👉 fetch profile nếu có token
+  // ✅ fetch profile (chặn call sau logout)
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setProfile(null);
+      return;
+    }
+
+    let isMounted = true;
 
     const fetchProfile = async () => {
       try {
         const data = await getProfileApi();
-        setProfile(data);
+
+        if (isMounted) {
+          setProfile(data);
+        }
       } catch (err) {
         console.log(err);
+
+        // ❗ nếu token sai → auto logout luôn
+        handleLogout();
       }
     };
 
     fetchProfile();
+
+    return () => {
+      isMounted = false;
+    };
   }, [token]);
 
-  // 👉 click outside đóng dropdown
+  // ✅ click outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -65,8 +79,9 @@ function UserHeader() {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
+
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
   return (
@@ -82,7 +97,7 @@ function UserHeader() {
 
       {/* RIGHT */}
       <div className={styles.right}>
-        {/* 👉 Nếu chưa login */}
+        {/* 👉 chưa login */}
         {!token && (
           <div className={styles.authButtons}>
             <button onClick={() => navigate("/login")}>
@@ -97,16 +112,16 @@ function UserHeader() {
           </div>
         )}
 
-        {/* 👉 Nếu đã login */}
+        {/* 👉 đã login */}
         {token && (
           <>
             {/* Cart */}
-
             <div className={styles.iconBtn} onClick={() => navigate("/cart")}>
               <ShoppingCart size={20} />
               <span className={styles.badge}>3</span>
             </div>
-            {/* Profile icon */}
+
+            {/* Profile */}
             <div
               className={styles.iconBtn}
               onClick={() => navigate("/profile")}
@@ -114,7 +129,7 @@ function UserHeader() {
               <User size={20} />
             </div>
 
-            {/* Settings icon */}
+            {/* Settings */}
             <div
               className={styles.iconBtn}
               onClick={() => navigate("/settings")}
@@ -125,7 +140,10 @@ function UserHeader() {
             {/* User */}
             <div
               className={styles.userBox}
-              onClick={() => setOpen(!open)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(!open);
+              }}
               ref={dropdownRef}
             >
               <div className={styles.avatar}>
@@ -142,7 +160,10 @@ function UserHeader() {
 
             {/* Dropdown */}
             {open && (
-              <div className={styles.dropdown}>
+              <div
+                className={styles.dropdown}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button onClick={() => navigate("/profile")}>
                   <User size={16} /> Hồ sơ
                 </button>
@@ -152,7 +173,7 @@ function UserHeader() {
                 </button>
 
                 <button onClick={() => navigate("/settings")}>
-                  <Settings size={20} /> Cài đặt
+                  <Settings size={16} /> Cài đặt
                 </button>
 
                 <button className={styles.logout} onClick={handleLogout}>
