@@ -25,7 +25,6 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoute from "./routes/AdminRoute";
 
 import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
-import ProductDetail from "./pages/admin/ProductDetail";
 
 //  Admin wrapper
 function AdminWrapper() {
