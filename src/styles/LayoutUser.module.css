@@ -1,0 +1,404 @@
+/* HEADER */
+.header {
+  height: 70px;
+  background: linear-gradient(135deg, #2c7a7b, #38b2ac);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 30px;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* LEFT */
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.logo {
+  width: 45px;
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.subtitle {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* RIGHT */
+.right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+}
+
+/* ICON BUTTON */
+.iconBtn {
+  position: relative;
+  cursor: pointer;
+}
+
+.badge {
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  background: red;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+/* USER */
+.userBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.username {
+  font-weight: 500;
+}
+
+/* AVATAR */
+.avatar {
+  width: 38px;
+  height: 38px;
+  background: white;
+  color: #2c7a7b;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* DROPDOWN */
+.dropdown {
+  position: absolute;
+  top: 65px;
+  right: 0;
+  width: 180px;
+  background: white;
+  color: black;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: white;
+  display: flex;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.dropdown button:hover {
+  background: #f3f4f6;
+}
+
+.logout {
+  color: red;
+}
+
+/* MENU */
+.menuWrapper {
+  margin: 20px;
+  background: #ffffff;
+  padding: 10px;
+  border-radius: 15px;
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.menuItem {
+  padding: 1px 1px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: 0.25s;
+}
+
+.menuItem:hover {
+  background: #ffffff;
+}
+
+.active {
+  background: linear-gradient(135deg, #2c7a7b, #38b2ac);
+  color: white;
+}
+
+/* CONTENT */
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.content {
+  padding: 20px;
+  background: #f9fafb;
+  flex: 1;
+}
+
+/* AUTH BUTTONS */
+.authButtons {
+  display: flex;
+  gap: 10px;
+}
+
+.authButtons button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.register {
+  background: #0d9488;
+  color: white;
+}
+
+/* ICON BUTTON */
+.iconBtn {
+  position: relative;
+  cursor: pointer;
+}
+
+.badge {
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  background: red;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+/* MENU WRAPPER */
+/* MENU WRAPPER */
+.menuWrapper {
+  margin: 10px 20px;
+  background: white;
+  border-radius: 16px;
+  padding: 6px;
+
+  display: grid;
+  grid-template-columns: repeat(5, 1fr); /* 🔥 chia đều */
+  gap: 6px;
+
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* ITEM */
+.menuItem {
+  text-decoration: none;
+  padding: 10px;
+  border-radius: 12px;
+
+  font-weight: 500;
+  font-size: 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  color: #374151;
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+/* HOVER */
+.menuItem:hover:not(.active) {
+  background: #dff8f6;
+  color: #1f5f60;
+}
+
+/* ACTIVE */
+.active {
+  background: linear-gradient(135deg, #2c7a7b, #38b2ac);
+  color: white;
+}
+
+/* ACTIVE HOVER FIX */
+.active:hover {
+  background: linear-gradient(135deg, #2c7a7b, #38b2ac);
+  color: white;
+}
+
+/* ICON ACTIVE */
+.active svg {
+  color: white;
+}
+
+/* BADGE */
+.menuBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: red;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.welcome {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.username {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ===== LAYOUT ===== */
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ===== HEADER ===== */
+.header {
+  height: 70px;
+  background: linear-gradient(135deg, #2c7a7b, #38b2ac);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 30px;
+  color: white;
+
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* ===== MENU (🔥 FIXED ĐỨNG IM) ===== */
+.menuWrapper {
+  position: sticky;
+  top: 70px;
+  z-index: 90;
+
+  margin: 10px 20px;
+  background: white;
+  border-radius: 16px;
+  padding: 6px;
+
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* ===== ITEM ===== */
+.menuItem {
+  text-decoration: none;
+  border-radius: 12px;
+}
+
+/* CONTENT TRONG ITEM */
+.menuContent {
+  position: relative;
+
+  padding: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+
+  transition: all 0.2s ease;
+}
+
+/* HOVER */
+.menuItem:hover .menuContent {
+  background: #dff8f6;
+  color: #1f5f60;
+  transform: translateY(-1px);
+}
+
+/* ACTIVE */
+.active .menuContent {
+  background: linear-gradient(135deg, #2c7a7b, #38b2ac);
+  color: white;
+  box-shadow: 0 4px 12px rgba(56, 178, 172, 0.3);
+}
+
+/* FIX HOVER ACTIVE */
+.active:hover .menuContent {
+  background: linear-gradient(135deg, #2c7a7b, #38b2ac);
+}
+
+/* ICON ACTIVE */
+.active svg {
+  color: white;
+}
+
+/* ===== BADGE ===== */
+.menuBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+
+  background: #ef4444;
+  color: white;
+
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+
+  font-weight: 600;
+}
+
+/* ===== CONTENT ===== */
+.content {
+  padding: 20px;
+  background: #f9fafb;
+  flex: 1;
+}

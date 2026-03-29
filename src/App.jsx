@@ -16,7 +16,10 @@ import OrdersAdmin from "./pages/admin/OrdersAdmin";
 import OrderDetail from "./pages/admin/OrderDetail";
 import OrderEdit from "./pages/admin/OrderEdit";
 
+import UserLayout from "./layout/user/UserLayout";
 import Home from "./pages/user/Home";
+import Products from "./pages/user/Products";
+import ProductDetail from "./pages/user/ProductDetail";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoute from "./routes/AdminRoute";
@@ -24,7 +27,7 @@ import AdminRoute from "./routes/AdminRoute";
 import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
 import ProductDetail from "./pages/admin/ProductDetail";
 
-// wrapper riêng cho admin
+//  Admin wrapper
 function AdminWrapper() {
   return (
     <DashboardRefreshProvider>
@@ -37,18 +40,31 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* AUTH */}
+        {/* ================= AUTH ================= */}
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* USER */}
-        <Route element={<ProtectedRoute />}>
+        {/* ================= PUBLIC USER ================= */}
+        <Route element={<UserLayout />}>
           <Route path="/home" element={<Home />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/products/:id" element={<ProductDetail />} />
         </Route>
 
-        {/* ADMIN */}
+        {/* ================= PROTECTED USER ================= */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<UserLayout />}>
+            <Route path="/cart" element={<h1>Cart</h1>} />
+            <Route path="/orders" element={<h1>Orders</h1>} />
+            <Route path="/profile" element={<h1>Profile</h1>} />
+            <Route path="/settings" element={<h1>Settings</h1>} />
+            <Route path="/checkout" element={<h1>Checkout</h1>} />
+          </Route>
+        </Route>
+
+        {/* ================= ADMIN ================= */}
         <Route element={<AdminRoute />}>
           <Route element={<AdminWrapper />}>
             {/* DASHBOARD */}
