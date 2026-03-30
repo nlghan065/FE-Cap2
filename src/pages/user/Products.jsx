@@ -9,7 +9,7 @@ const PAGE_SIZE = 20;
 function Products() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [categoryCounts, setCategoryCounts] = useState({});
+
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -25,16 +25,16 @@ function Products() {
   const sortBy = searchParams.get("sortBy") || "";
   const sortDir = searchParams.get("sortDir") || "";
 
+  const minPrice = minPriceParam ? Number(minPriceParam) : 0;
+  const maxPrice = maxPriceParam ? Number(maxPriceParam) : Infinity;
+
   /* ================= MAP DATA ================= */
   const mapProduct = (p) => {
     const stock = p.stock ?? 0;
-
     let availabilityText = "Hết hàng";
-    if (stock > 0 && stock <= 5) {
-      availabilityText = `Sắp hết (${stock})`;
-    } else if (stock > 5) {
-      availabilityText = `Còn ${stock} sản phẩm`;
-    }
+
+    if (stock > 0 && stock <= 5) availabilityText = `Sắp hết (${stock})`;
+    else if (stock > 5) availabilityText = `Còn ${stock} sản phẩm`;
 
     return {
       ...p,
@@ -61,7 +61,6 @@ function Products() {
       sortBy,
       sortDir,
     });
-
     setProducts(res.content.map(mapProduct));
     setTotalPages(res.totalPages);
     setLoading(false);
@@ -81,33 +80,58 @@ function Products() {
   ]);
 
   /* ================= FETCH CATEGORY ================= */
+  const CACHE_KEY = "categories_cache_v2";
+
   useEffect(() => {
-    const fetch = async () => {
-      const first = await searchProductsApi({ page: 0, size: 100 });
-      const lastPage = first.totalPages - 1;
-      const res = await searchProductsApi({ page: lastPage, size: 100 });
+    const cached = sessionStorage.getItem(CACHE_KEY);
+
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        setCategories(data.categories || []);
+
+        return;
+      } catch (e) {}
+    }
+
+    const fetchCategories = async () => {
+      const res = await searchProductsApi({
+        page: 5, // 👈 giờ mới có tác dụng
+        size: 100,
+      });
 
       const set = new Set();
-      const map = {};
 
       res.content.forEach((p) => {
         if (!p.category) return;
-        map[p.category] = (map[p.category] || 0) + 1;
         set.add(p.category);
       });
 
-      setCategoryCounts(map);
-      setCategories(Array.from(set));
+      const data = {
+        categories: Array.from(set),
+      };
+
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
+
+      setCategories(data.categories);
     };
 
-    fetch();
+    fetchCategories();
   }, []);
-
   /* ================= ACTION ================= */
   const updateFilter = (newParams) => {
     setPage(0);
+    sessionStorage.removeItem(CACHE_KEY);
     const current = Object.fromEntries(searchParams);
-    setSearchParams({ ...current, ...newParams });
+    const merged = { ...current, ...newParams };
+
+    // loại bỏ key rỗng
+    Object.keys(merged).forEach((k) => {
+      if (merged[k] === "" || merged[k] === null || merged[k] === undefined)
+        delete merged[k];
+    });
+
+    setSearchParams(merged);
   };
 
   const clearFilter = () => {
@@ -128,13 +152,23 @@ function Products() {
     !sortBy &&
     !sortDir;
 
+  /* ================= CART HANDLER ================= */
+  const addToCart = (item) => {
+    console.log("Add to cart:", item);
+    // TODO: implement actual cart logic
+  };
+
   /* ================= UI ================= */
   return (
     <div className={styles.wrapper}>
       {/* SIDEBAR */}
       <div className={styles.sidebar}>
         <h3>Danh mục</h3>
-        <div className={styles.categoryList}>
+        <div
+          className={`${styles.categoryList} ${
+            showAllCategories ? styles.showAll : ""
+          }`}
+        >
           {visibleCategories.map((cat) => (
             <button
               key={cat}
@@ -142,7 +176,6 @@ function Products() {
               className={categoryParam === cat ? styles.active : ""}
             >
               <span>{cat}</span>
-              <span className={styles.count}>({categoryCounts[cat] || 0})</span>
             </button>
           ))}
         </div>
@@ -175,7 +208,7 @@ function Products() {
         <button
           onClick={() => updateFilter({ minPrice: 0, maxPrice: 5000000 })}
           className={
-            minPriceParam == 0 && maxPriceParam == 5000000 ? styles.active : ""
+            minPrice === 0 && maxPrice === 5000000 ? styles.active : ""
           }
         >
           Dưới 5tr
@@ -185,16 +218,14 @@ function Products() {
             updateFilter({ minPrice: 5000000, maxPrice: 15000000 })
           }
           className={
-            minPriceParam == 5000000 && maxPriceParam == 15000000
-              ? styles.active
-              : ""
+            minPrice === 5000000 && maxPrice === 15000000 ? styles.active : ""
           }
         >
           5tr - 15tr
         </button>
         <button
           onClick={() => updateFilter({ minPrice: 15000000, maxPrice: "" })}
-          className={minPriceParam == 15000000 ? styles.active : ""}
+          className={minPrice === 15000000 ? styles.active : ""}
         >
           Trên 15tr
         </button>
@@ -244,7 +275,7 @@ function Products() {
                     className={styles.cartBtn}
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/products/${item.id}`);
+                      addToCart(item);
                     }}
                   >
                     <ShoppingCart size={18} />
@@ -261,7 +292,15 @@ function Products() {
                       {item.price?.toLocaleString("vi-VN")}đ
                     </span>
                   </div>
-                  <div className={item.inStock ? styles.stock : styles.out}>
+                  <div
+                    className={
+                      item.stock === 0
+                        ? styles.out
+                        : item.stock <= 5
+                          ? styles.lowStock
+                          : styles.stock
+                    }
+                  >
                     {item.availabilityText}
                   </div>
                   <div className={styles.ratingSold}>

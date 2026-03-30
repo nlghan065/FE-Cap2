@@ -224,7 +224,7 @@ function ProductDetail() {
           <div className={styles.detailGrid}>
             <div className={styles.section}>
               <h3>Mô tả sản phẩm</h3>
-              <p className={styles.fullText}>{product.description}</p>
+              <p className={styles.fullText}>{product.description}</p> <br />
               {product.careInstructions?.length > 0 && (
                 <>
                   <h3>Hướng dẫn bảo quản</h3>
