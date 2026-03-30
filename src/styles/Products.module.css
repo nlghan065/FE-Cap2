@@ -671,3 +671,61 @@ button:focus-visible {
 .sidebar::-webkit-scrollbar-track {
   background: #f5f5f5;
 }
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: 12px;
+  padding: 6px;
+  margin-bottom: 16px;
+  transition: 0.2s;
+}
+
+.searchBox input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: #0f766e;
+}
+
+.searchBox input::placeholder {
+  color: #94a3b8;
+}
+
+/* BUTTON */
+.searchBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* HOVER */
+.searchBtn:hover {
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+  transform: translateY(-1px);
+}
+
+/* ACTIVE */
+.searchBtn:active {
+  transform: scale(0.95);
+}
+
+/* FOCUS */
+.searchBox:focus-within {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+}

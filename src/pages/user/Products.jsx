@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { searchProductsApi } from "../../api/productApi";
 import styles from "../../styles/Products.module.css";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Search } from "lucide-react";
 
 const PAGE_SIZE = 20;
 
@@ -17,7 +17,7 @@ function Products() {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-
+  const keywordParam = searchParams.get("keyword") || "";
   const categoryParam = searchParams.get("category") || "";
   const stockParam = searchParams.get("inStock") || "";
   const minPriceParam = searchParams.get("minPrice") || "";
@@ -27,7 +27,6 @@ function Products() {
 
   const minPrice = minPriceParam ? Number(minPriceParam) : 0;
   const maxPrice = maxPriceParam ? Number(maxPriceParam) : Infinity;
-
   /* ================= MAP DATA ================= */
   const mapProduct = (p) => {
     const stock = p.stock ?? 0;
@@ -54,6 +53,7 @@ function Products() {
     const res = await searchProductsApi({
       page,
       size: PAGE_SIZE,
+      keyword: keywordParam,
       category: categoryParam,
       minPrice: minPriceParam,
       maxPrice: maxPriceParam,
@@ -72,6 +72,7 @@ function Products() {
   }, [
     page,
     categoryParam,
+    keywordParam,
     stockParam,
     minPriceParam,
     maxPriceParam,
@@ -121,7 +122,9 @@ function Products() {
   /* ================= ACTION ================= */
   const updateFilter = (newParams) => {
     setPage(0);
-    sessionStorage.removeItem(CACHE_KEY);
+    if (newParams.category) {
+      sessionStorage.removeItem(CACHE_KEY);
+    }
     const current = Object.fromEntries(searchParams);
     const merged = { ...current, ...newParams };
 

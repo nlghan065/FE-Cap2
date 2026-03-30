@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { User, LogOut, ShoppingCart, LogIn, Settings } from "lucide-react";
+import {
+  User,
+  LogOut,
+  ShoppingCart,
+  LogIn,
+  Settings,
+  Search,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getProfileApi } from "../../api/profileApi";
 import styles from "../../styles/LayoutUser.module.css";
@@ -12,21 +19,41 @@ function UserHeader() {
     localStorage.getItem("token") || sessionStorage.getItem("token"),
   );
 
+  const [keyword, setKeyword] = useState("");
   const navigate = useNavigate();
   const dropdownRef = useRef();
 
-  // ✅ LOGOUT CHUẨN
+  /* ================= SEARCH ================= */
+  const handleSearch = () => {
+    const value = keyword.trim();
+
+    if (!value) {
+      navigate("/products");
+      return;
+    }
+
+    navigate(`/products?keyword=${encodeURIComponent(value)}`);
+  };
+
+  // ✅ realtime search (debounce)
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!keyword.trim()) {
+        navigate("/products"); // ✅ reset
+        return;
+      }
+
+      navigate(`/products?keyword=${encodeURIComponent(keyword)}`);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [keyword]);
+
+  /* ================= LOGOUT ================= */
   const handleLogout = () => {
-    // clear storage
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    localStorage.removeItem("userId");
+    localStorage.clear();
+    sessionStorage.clear();
 
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("role");
-    sessionStorage.removeItem("userId");
-
-    // reset state
     setToken(null);
     setProfile(null);
     setOpen(false);
@@ -34,13 +61,13 @@ function UserHeader() {
     navigate("/login");
   };
 
-  // 👉 avatar fallback
+  /* ================= AVATAR ================= */
   const getInitial = (name) => {
     if (!name) return "U";
     return name.trim().split(" ").slice(-1)[0].charAt(0).toUpperCase();
   };
 
-  // ✅ fetch profile (chặn call sau logout)
+  /* ================= FETCH PROFILE ================= */
   useEffect(() => {
     if (!token) {
       setProfile(null);
@@ -52,14 +79,8 @@ function UserHeader() {
     const fetchProfile = async () => {
       try {
         const data = await getProfileApi();
-
-        if (isMounted) {
-          setProfile(data);
-        }
+        if (isMounted) setProfile(data);
       } catch (err) {
-        console.log(err);
-
-        // ❗ nếu token sai → auto logout luôn
         handleLogout();
       }
     };
@@ -71,7 +92,7 @@ function UserHeader() {
     };
   }, [token]);
 
-  // ✅ click outside
+  /* ================= CLICK OUTSIDE ================= */
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -80,10 +101,10 @@ function UserHeader() {
     };
 
     document.addEventListener("click", handleClickOutside);
-
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
+  /* ================= UI ================= */
   return (
     <header className={styles.header}>
       {/* LEFT */}
@@ -95,14 +116,29 @@ function UserHeader() {
         </div>
       </div>
 
+      {/* 🔥 SEARCH */}
+      <div className={styles.searchBox}>
+        <input
+          type="text"
+          placeholder="Tìm sofa, bàn, ghế..."
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+        />
+
+        <button onClick={handleSearch}>
+          <Search size={18} />
+        </button>
+      </div>
+
       {/* RIGHT */}
       <div className={styles.right}>
-        {/* 👉 chưa login */}
         {!token && (
           <div className={styles.authButtons}>
             <button onClick={() => navigate("/login")}>
               <LogIn size={16} /> Đăng nhập
             </button>
+
             <button
               className={styles.register}
               onClick={() => navigate("/register")}
@@ -112,7 +148,6 @@ function UserHeader() {
           </div>
         )}
 
-        {/* 👉 đã login */}
         {token && (
           <>
             {/* Cart */}
@@ -137,7 +172,7 @@ function UserHeader() {
               <Settings size={20} />
             </div>
 
-            {/* User */}
+            {/* USER */}
             <div
               className={styles.userBox}
               onClick={(e) => {
@@ -158,7 +193,7 @@ function UserHeader() {
               </div>
             </div>
 
-            {/* Dropdown */}
+            {/* DROPDOWN */}
             {open && (
               <div
                 className={styles.dropdown}
