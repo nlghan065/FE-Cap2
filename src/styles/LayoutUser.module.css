@@ -438,26 +438,3 @@
 .searchBox button:hover {
   background: #0d9488;
 }
-
-.suggestBox {
-  position: absolute;
-  top: 45px;
-  left: 0;
-  width: 100%;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(0, 128, 128, 0.15);
-  z-index: 999;
-  overflow: hidden;
-}
-
-.suggestItem {
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.suggestItem:hover {
-  background: rgba(0, 128, 128, 0.1);
-  color: teal;
-}

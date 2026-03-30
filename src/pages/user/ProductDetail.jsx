@@ -14,6 +14,7 @@ import {
   RefreshCw,
   MessageCircle as Msg,
 } from "lucide-react";
+import { getReviewsByProductApi } from "../../api/reviewApi";
 
 function ProductDetail() {
   const { id } = useParams();
@@ -23,6 +24,11 @@ function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [activeImg, setActiveImg] = useState(0);
   const [activeTab, setActiveTab] = useState("detail");
+
+  const [reviews, setReviews] = useState([]);
+  const [reviewPage, setReviewPage] = useState(0);
+  const [reviewTotalPages, setReviewTotalPages] = useState(1);
+  const [loadingReview, setLoadingReview] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
@@ -52,6 +58,26 @@ function ProductDetail() {
   useEffect(() => {
     if (product && product.stock === 0) setQty(0);
   }, [product]);
+
+  useEffect(() => {
+    if (activeTab !== "review" || !product?.id) return;
+
+    const fetchReviews = async () => {
+      setLoadingReview(true);
+
+      const res = await getReviewsByProductApi({
+        productId: product.id,
+        page: reviewPage,
+        size: 5,
+      });
+
+      setReviews(res.content);
+      setReviewTotalPages(res.totalPages);
+      setLoadingReview(false);
+    };
+
+    fetchReviews();
+  }, [activeTab, product?.id, reviewPage]);
 
   const increase = () => {
     if (product && qty < product.stock) setQty(qty + 1);
@@ -259,12 +285,78 @@ function ProductDetail() {
         )}
         {activeTab === "review" && (
           <div className={styles.reviewBox}>
+            {/* ⭐ Tổng rating */}
             {product.reviewCount > 0 ? (
-              <div className={styles.bigRating}>
-                {product.rating.toFixed(1)}
+              <div className={styles.summary}>
+                <div className={styles.bigRating}>
+                  {product.rating.toFixed(1)}
+                </div>
+                <div className={styles.total}>
+                  {product.reviewCount} đánh giá
+                </div>
               </div>
             ) : (
               <p className={styles.noRating}>Chưa có đánh giá</p>
+            )}
+
+            {/* 🔥 LIST REVIEW */}
+            {loadingReview ? (
+              <p>Đang tải đánh giá...</p>
+            ) : (
+              <div className={styles.reviewList}>
+                {reviews.length === 0 && (
+                  <p className={styles.noReview}>Chưa có bình luận</p>
+                )}
+
+                {reviews.map((r) => (
+                  <div key={r.id} className={styles.reviewItem}>
+                    <div className={styles.reviewHeader}>
+                      <span className={styles.user}>User</span>
+                      <span className={styles.date}>
+                        {new Date(r.createdAt).toLocaleDateString("vi-VN")}
+                      </span>
+                    </div>
+
+                    {/* ⭐ rating */}
+                    <div className={styles.stars}>
+                      {"★".repeat(r.rating)}
+                      {"☆".repeat(5 - r.rating)}
+                    </div>
+
+                    {/* 💬 comment */}
+                    <div className={styles.comment}>{r.comment}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 🔥 PAGINATION */}
+            {reviewTotalPages > 1 && (
+              <div className={styles.reviewPagination}>
+                <button
+                  disabled={reviewPage === 0}
+                  onClick={() => setReviewPage(reviewPage - 1)}
+                >
+                  ←
+                </button>
+
+                {[...Array(reviewTotalPages)].map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setReviewPage(i)}
+                    className={reviewPage === i ? styles.activePage : ""}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+
+                <button
+                  disabled={reviewPage >= reviewTotalPages - 1}
+                  onClick={() => setReviewPage(reviewPage + 1)}
+                >
+                  →
+                </button>
+              </div>
             )}
           </div>
         )}

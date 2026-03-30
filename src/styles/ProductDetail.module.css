@@ -948,3 +948,83 @@
   border-color: #ccc;
   color: #666;
 }
+
+.reviewBox {
+  margin-top: 20px;
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.bigRating {
+  font-size: 40px;
+  font-weight: bold;
+  color: teal;
+}
+
+.total {
+  color: #666;
+}
+
+.reviewList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reviewItem {
+  padding: 12px;
+  border-radius: 10px;
+  background: #f9f9f9;
+  transition: 0.2s;
+}
+
+.reviewItem:hover {
+  background: rgba(0, 128, 128, 0.05);
+}
+
+.reviewHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.user {
+  font-weight: 600;
+}
+
+.date {
+  font-size: 12px;
+  color: #888;
+}
+
+.stars {
+  color: #f5a623;
+  margin-bottom: 5px;
+}
+
+.comment {
+  color: #333;
+}
+
+.reviewPagination {
+  margin-top: 15px;
+  display: flex;
+  gap: 5px;
+}
+
+.reviewPagination button {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.activePage {
+  background: teal;
+  color: white;
+}
