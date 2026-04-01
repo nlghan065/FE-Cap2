@@ -29,15 +29,17 @@ function Products() {
   const maxPrice = maxPriceParam ? Number(maxPriceParam) : Infinity;
   /* ================= MAP DATA ================= */
   const mapProduct = (p) => {
+    const images = p.images?.length ? p.images : ["/no-image.png"];
     const stock = p.stock ?? 0;
-    let availabilityText = "Hết hàng";
 
+    let availabilityText = "Hết hàng";
     if (stock > 0 && stock <= 5) availabilityText = `Sắp hết (${stock})`;
     else if (stock > 5) availabilityText = `Còn ${stock} sản phẩm`;
 
     return {
       ...p,
-      image: p.images?.[0] || "/no-image.png",
+      images, // 👈 giữ full ảnh
+      image: images[0], // 👈 ảnh chính LUÔN là ảnh đầu
       rating: p.avgRating || 0,
       reviews: p.reviewCount || 0,
       sold: p.soldCount || 0,

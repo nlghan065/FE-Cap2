@@ -34,9 +34,12 @@ function ProductDetail() {
     const fetch = async () => {
       try {
         const res = await getProductByIdApi(id);
+
+        const images = res.images?.length ? res.images : ["/no-image.png"];
+
         setProduct({
           ...res,
-          images: res.images?.length ? res.images : ["/no-image.png"],
+          images,
           oldPrice: res.price,
           finalPrice: res.price,
           oldPriceFormatted: res.price.toLocaleString("vi-VN") + "đ",
@@ -46,6 +49,8 @@ function ProductDetail() {
           sold: res.soldCount || 0,
           stock: res.stock ?? 0,
         });
+
+        setActiveImg(0);
         setLoading(false);
       } catch (err) {
         console.log(err);
@@ -311,7 +316,10 @@ function ProductDetail() {
                 {reviews.map((r) => (
                   <div key={r.id} className={styles.reviewItem}>
                     <div className={styles.reviewHeader}>
-                      <span className={styles.user}>User</span>
+                      <span className={styles.user}>
+                        {r.reviewerName || "Ẩn danh"}
+                      </span>
+
                       <span className={styles.date}>
                         {new Date(r.createdAt).toLocaleDateString("vi-VN")}
                       </span>
