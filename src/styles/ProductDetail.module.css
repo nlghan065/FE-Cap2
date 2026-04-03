@@ -1028,3 +1028,60 @@
   background: teal;
   color: white;
 }
+
+/* base button */
+.addCart {
+  position: relative;
+  overflow: hidden;
+}
+
+/* text mặc định */
+.btnText {
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+/* text "đã thêm" */
+.btnAdded {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 120%);
+  opacity: 0;
+  font-weight: 600;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+/* khi đã thêm */
+.added {
+  background: #16a34a !important; /* xanh */
+}
+
+/* ẩn text cũ */
+.added .btnText {
+  transform: translateY(-120%);
+  opacity: 0;
+}
+
+/* hiện text mới */
+.added .btnAdded {
+  transform: translate(-50%, -50%);
+  opacity: 1;
+}
+.priceBox {
+  background: #ecfeff;
+  padding: 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+
+  border: 1px solid #a5f3fc;
+}
+
+.price {
+  font-size: 30px;
+  color: #0f766e;
+  font-weight: 700;
+}

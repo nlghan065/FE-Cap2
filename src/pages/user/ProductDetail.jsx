@@ -15,6 +15,7 @@ import {
   MessageCircle as Msg,
 } from "lucide-react";
 import { getReviewsByProductApi } from "../../api/reviewApi";
+import { addToCartApi } from "../../api/cartApi";
 
 function ProductDetail() {
   const { id } = useParams();
@@ -24,16 +25,28 @@ function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [activeImg, setActiveImg] = useState(0);
   const [activeTab, setActiveTab] = useState("detail");
-
+  const [toast, setToast] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [reviewPage, setReviewPage] = useState(0);
   const [reviewTotalPages, setReviewTotalPages] = useState(1);
   const [loadingReview, setLoadingReview] = useState(false);
+  const [added, setAdded] = useState(false);
 
   useEffect(() => {
+    if (!id || id === "undefined") {
+      console.log("ID lỗi:", id);
+      setLoading(false);
+      return;
+    }
+
     const fetch = async () => {
       try {
         const res = await getProductByIdApi(id);
+
+        if (!res) {
+          console.log("Không có data");
+          return;
+        }
 
         const images = res.images?.length ? res.images : ["/no-image.png"];
 
@@ -51,14 +64,55 @@ function ProductDetail() {
         });
 
         setActiveImg(0);
-        setLoading(false);
       } catch (err) {
-        console.log(err);
+        console.log("DETAIL ERROR:", err);
+      } finally {
         setLoading(false);
       }
     };
+
     fetch();
   }, [id]);
+  const handleAddToCart = async () => {
+    if (!product || product.stock === 0) return;
+
+    try {
+      await addToCartApi({
+        productId: product.id || product._id,
+        quantity: qty,
+      });
+
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      // 👉 bật hiệu ứng button
+      setAdded(true);
+
+      setTimeout(() => {
+        setAdded(false);
+      }, 1200);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const handleBuyNow = async () => {
+    if (!product || product.stock === 0) return;
+
+    try {
+      await addToCartApi({
+        productId: product.id || product._id,
+        quantity: qty,
+      });
+
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      // 👉 chuyển thẳng sang checkout
+      navigate("/cart");
+    } catch (err) {
+      console.error(err);
+      setToast({ message: "Lỗi mua ngay!", error: true });
+      setTimeout(() => setToast(null), 1500);
+    }
+  };
 
   useEffect(() => {
     if (product && product.stock === 0) setQty(0);
@@ -192,14 +246,31 @@ function ProductDetail() {
           <span className={styles.stock}>Còn lại {product.stock} sản phẩm</span>
 
           <div className={styles.actions}>
-            <button className={styles.addCart} disabled={product.stock === 0}>
-              Thêm vào giỏ
+            {toast && (
+              <div
+                className={`${styles.toast} ${
+                  toast.error ? styles.toastError : ""
+                }`}
+              >
+                {toast.message}
+              </div>
+            )}
+            <button
+              className={`${styles.addCart} ${added ? styles.added : ""}`}
+              disabled={product.stock === 0}
+              onClick={handleAddToCart}
+            >
+              <span className={styles.btnText}>Thêm vào giỏ</span>
+              <span className={styles.btnAdded}>Đã thêm</span>
             </button>
-            <button className={styles.buyNow} disabled={product.stock === 0}>
+            <button
+              className={styles.buyNow}
+              disabled={product.stock === 0}
+              onClick={handleBuyNow}
+            >
               Mua ngay
             </button>
           </div>
-
           {/* POLICY */}
           <div className={styles.policyBox}>
             <div className={styles.policyItem}>

@@ -20,6 +20,11 @@ import UserLayout from "./layout/user/UserLayout";
 import Home from "./pages/user/Home";
 import Products from "./pages/user/Products";
 import ProductDetail from "./pages/user/ProductDetail";
+import Cart from "./pages/user/Cart";
+import CartStep2 from "./pages/user/CartStep2";
+import CartStep3 from "./pages/user/CartStep3";
+import PaymentSuccess from "./pages/user/PaymentSuccess";
+import OrderHistory from "./pages/user/OrderHistory";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoute from "./routes/AdminRoute";
@@ -55,11 +60,13 @@ function App() {
         {/* ================= PROTECTED USER ================= */}
         <Route element={<ProtectedRoute />}>
           <Route element={<UserLayout />}>
-            <Route path="/cart" element={<h1>Cart</h1>} />
-            <Route path="/orders" element={<h1>Orders</h1>} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/cart2" element={<CartStep2 />} />
+            <Route path="/payment" element={<CartStep3 />} />
+            <Route path="/payment-result" element={<PaymentSuccess />} />
+            <Route path="/orders" element={<OrderHistory />} />
             <Route path="/profile" element={<h1>Profile</h1>} />
             <Route path="/settings" element={<h1>Settings</h1>} />
-            <Route path="/checkout" element={<h1>Checkout</h1>} />
           </Route>
         </Route>
 

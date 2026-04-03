@@ -7,8 +7,9 @@ import {
   Settings,
   Search,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getProfileApi } from "../../api/profileApi";
+import { getCartApi } from "../../api/cartApi";
 import styles from "../../styles/LayoutUser.module.css";
 
 function UserHeader() {
@@ -20,7 +21,11 @@ function UserHeader() {
   );
 
   const [keyword, setKeyword] = useState("");
+
+  const [cartCount, setCartCount] = useState(0);
+
   const navigate = useNavigate();
+  const location = useLocation();
   const dropdownRef = useRef();
 
   /* ================= SEARCH ================= */
@@ -35,11 +40,14 @@ function UserHeader() {
     navigate(`/products?keyword=${encodeURIComponent(value)}`);
   };
 
-  // ✅ realtime search (debounce)
+  // ✅ chỉ chạy khi đang ở products
   useEffect(() => {
     const timeout = setTimeout(() => {
+      // ✅ chỉ chạy ở trang list
+      if (location.pathname !== "/products") return;
+
       if (!keyword.trim()) {
-        navigate("/products"); // ✅ reset
+        navigate("/products");
         return;
       }
 
@@ -47,8 +55,7 @@ function UserHeader() {
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [keyword]);
-
+  }, [keyword, location.pathname]);
   /* ================= LOGOUT ================= */
   const handleLogout = () => {
     localStorage.clear();
@@ -56,7 +63,7 @@ function UserHeader() {
 
     setToken(null);
     setProfile(null);
-    setOpen(false);
+    setCartCount(0);
 
     navigate("/login");
   };
@@ -92,6 +99,33 @@ function UserHeader() {
     };
   }, [token]);
 
+  /* ================= FETCH CART ================= */
+  const fetchCart = async () => {
+    try {
+      const cart = await getCartApi();
+      setCartCount(cart?.items?.length || 0);
+    } catch (err) {
+      console.error("Cart error:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (token) fetchCart();
+  }, [token]);
+
+  // ✅ sync toàn app
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      fetchCart();
+    };
+
+    window.addEventListener("cartUpdated", handleCartUpdate);
+
+    return () => {
+      window.removeEventListener("cartUpdated", handleCartUpdate);
+    };
+  }, []);
+
   /* ================= CLICK OUTSIDE ================= */
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -108,7 +142,7 @@ function UserHeader() {
   return (
     <header className={styles.header}>
       {/* LEFT */}
-      <div className={styles.left} onClick={() => navigate("/")}>
+      <div className={styles.left} onClick={() => navigate("/home")}>
         <img src="/src/assets/logo.png" className={styles.logo} />
         <div>
           <h2 className={styles.brand}>VirtuSpace</h2>
@@ -116,7 +150,7 @@ function UserHeader() {
         </div>
       </div>
 
-      {/* 🔥 SEARCH */}
+      {/* SEARCH */}
       <div className={styles.searchBox}>
         <input
           type="text"
@@ -150,13 +184,15 @@ function UserHeader() {
 
         {token && (
           <>
-            {/* Cart */}
+            {/* CART */}
             <div className={styles.iconBtn} onClick={() => navigate("/cart")}>
               <ShoppingCart size={20} />
-              <span className={styles.badge}>3</span>
+              {cartCount > 0 && (
+                <span className={styles.badge}>{cartCount}</span>
+              )}
             </div>
 
-            {/* Profile */}
+            {/* PROFILE */}
             <div
               className={styles.iconBtn}
               onClick={() => navigate("/profile")}
@@ -164,7 +200,7 @@ function UserHeader() {
               <User size={20} />
             </div>
 
-            {/* Settings */}
+            {/* SETTINGS */}
             <div
               className={styles.iconBtn}
               onClick={() => navigate("/settings")}

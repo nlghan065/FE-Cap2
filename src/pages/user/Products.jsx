@@ -1,22 +1,26 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { searchProductsApi } from "../../api/productApi";
+import { addToCartApi, getCartApi } from "../../api/cartApi";
 import styles from "../../styles/Products.module.css";
-import { ShoppingCart, Search } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 
 const PAGE_SIZE = 20;
+const CACHE_KEY = "categories_cache_v2";
 
 function Products() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [toast, setToast] = useState(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+
   const keywordParam = searchParams.get("keyword") || "";
   const categoryParam = searchParams.get("category") || "";
   const stockParam = searchParams.get("inStock") || "";
@@ -27,23 +31,22 @@ function Products() {
 
   const minPrice = minPriceParam ? Number(minPriceParam) : 0;
   const maxPrice = maxPriceParam ? Number(maxPriceParam) : Infinity;
+
   /* ================= MAP DATA ================= */
   const mapProduct = (p) => {
-    const images = p.images?.length ? p.images : ["/no-image.png"];
     const stock = p.stock ?? 0;
-
     let availabilityText = "Hết hàng";
+
     if (stock > 0 && stock <= 5) availabilityText = `Sắp hết (${stock})`;
     else if (stock > 5) availabilityText = `Còn ${stock} sản phẩm`;
 
     return {
       ...p,
-      images, // 👈 giữ full ảnh
-      image: images[0], // 👈 ảnh chính LUÔN là ảnh đầu
+      id: p.id || p._id,
+      image: p.images?.[0] || "/no-image.png",
       rating: p.avgRating || 0,
       reviews: p.reviewCount || 0,
       sold: p.soldCount || 0,
-      colorHex: p.color?.hex || "#ccc",
       stock,
       availabilityText,
     };
@@ -52,19 +55,23 @@ function Products() {
   /* ================= FETCH PRODUCTS ================= */
   const fetchProducts = async () => {
     setLoading(true);
-    const res = await searchProductsApi({
-      page,
-      size: PAGE_SIZE,
-      keyword: keywordParam,
-      category: categoryParam,
-      minPrice: minPriceParam,
-      maxPrice: maxPriceParam,
-      inStock: stockParam,
-      sortBy,
-      sortDir,
-    });
-    setProducts(res.content.map(mapProduct));
-    setTotalPages(res.totalPages);
+    try {
+      const res = await searchProductsApi({
+        page,
+        size: PAGE_SIZE,
+        keyword: keywordParam,
+        category: categoryParam,
+        minPrice: minPriceParam,
+        maxPrice: maxPriceParam,
+        inStock: stockParam,
+        sortBy,
+        sortDir,
+      });
+      setProducts(res.content.map(mapProduct));
+      setTotalPages(res.totalPages);
+    } catch (err) {
+      console.error("Fetch products error:", err);
+    }
     setLoading(false);
   };
 
@@ -82,9 +89,7 @@ function Products() {
     sortDir,
   ]);
 
-  /* ================= FETCH CATEGORY ================= */
-  const CACHE_KEY = "categories_cache_v2";
-
+  /* ================= FETCH CATEGORIES ================= */
   useEffect(() => {
     const cached = sessionStorage.getItem(CACHE_KEY);
 
@@ -92,14 +97,13 @@ function Products() {
       try {
         const data = JSON.parse(cached);
         setCategories(data.categories || []);
-
         return;
       } catch (e) {}
     }
 
     const fetchCategories = async () => {
       const res = await searchProductsApi({
-        page: 5, // 👈 giờ mới có tác dụng
+        page: 5, // 👈 GIỮ NGUYÊN
         size: 100,
       });
 
@@ -121,21 +125,53 @@ function Products() {
 
     fetchCategories();
   }, []);
-  /* ================= ACTION ================= */
+
+  /* ================= FETCH CART ================= */
+  const fetchCart = async () => {
+    try {
+      const cart = await getCartApi();
+      setCartCount(cart?.items?.length || 0);
+    } catch (err) {
+      console.error("Cart error:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
+  /* ================= CART HANDLER ================= */
+  const addToCart = async (item) => {
+    if (item.stock === 0) {
+      setToast({ id: item.id, message: "Hết hàng!", error: true });
+      setTimeout(() => setToast(null), 1500);
+      return;
+    }
+    try {
+      await addToCartApi({ productId: item.id, quantity: 1 });
+      window.dispatchEvent(new Event("cartUpdated"));
+      await fetchCart();
+
+      setToast({ id: item.id, message: "Đã thêm!" });
+      setTimeout(() => setToast(null), 1500);
+    } catch (err) {
+      console.error(err);
+      setToast({ id: item.id, message: "Lỗi!", error: true });
+      setTimeout(() => setToast(null), 1500);
+    }
+  };
+
+  /* ================= FILTER ACTION ================= */
   const updateFilter = (newParams) => {
     setPage(0);
-    if (newParams.category) {
-      sessionStorage.removeItem(CACHE_KEY);
-    }
+    if (newParams.category) sessionStorage.removeItem(CACHE_KEY);
+
     const current = Object.fromEntries(searchParams);
     const merged = { ...current, ...newParams };
-
-    // loại bỏ key rỗng
     Object.keys(merged).forEach((k) => {
       if (merged[k] === "" || merged[k] === null || merged[k] === undefined)
         delete merged[k];
     });
-
     setSearchParams(merged);
   };
 
@@ -156,12 +192,6 @@ function Products() {
     !maxPriceParam &&
     !sortBy &&
     !sortDir;
-
-  /* ================= CART HANDLER ================= */
-  const addToCart = (item) => {
-    console.log("Add to cart:", item);
-    // TODO: implement actual cart logic
-  };
 
   /* ================= UI ================= */
   return (
@@ -277,13 +307,24 @@ function Products() {
                 <div className={styles.imageWrap}>
                   <img src={item.image} alt={item.name} />
                   <div
-                    className={styles.cartBtn}
+                    className={`${styles.cartBtn} ${
+                      item.stock === 0 ? styles.disabled : ""
+                    }`}
                     onClick={(e) => {
                       e.stopPropagation();
                       addToCart(item);
                     }}
                   >
                     <ShoppingCart size={18} />
+                    {toast?.id === item.id && (
+                      <span
+                        className={`${styles.toast} ${
+                          toast.error ? styles.toastError : ""
+                        }`}
+                      >
+                        {toast.message}
+                      </span>
+                    )}
                   </div>
                 </div>
 
