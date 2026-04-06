@@ -1,40 +1,49 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { verifyVnpayApi } from "../../api/paymentApi";
 
 function PaymentResult() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
+    const handleVerify = async () => {
+      const params = new URLSearchParams(location.search);
+      const orderId = localStorage.getItem("pendingOrderId");
 
-    const responseCode = params.get("vnp_ResponseCode");
-    const transactionStatus = params.get("vnp_TransactionStatus");
+      try {
+        // 👉 gửi toàn bộ query lên backend
+        const res = await verifyVnpayApi(params.toString());
 
-    const success = responseCode === "00" && transactionStatus === "00";
+        if (res?.success) {
+          navigate("/order-success", {
+            state: { orderId },
+          });
+        } else {
+          navigate("/order-fail", {
+            state: { orderId },
+          });
+        }
+      } catch (error) {
+        console.error("Verify VNPay error:", error);
 
-    const orderId = localStorage.getItem("pendingOrderId");
-
-    // delay nhẹ cho UX
-    setTimeout(() => {
-      if (success) {
-        navigate("/order-success", {
-          state: { orderId },
-        });
-      } else {
         navigate("/order-fail", {
           state: { orderId },
         });
+      } finally {
+        localStorage.removeItem("pendingOrderId");
+        setLoading(false);
       }
+    };
 
-      localStorage.removeItem("pendingOrderId");
-    }, 1200);
+    handleVerify();
   }, [location, navigate]);
 
   return (
     <div style={{ textAlign: "center", marginTop: 100 }}>
-      <h2>Đang xử lý thanh toán...</h2>
-      <p>Vui lòng chờ...</p>
+      <h2>Đang xác minh thanh toán...</h2>
+      <p>Vui lòng chờ, hệ thống đang xử lý với VNPay...</p>
     </div>
   );
 }

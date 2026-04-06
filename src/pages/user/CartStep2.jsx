@@ -197,12 +197,11 @@ function CartStep2() {
           <span className={styles.labelInactive}>Thanh toán</span>
         </div>
       </div>
+      <h2 className={styles.titlegh}>Thông tin giao hàng</h2>
 
       <div className={styles.wrapper}>
         {/* FORM */}
         <form className={styles.cartList} onSubmit={handleSubmit}>
-          <h2 className={styles.titlegh}>Thông tin giao hàng</h2>
-
           <div className={styles.formCard}>
             {/* NAME */}
             <div className={styles.formGroup}>

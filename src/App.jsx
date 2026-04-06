@@ -24,14 +24,17 @@ import Cart from "./pages/user/Cart";
 import CartStep2 from "./pages/user/CartStep2";
 import CartStep3 from "./pages/user/CartStep3";
 import PaymentResult from "./pages/user/PaymentResult";
+import PaymentReturn from "./pages/user/PaymentReturn";
 import OrderSuccess from "./pages/user/OrderSuccess";
 import OrderFail from "./pages/user/OrderFail";
-import OrderHistory from "./pages/user/OrderHistory";
+import Orders from "./pages/user/Orders";
+import OrderDetailPage from "./pages/user/OrderDetailPage";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoute from "./routes/AdminRoute";
 
 import { DashboardRefreshProvider } from "./context/DashboardRefreshContext";
+import { Toaster } from "react-hot-toast";
 
 //  Admin wrapper
 function AdminWrapper() {
@@ -45,6 +48,7 @@ function AdminWrapper() {
 function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" />
       <Routes>
         {/* ================= AUTH ================= */}
         <Route path="/" element={<Login />} />
@@ -66,9 +70,11 @@ function App() {
             <Route path="/cart2" element={<CartStep2 />} />
             <Route path="/payment" element={<CartStep3 />} />
             <Route path="/payment-result" element={<PaymentResult />} />
+            <Route path="/payment-return" element={<PaymentReturn />} />
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/order-fail" element={<OrderFail />} />
-            <Route path="/orders" element={<OrderHistory />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/orders/:id" element={<OrderDetailPage />} />
             <Route path="/profile" element={<h1>Profile</h1>} />
             <Route path="/settings" element={<h1>Settings</h1>} />
           </Route>

@@ -52,10 +52,11 @@ const OrdersAdmin = () => {
         });
       }
 
-      setOrders(res.content);
-      setTotalPages(res.totalPages);
+      setOrders(res.content || []);
+      setTotalPages(res.totalPages || 1);
     } catch (e) {
       console.error("Fetch orders error:", e);
+      alert("Không tải được đơn hàng!");
     } finally {
       setLoading(false);
     }
@@ -69,21 +70,33 @@ const OrdersAdmin = () => {
     window.scrollTo(0, 0);
   }, [page]);
 
-  // ===== UPDATE STATUS =====
+  // ===== UPDATE STATUS (🔥 QUAN TRỌNG) =====
   const handleUpdateStatus = async (order, newStatus) => {
     if (order.status === "DELIVERED" || order.status === "CANCELLED") {
       alert("Đơn này không thể cập nhật!");
       return;
     }
 
-    if (!window.confirm("Cập nhật trạng thái đơn hàng?")) return;
+    if (!window.confirm(`Chuyển trạng thái sang "${newStatus}"?`)) return;
 
     try {
-      await updateOrderStatusApi(order.id, newStatus);
+      setLoading(true);
+
+      // 🔥 FIX QUAN TRỌNG
+      await updateOrderStatusApi(order.id, {
+        status: newStatus,
+      });
+
+      if (newStatus === "DELIVERED") {
+        alert("Đã giao hàng → hệ thống đã cộng số lượng bán!");
+      }
+
       fetchOrders();
     } catch (e) {
       console.error(e);
       alert("Cập nhật thất bại!");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -161,14 +174,26 @@ const OrdersAdmin = () => {
                 <span className={styles.orderMoney}>
                   {formatMoney(o.totalAmount)}
                 </span>
+
                 {/* PAYMENT */}
                 <span>
                   {o.paymentMethodDisplay}
                   <br />
-                  <small>{o.paymentStatusDisplay}</small>
+                  <small
+                    style={{
+                      color:
+                        o.paymentStatus === "PENDING"
+                          ? "orange"
+                          : o.paymentStatus === "FAILED"
+                            ? "red"
+                            : "green",
+                    }}
+                  >
+                    {o.paymentStatusDisplay}
+                  </small>
                 </span>
 
-                {/* STATUS (🔥 dropdown màu) */}
+                {/* STATUS */}
                 <select
                   className={`${styles.orderStatusSelect} ${
                     styles[`order_${o.status.toLowerCase()}`]
@@ -176,13 +201,15 @@ const OrdersAdmin = () => {
                   value={o.status}
                   onChange={(e) => handleUpdateStatus(o, e.target.value)}
                   disabled={
-                    o.status === "DELIVERED" || o.status === "CANCELLED"
+                    loading ||
+                    o.status === "DELIVERED" ||
+                    o.status === "CANCELLED"
                   }
                 >
                   <option value="PENDING">Đang xử lý</option>
                   <option value="CONFIRMED">Đã xác nhận</option>
                   <option value="SHIPPING">Đang giao</option>
-                  <option value="DELIVERED">Đã giao</option>
+                  <option value="DELIVERED">Đã giao (tăng sold)</option>
                   <option value="CANCELLED">Đã hủy</option>
                 </select>
 
