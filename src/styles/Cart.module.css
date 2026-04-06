@@ -417,3 +417,129 @@
   font-size: 13px;
   color: #555;
 }
+.unitPrice {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+/* ===== STEP 2 FORM ===== */
+
+.formGroup {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #334155;
+}
+
+.formGroup input,
+.formGroup select,
+.formGroup textarea {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  outline: none;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.formGroup input:focus,
+.formGroup select:focus,
+.formGroup textarea:focus {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15);
+}
+
+/* GRID 2 CỘT */
+.formRow {
+  display: flex;
+  gap: 12px;
+}
+
+.formRow .formGroup {
+  flex: 1;
+}
+
+/* TEXTAREA */
+.formGroup textarea {
+  min-height: 80px;
+  resize: none;
+}
+
+/* CARD FORM */
+.formCard {
+  background: white;
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid #e0f2f1;
+}
+
+/* BUTTON STEP 2 */
+.stepActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.cancelBtn {
+  flex: 1;
+  padding: 12px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.checkoutBtn {
+  flex: 2;
+}
+.error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.required {
+  color: #ef4444;
+  margin-left: 4px;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+  gap: 6px;
+}
+
+.pagination button {
+  min-width: 34px;
+  height: 34px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+/* ✅ hover đúng */
+.pagination button:hover:not(:disabled) {
+  background: #14b8a6;
+  color: white;
+  border-color: #14b8a6;
+}
+
+/* disable */
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* active page */
+.activePage {
+  background: #0d9488 !important;
+  color: white !important;
+  border-color: #0d9488 !important;
+}

@@ -1,9 +1,11 @@
 import apiClient from "./apiClient";
 
-// 🔥 CREATE VNPAY PAYMENT
-export const createVNPayPayment = async (orderId) => {
+export const createVnpayPaymentApi = async (orderId) => {
   try {
-    const res = await apiClient.get(`/payments/vnpay/create/${orderId}`);
+    const res = await apiClient.post(
+      `/payments/vnpay/create/${orderId}`, // 👈 đúng URL
+    );
+
     return res.data.data;
   } catch (error) {
     console.error("VNPay API error:", error.response?.data || error);

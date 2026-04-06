@@ -1,79 +1,258 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import styles from "../../styles/Cart.module.css";
 import { createOrderApi } from "../../api/orderApi";
-import { createVNPayPayment } from "../../api/paymentApi";
+import { getCartApi } from "../../api/cartApi";
+import { createVnpayPaymentApi } from "../../api/paymentApi";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-function CartStep3() {
+function Payment() {
   const navigate = useNavigate();
 
   const [cart, setCart] = useState([]);
-  const [info, setInfo] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [discountCode, setDiscountCode] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const cartData = JSON.parse(localStorage.getItem("cart")) || [];
-    const checkout = JSON.parse(localStorage.getItem("checkout"));
+  const checkout = JSON.parse(localStorage.getItem("checkout") || "{}");
 
-    setCart(cartData);
-    setInfo(checkout);
+  const formatPrice = (p) => p.toLocaleString("vi-VN") + " đ";
+
+  // ================= SHIPPING =================
+  const calculateShipping = (subtotal) => {
+    return subtotal > 500000 ? 0 : 30000; // 🔥 sửa 300k -> 30k
+  };
+
+  // ================= LOAD CART =================
+  useEffect(() => {
+    fetchCart();
   }, []);
 
-  const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  const fetchCart = async () => {
+    try {
+      const data = await getCartApi();
+      setCart(data.items || []);
+    } catch {
+      toast.error("Lỗi tải giỏ hàng");
+    }
+  };
 
-  const handleVNPay = async () => {
+  // ================= TOTAL =================
+  const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  const shipping = calculateShipping(subtotal);
+
+  const discount = (() => {
+    if (!discountCode) return 0;
+
+    switch (discountCode.toUpperCase()) {
+      case "FREESHIP":
+        return shipping;
+      case "SALE10":
+        return subtotal * 0.1;
+      case "SALE20":
+        return subtotal * 0.2;
+      default:
+        return 0;
+    }
+  })();
+
+  const total = Math.max(0, subtotal + shipping - discount);
+
+  // ================= VALIDATE =================
+  const validateCheckout = () => {
+    if (!checkout.name || !checkout.phone) {
+      toast.error("Thiếu tên hoặc số điện thoại");
+      return false;
+    }
+
+    if (!checkout.address || !checkout.ward) {
+      toast.error("Thiếu địa chỉ");
+      return false;
+    }
+
+    if (!checkout.city && !checkout.province) {
+      toast.error("Thiếu tỉnh/thành");
+      return false;
+    }
+
+    if (cart.length === 0) {
+      toast.error("Giỏ hàng trống");
+      return false;
+    }
+
+    return true;
+  };
+
+  // ================= SUBMIT =================
+  const handleOrder = async () => {
+    if (loading) return;
+    if (!validateCheckout()) return;
+
     try {
       setLoading(true);
 
-      // 🔥 1. CREATE ORDER
-      const res = await createOrderApi({
-        name: info.name,
-        phone: info.phone,
-        address: info.address,
+      // 1️⃣ Tạo order
+      const order = await createOrderApi({
+        customerName: checkout.name,
+        customerPhone: checkout.phone,
+        shippingAddress: checkout.address,
+        shippingCity: checkout.city || null,
+        shippingProvince: checkout.province || null,
+        shippingWard: checkout.ward,
+        note: checkout.note || "",
+        paymentMethod,
+        discountCode: discountCode || "",
       });
 
-      const orderId = res.data.data.id;
+      // ================= COD =================
+      if (paymentMethod === "COD") {
+        toast.success("Đặt hàng thành công!");
 
-      // lưu lại để dùng ở success
-      localStorage.setItem("orderId", orderId);
+        localStorage.removeItem("checkout");
 
-      // 🔥 2. CREATE PAYMENT URL
-      const pay = await createVNPayPayment(orderId);
+        setTimeout(() => {
+          navigate("/order-success", {
+            state: { order },
+          });
+        }, 800);
 
-      const url = pay.data.data;
+        return;
+      }
 
-      // 🔥 3. REDIRECT
-      window.location.href = url;
+      // ================= VNPAY =================
+      if (paymentMethod === "VNPAY") {
+        const res = await createVnpayPaymentApi(order.id);
+
+        const paymentUrl = res.paymentUrl;
+
+        if (!paymentUrl) {
+          toast.error("Không tạo được link thanh toán");
+          return;
+        }
+        localStorage.setItem("pendingOrderId", order.id);
+        // 👉 redirect
+        window.location.href = paymentUrl;
+      }
     } catch (err) {
-      console.log(err);
-      alert("Thanh toán thất bại");
+      console.error(err);
+
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Đặt hàng thất bại";
+
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
+  // ================= UI =================
   return (
-    <div style={{ padding: 40 }}>
-      <h2>Thanh toán</h2>
+    <div className={styles.container}>
+      <h2 className={styles.titlegh}>Thanh toán</h2>
 
-      <h3>Thông tin</h3>
-      <p>{info?.name}</p>
-      <p>{info?.phone}</p>
-      <p>{info?.address}</p>
+      <div className={styles.wrapper}>
+        {/* LEFT */}
+        <div className={styles.cartList}>
+          {/* DISCOUNT */}
+          <div className={styles.formCard}>
+            <h3>Mã giảm giá</h3>
 
-      <h3>Đơn hàng</h3>
-      {cart.map((i) => (
-        <div key={i.id}>
-          {i.name} x{i.quantity}
+            <input
+              placeholder="Nhập mã"
+              value={discountCode}
+              onChange={(e) => setDiscountCode(e.target.value)}
+            />
+
+            <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
+              <button onClick={() => setDiscountCode("SALE10")}>SALE10</button>
+              <button onClick={() => setDiscountCode("SALE20")}>SALE20</button>
+              <button onClick={() => setDiscountCode("FREESHIP")}>
+                FREESHIP
+              </button>
+            </div>
+          </div>
+
+          {/* PAYMENT */}
+          <div className={styles.formCard}>
+            <h3>Thanh toán</h3>
+
+            <label>
+              <input
+                type="radio"
+                checked={paymentMethod === "COD"}
+                onChange={() => setPaymentMethod("COD")}
+              />
+              COD
+            </label>
+
+            <label>
+              <input
+                type="radio"
+                checked={paymentMethod === "VNPAY"}
+                onChange={() => setPaymentMethod("VNPAY")}
+              />
+              VNPay
+            </label>
+          </div>
+
+          {/* ACTION */}
+          <div className={styles.stepActions}>
+            <button onClick={() => navigate("/cart2")} disabled={loading}>
+              Quay lại
+            </button>
+
+            <button
+              onClick={handleOrder}
+              disabled={loading || cart.length === 0}
+            >
+              {loading ? "Đang xử lý..." : "Đặt hàng"}
+            </button>
+          </div>
         </div>
-      ))}
 
-      <h3>Tổng: {total.toLocaleString("vi-VN")} đ</h3>
+        {/* RIGHT */}
+        <div className={styles.summary}>
+          <h3 className={styles.summaryTitle}>Tóm tắt</h3>
 
-      <button onClick={handleVNPay} disabled={loading}>
-        {loading ? "Đang xử lý..." : "Thanh toán VNPay"}
-      </button>
+          {cart.map((item) => (
+            <div key={item.productId} className={styles.summaryItemBig}>
+              <div>
+                {item.productName} x{item.quantity}
+              </div>
+              <div>{formatPrice(item.price * item.quantity)}</div>
+            </div>
+          ))}
+
+          <hr />
+
+          <div className={styles.summaryRow}>
+            <span>Tạm tính</span>
+            <span>{formatPrice(subtotal)}</span>
+          </div>
+
+          <div className={styles.summaryRow}>
+            <span>Ship</span>
+            <span>{formatPrice(shipping)}</span>
+          </div>
+
+          <div className={styles.summaryRow}>
+            <span>Giảm</span>
+            <span>-{formatPrice(discount)}</span>
+          </div>
+
+          <div className={styles.totalBig}>
+            <span>Tổng</span>
+            <span>{formatPrice(total)}</span>
+          </div>
+        </div>
+      </div>
+
+      <ToastContainer position="top-center" autoClose={3000} />
     </div>
   );
 }
 
-export default CartStep3;
+export default Payment;
