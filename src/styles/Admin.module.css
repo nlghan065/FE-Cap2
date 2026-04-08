@@ -1850,3 +1850,95 @@ tr:hover {
 .pay_failed {
   color: red;
 }
+/* Container filter bar */
+.filterBar {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Input & select fields */
+.filterBar select,
+.filterBar input {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #b2dfdb; /* nhẹ nhàng teal */
+  background: #e0f2f1; /* nhạt teal nền */
+  color: #004d40; /* chữ tối hơn teal */
+  font-size: 14px;
+  transition:
+    border 0.2s,
+    box-shadow 0.2s;
+}
+
+.filterBar select:focus,
+.filterBar input:focus {
+  outline: none;
+  border-color: #26a69a; /* teal đậm khi focus */
+  box-shadow: 0 0 5px rgba(38, 166, 154, 0.4);
+}
+
+/* Buttons chung */
+.filterBar button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+  border: none;
+}
+
+/* Nút Reset nổi bật */
+.filterBar .resetBtn {
+  background: #26a69a; /* teal đậm */
+  color: #fff;
+}
+
+.filterBar .resetBtn:hover {
+  background: #00796b; /* teal đậm hơn khi hover */
+}
+
+/* Nếu có nút thêm sản phẩm */
+.filterBar .addBtn {
+  background: #80cbc4; /* teal nhạt hơn */
+  color: #004d40;
+}
+
+.filterBar .addBtn:hover {
+  background: #4db6ac;
+}
+/* Nút Reset riêng */
+.resetBtn {
+  background-color: #26a69a !important; /* teal đậm */
+  color: #ffffff; /* chữ trắng nổi bật */
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    transform 0.1s;
+}
+
+/* Hover hiệu ứng */
+.resetBtn:hover {
+  background-color: #00796b; /* teal đậm hơn khi hover */
+  transform: translateY(-1px); /* nhấn nhẹ khi hover */
+}
+
+/* Focus & active */
+.resetBtn:focus {
+  outline: none;
+  box-shadow: 0 0 4px rgba(38, 166, 154, 0.5);
+}
+
+.resetBtn:active {
+  transform: translateY(0); /* nhấn xuống */
+}

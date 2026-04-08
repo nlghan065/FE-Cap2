@@ -12,6 +12,7 @@ export const getProductsAdminApi = async ({
 
     if (keyword && keyword.trim() !== "") {
       url = "/admin/products/search";
+      params.query = keyword.trim(); // 🔥 thêm query cho BE nhận
     }
 
     const res = await apiClient.get(url, { params });
@@ -79,6 +80,7 @@ export const searchProductsAdminApi = async ({
   size = 10,
   keyword,
   category,
+  material, // thêm material
   minPrice,
   maxPrice,
   inStock,
@@ -89,8 +91,9 @@ export const searchProductsAdminApi = async ({
     const params = {
       page,
       size,
-      query: keyword, // 🔥 FIX Ở ĐÂY
+      query: keyword,
       category,
+      material, // gửi BE
       minPrice,
       maxPrice,
       inStock,
@@ -98,16 +101,13 @@ export const searchProductsAdminApi = async ({
       sortDir,
     };
 
-    Object.keys(params).forEach(
-      (key) =>
-        (params[key] === "" ||
-          params[key] === null ||
-          params[key] === undefined) &&
-        delete params[key],
+    Object.keys(params).forEach((key) =>
+      params[key] === "" || params[key] === null || params[key] === undefined
+        ? delete params[key]
+        : null,
     );
 
     const res = await apiClient.get("/admin/products/search", { params });
-
     const data = res.data?.data;
 
     return {
