@@ -310,3 +310,17 @@
     height: 45px;
   }
 }
+.cancelBtn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  background: #ff4d4f;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.cancelBtn:hover {
+  background: #d9363e;
+}

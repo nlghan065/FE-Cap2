@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getOrdersApi } from "../../api/orderApi";
 import { addToCartApi } from "../../api/cartApi";
-
+import { cancelOrderApi } from "../../api/orderApi";
 import styles from "../../styles/Orders.module.css";
 import {
   Package,
@@ -78,6 +78,24 @@ export default function OrdersPage() {
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || "Không thể thanh toán!");
+    }
+  };
+  const handleCancel = async (orderId) => {
+    const confirm = window.confirm("Bạn có chắc muốn huỷ đơn hàng này?");
+    if (!confirm) return;
+
+    try {
+      await cancelOrderApi(orderId);
+
+      toast.success("Đã huỷ đơn hàng");
+      fetchOrders();
+    } catch (error) {
+      console.error("Cancel error:", error);
+
+      const msg =
+        error?.response?.data?.message || error.message || "Huỷ đơn thất bại";
+
+      toast.error(msg);
     }
   };
 
@@ -223,6 +241,15 @@ export default function OrdersPage() {
                         onClick={() => handlePay(order.id)}
                       >
                         Thanh toán
+                      </button>
+                    )}
+                  {["PENDING", "CONFIRMED"].includes(order.status) &&
+                    order.paymentStatus !== "PAID" && (
+                      <button
+                        className={styles.cancelBtn}
+                        onClick={() => handleCancel(order.id)}
+                      >
+                        Huỷ đơn
                       </button>
                     )}
 

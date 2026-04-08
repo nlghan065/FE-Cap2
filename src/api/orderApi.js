@@ -25,7 +25,7 @@ export const getOrdersApi = async (page = 0, size = 10) => {
 // 🔥 CANCEL ORDER
 export const cancelOrderApi = async (orderId) => {
   try {
-    const res = await apiClient.post(`/orders/${orderId}/cancel`);
+    const res = await apiClient.put(`/orders/${orderId}/cancel`);
     return res.data.data;
   } catch (error) {
     console.error("Cancel Order API error:", error.response?.data || error);
