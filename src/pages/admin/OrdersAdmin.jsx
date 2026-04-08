@@ -4,7 +4,7 @@ import styles from "../../styles/Admin.module.css";
 
 import AdminHeader from "../../layout/admin/AdminHeader";
 import AdminMenu from "../../layout/admin/AdminMenu";
-import { Eye, Pencil, Trash2, Search } from "lucide-react";
+import { Eye, Pencil, Search } from "lucide-react";
 
 import {
   getOrdersAdminApi,
@@ -70,22 +70,43 @@ const OrdersAdmin = () => {
     window.scrollTo(0, 0);
   }, [page]);
 
-  // ===== UPDATE STATUS (🔥 QUAN TRỌNG) =====
+  // ===== UPDATE STATUS =====
   const handleUpdateStatus = async (order, newStatus) => {
+    // ❌ lock đơn
     if (order.status === "DELIVERED" || order.status === "CANCELLED") {
       alert("Đơn này không thể cập nhật!");
       return;
     }
 
-    if (!window.confirm(`Chuyển trạng thái sang "${newStatus}"?`)) return;
+    // 🚨 CHẶN VNPAY CHƯA THANH TOÁN
+    if (order.paymentMethod === "VNPAY" && order.paymentStatus !== "PAID") {
+      alert("Đơn chưa thanh toán VNPAY → không thể cập nhật!");
+      return;
+    }
+
+    // 🚨 CHẶN NHẢY FLOW
+    const validFlow = {
+      PENDING: ["CONFIRMED", "CANCELLED"],
+      CONFIRMED: ["SHIPPING", "CANCELLED"],
+      SHIPPING: ["DELIVERED"],
+    };
+
+    if (!validFlow[order.status]?.includes(newStatus)) {
+      alert("Không thể chuyển trạng thái không hợp lệ!");
+      return;
+    }
+
+    const confirmMsg =
+      newStatus === "CANCELLED"
+        ? "Bạn có chắc muốn HỦY đơn này?"
+        : `Chuyển sang "${newStatus}"?`;
+
+    if (!window.confirm(confirmMsg)) return;
 
     try {
       setLoading(true);
 
-      // 🔥 FIX QUAN TRỌNG
-      await updateOrderStatusApi(order.id, {
-        status: newStatus,
-      });
+      await updateOrderStatusApi(order.id, newStatus);
 
       if (newStatus === "DELIVERED") {
         alert("Đã giao hàng → hệ thống đã cộng số lượng bán!");
@@ -106,7 +127,7 @@ const OrdersAdmin = () => {
       <AdminMenu />
 
       <div className={styles.orderContainer}>
-        {/* ===== TOP BAR ===== */}
+        {/* TOP BAR */}
         <div className={styles.orderTopBar}>
           <div className={styles.orderSearchBox}>
             <Search size={16} />
@@ -137,7 +158,7 @@ const OrdersAdmin = () => {
           </select>
         </div>
 
-        {/* ===== TABLE ===== */}
+        {/* TABLE */}
         <div className={styles.orderTable}>
           <div className={styles.orderThead}>
             <span>Mã đơn</span>
@@ -155,100 +176,107 @@ const OrdersAdmin = () => {
           ) : orders.length === 0 ? (
             <p style={{ padding: 20 }}>Không có đơn hàng</p>
           ) : (
-            orders.map((o) => (
-              <div key={o.id} className={styles.orderRow}>
-                {/* MÃ ĐƠN */}
-                <span className={styles.orderCode}>{o.orderCode}</span>
+            orders.map((o) => {
+              const isLocked =
+                o.status === "DELIVERED" || o.status === "CANCELLED";
+              const isVnpayNotPaid =
+                o.paymentMethod === "VNPAY" && o.paymentStatus !== "PAID";
+              const canCancel = ["PENDING", "CONFIRMED"].includes(o.status);
 
-                {/* KHÁCH */}
-                <span>
-                  <b>{o.customerName}</b>
-                  <br />
-                  <small>{o.customerEmail}</small>
-                </span>
+              return (
+                <div key={o.id} className={styles.orderRow}>
+                  <span className={styles.orderCode}>{o.orderCode}</span>
 
-                {/* SẢN PHẨM */}
-                <span>{o.totalItems || 0} sản phẩm</span>
+                  <span>
+                    <b>{o.customerName}</b>
+                    <br />
+                    <small>{o.customerEmail}</small>
+                  </span>
 
-                {/* TIỀN */}
-                <span className={styles.orderMoney}>
-                  {formatMoney(o.totalAmount)}
-                </span>
+                  <span>{o.totalItems || 0} sản phẩm</span>
 
-                {/* PAYMENT */}
-                <span>
-                  {o.paymentMethodDisplay}
-                  <br />
-                  <small
-                    style={{
-                      color:
-                        o.paymentStatus === "PENDING"
-                          ? "orange"
-                          : o.paymentStatus === "FAILED"
+                  <span className={styles.orderMoney}>
+                    {formatMoney(o.totalAmount)}
+                  </span>
+
+                  <span>
+                    {o.paymentMethodDisplay}
+                    <br />
+                    <small
+                      style={{
+                        color:
+                          o.paymentStatus === "FAILED"
                             ? "red"
-                            : "green",
-                    }}
+                            : o.paymentStatus === "PAID"
+                              ? "green"
+                              : "orange",
+                      }}
+                    >
+                      {o.paymentStatusDisplay}
+                    </small>
+                  </span>
+
+                  <select
+                    className={`${styles.orderStatusSelect} ${
+                      styles[`order_${o.status.toLowerCase()}`]
+                    }`}
+                    value={o.status}
+                    onChange={(e) => handleUpdateStatus(o, e.target.value)}
+                    disabled={loading || isLocked || isVnpayNotPaid}
                   >
-                    {o.paymentStatusDisplay}
-                  </small>
-                </span>
+                    <option value="PENDING">Đang xử lý</option>
+                    <option value="CONFIRMED">Đã xác nhận</option>
+                    <option value="SHIPPING">Đang giao</option>
+                    <option value="DELIVERED">Đã giao</option>
+                    <option value="CANCELLED">Đã hủy</option>
+                  </select>
 
-                {/* STATUS */}
-                <select
-                  className={`${styles.orderStatusSelect} ${
-                    styles[`order_${o.status.toLowerCase()}`]
-                  }`}
-                  value={o.status}
-                  onChange={(e) => handleUpdateStatus(o, e.target.value)}
-                  disabled={
-                    loading ||
-                    o.status === "DELIVERED" ||
-                    o.status === "CANCELLED"
-                  }
-                >
-                  <option value="PENDING">Đang xử lý</option>
-                  <option value="CONFIRMED">Đã xác nhận</option>
-                  <option value="SHIPPING">Đang giao</option>
-                  <option value="DELIVERED">Đã giao (tăng sold)</option>
-                  <option value="CANCELLED">Đã hủy</option>
-                </select>
+                  <span>
+                    {o.createdAt
+                      ? new Date(o.createdAt).toLocaleDateString("vi-VN")
+                      : "—"}
+                  </span>
 
-                {/* DATE */}
-                <span>
-                  {o.createdAt
-                    ? new Date(o.createdAt).toLocaleDateString("vi-VN")
-                    : "—"}
-                </span>
+                  {/* ACTION */}
+                  <div className={styles.actions}>
+                    <button
+                      className={styles.viewBtn}
+                      onClick={() => navigate(`/admin/orders/${o.id}`)}
+                    >
+                      <Eye size={16} />
+                    </button>
 
-                {/* ACTION */}
-                <div className={styles.actions}>
-                  <button
-                    className={styles.viewBtn}
-                    onClick={() => navigate(`/admin/orders/${o.id}`)}
-                  >
-                    <Eye size={16} />
-                  </button>
+                    <button
+                      className={`${styles.editBtn} ${
+                        isLocked ? styles.disabledBtn : ""
+                      }`}
+                      onClick={() =>
+                        !isLocked && navigate(`/admin/orders/${o.id}/edit`)
+                      }
+                      disabled={isLocked}
+                    >
+                      <Pencil size={16} />
+                    </button>
 
-                  <button
-                    className={styles.editBtn}
-                    onClick={() => navigate(`/admin/orders/${o.id}/edit`)}
-                  >
-                    <Pencil size={16} />
-                  </button>
-
-                  <button
-                    className={styles.deleteBtn}
-                    onClick={() => alert("TODO: delete")}
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                    <button
+                      className={`${styles.cancelBtn} ${
+                        !canCancel ? styles.disabledBtn : ""
+                      }`}
+                      onClick={() =>
+                        canCancel && handleUpdateStatus(o, "CANCELLED")
+                      }
+                      disabled={!canCancel}
+                    >
+                      Hủy
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
-        {/* ===== PAGINATION ===== */}
+        {/* PAGINATION */}
         <div className={styles.orderPagination}>
           <button disabled={page === 0} onClick={() => setPage(page - 1)}>
             ←

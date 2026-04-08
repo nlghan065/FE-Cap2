@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { createVnpayPaymentApi } from "../../api/paymentApi";
 
 const PAGE_SIZE = 5;
 
@@ -65,6 +66,19 @@ export default function OrdersPage() {
     }
 
     setLoading(false);
+  };
+  const handlePay = async (orderId) => {
+    try {
+      const res = await createVnpayPaymentApi(orderId);
+
+      // ✅ lưu lại để dùng sau khi redirect
+      localStorage.setItem("pendingOrderId", orderId);
+
+      window.location.href = res.paymentUrl;
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Không thể thanh toán!");
+    }
   };
 
   useEffect(() => {
@@ -200,6 +214,17 @@ export default function OrdersPage() {
                     <Eye size={16} />
                     Chi tiết
                   </button>
+                  {order.paymentMethod === "VNPAY" &&
+                    order.paymentStatus !== "PAID" && // ✅ FIX
+                    order.status !== "CANCELLED" &&
+                    order.status !== "DELIVERED" && ( // ✅ thêm cái này
+                      <button
+                        className={styles.payBtn}
+                        onClick={() => handlePay(order.id)}
+                      >
+                        Thanh toán
+                      </button>
+                    )}
 
                   {order.status === "DELIVERED" && (
                     <button

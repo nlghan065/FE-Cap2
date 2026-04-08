@@ -24,7 +24,7 @@ import Cart from "./pages/user/Cart";
 import CartStep2 from "./pages/user/CartStep2";
 import CartStep3 from "./pages/user/CartStep3";
 import PaymentResult from "./pages/user/PaymentResult";
-import PaymentReturn from "./pages/user/PaymentReturn";
+
 import OrderSuccess from "./pages/user/OrderSuccess";
 import OrderFail from "./pages/user/OrderFail";
 import Orders from "./pages/user/Orders";
@@ -70,7 +70,7 @@ function App() {
             <Route path="/cart2" element={<CartStep2 />} />
             <Route path="/payment" element={<CartStep3 />} />
             <Route path="/payment-result" element={<PaymentResult />} />
-            <Route path="/payment-return" element={<PaymentReturn />} />
+
             <Route path="/order-success" element={<OrderSuccess />} />
             <Route path="/order-fail" element={<OrderFail />} />
             <Route path="/orders" element={<Orders />} />

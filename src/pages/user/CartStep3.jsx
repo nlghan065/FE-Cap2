@@ -98,11 +98,18 @@ function Payment() {
 
       if (paymentMethod === "COD") {
         toast.success("Đặt hàng thành công!");
+
+        // ✅ LƯU ID
+        localStorage.setItem("pendingOrderId", order.id);
+
         localStorage.removeItem("checkout");
-        localStorage.removeItem("pendingOrderId");
+
         setTimeout(() => {
-          navigate("/order-success", { state: { order } });
+          navigate("/order-success", {
+            state: { orderId: order.id }, // ✅ truyền đúng ID
+          });
         }, 800);
+
         return;
       }
 
@@ -110,9 +117,10 @@ function Payment() {
         const res = await createVnpayPaymentApi(order.id);
         if (!res?.paymentUrl) {
           toast.error("Không tạo được link thanh toán");
+          setLoading(false); // ✅ FIX
           return;
         }
-        localStorage.setItem("pendingOrderId", order.id);
+        sessionStorage.setItem("pendingOrderId", order.id);
         window.location.href = res.paymentUrl;
       }
     } catch (err) {

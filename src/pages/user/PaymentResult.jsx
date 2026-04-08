@@ -1,39 +1,55 @@
-import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { verifyVnpayApi } from "../../api/paymentApi";
 
 function PaymentResult() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleVerify = async () => {
       const params = new URLSearchParams(location.search);
-      const orderId = localStorage.getItem("pendingOrderId");
+
+      const pendingOrderId = sessionStorage.getItem("pendingOrderId");
+
+      if (!pendingOrderId) {
+        navigate("/");
+        return;
+      }
 
       try {
-        // 👉 gửi toàn bộ query lên backend
+        // ✅ check nhanh từ VNPay trước
+        const responseCode = params.get("vnp_ResponseCode");
+
+        if (responseCode !== "00") {
+          navigate("/order-fail", {
+            state: { orderId: pendingOrderId },
+          });
+          return;
+        }
+
         const res = await verifyVnpayApi(params.toString());
 
-        if (res?.success) {
+        // ✅ FIX ở đây
+        const isSuccess = res?.success === true;
+
+        if (isSuccess) {
           navigate("/order-success", {
-            state: { orderId },
+            state: { orderId: pendingOrderId },
           });
         } else {
           navigate("/order-fail", {
-            state: { orderId },
+            state: { orderId: pendingOrderId },
           });
         }
       } catch (error) {
-        console.error("Verify VNPay error:", error);
+        console.error("Verify error:", error);
 
         navigate("/order-fail", {
-          state: { orderId },
+          state: { orderId: pendingOrderId },
         });
       } finally {
-        localStorage.removeItem("pendingOrderId");
-        setLoading(false);
+        sessionStorage.removeItem("pendingOrderId");
       }
     };
 

@@ -1,29 +1,34 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import styles from "../../styles/OrderSuccess.module.css";
-import { getOrderByIdApi } from "../../api/orderApi";
+import { getOrderByIdApi, getOrderByCodeApi } from "../../api/orderApi";
 
 function OrderSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [order, setOrder] = useState(location.state?.order || null);
+  const [order, setOrder] = useState(null);
+
+  const pendingOrderId = localStorage.getItem("pendingOrderId");
   const orderIdFromState = location.state?.orderId;
+
+  const finalId = pendingOrderId || orderIdFromState;
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        // Ưu tiên lấy từ localStorage (VNPay redirect)
-        const pendingOrderId = localStorage.getItem("pendingOrderId");
+        if (!finalId) return;
 
-        const finalOrderId = pendingOrderId || orderIdFromState;
+        let data = null;
 
-        if (!finalOrderId) return;
+        if (finalId.startsWith("ORD")) {
+          data = await getOrderByCodeApi(finalId);
+        } else {
+          data = await getOrderByIdApi(finalId);
+        }
 
-        const data = await getOrderByIdApi(finalOrderId);
         setOrder(data);
 
-        // clear sau khi dùng
         localStorage.removeItem("pendingOrderId");
       } catch (error) {
         console.error("Fetch order failed:", error);
@@ -31,7 +36,43 @@ function OrderSuccess() {
     };
 
     fetchOrder();
-  }, [orderIdFromState]);
+  }, [finalId]);
+  useEffect(() => {
+    if (!finalId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        let data = null;
+
+        if (finalId.startsWith("ORD")) {
+          data = await getOrderByCodeApi(finalId);
+        } else {
+          data = await getOrderByIdApi(finalId);
+        }
+
+        setOrder(data);
+
+        // ✅ nếu đã PAID thì dừng
+        if (data?.paymentMethod !== "VNPAY" || data?.paymentStatus === "PAID") {
+          clearInterval(interval);
+        }
+      } catch (error) {
+        console.error("Retry fetch order failed:", error);
+      }
+    }, 3000); // retry mỗi 3s
+
+    return () => clearInterval(interval);
+  }, [finalId]);
+
+  // ✅ CHỐNG fake success
+  if (order?.paymentMethod === "VNPAY" && order?.paymentStatus !== "PAID") {
+    return (
+      <div style={{ textAlign: "center", marginTop: 100 }}>
+        <h2>Đang xác minh thanh toán...</h2>
+        <p>Hệ thống đang xác nhận với VNPay, vui lòng đợi vài giây</p>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
@@ -56,7 +97,7 @@ function OrderSuccess() {
               <p className={styles.label}>Tổng tiền</p>
               <p className={styles.price}>
                 {order?.totalAmount != null
-                  ? order.totalAmount.toLocaleString() + " đ"
+                  ? Number(order.totalAmount).toLocaleString("vi-VN") + " đ"
                   : "---"}
               </p>
             </div>
@@ -83,7 +124,10 @@ function OrderSuccess() {
             Xem đơn hàng
           </button>
 
-          <button className={styles.secondaryBtn} onClick={() => navigate("/")}>
+          <button
+            className={styles.secondaryBtn}
+            onClick={() => navigate("/home")}
+          >
             Về trang chủ
           </button>
         </div>

@@ -84,7 +84,7 @@ export const resetPasswordApi = async (data) => {
     const res = await apiClient.post("/auth/reset-password", {
       email: data.email,
       otp: data.otp,
-      newPassword: data.password,
+      newPassword: data.newPassword,
     });
 
     console.log("Reset password success:", res.data);

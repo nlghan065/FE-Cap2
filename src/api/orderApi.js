@@ -42,3 +42,15 @@ export const getOrderByIdApi = async (orderId) => {
     throw error;
   }
 };
+export const getOrderByCodeApi = async (code) => {
+  try {
+    const res = await apiClient.get(`/orders/code/${code}`);
+    return res.data.data;
+  } catch (error) {
+    console.error(
+      "Get Order By Code API error:",
+      error.response?.data || error,
+    );
+    throw error;
+  }
+};

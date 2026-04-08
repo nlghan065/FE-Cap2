@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import styles from "../../styles/OrderFail.module.css";
 
 function OrderFail() {
   const navigate = useNavigate();
@@ -7,23 +8,37 @@ function OrderFail() {
   const orderId = location.state?.orderId;
 
   return (
-    <div style={{ textAlign: "center", marginTop: 100 }}>
-      <h1 style={{ color: "red" }}>❌ Thanh toán thất bại</h1>
+    <div className={styles.container}>
+      <div className={styles.card}>
+        <div className={styles.icon}>❌</div>
 
-      <p>Đơn hàng chưa được thanh toán.</p>
+        <h1 className={styles.title}>Thanh toán thất bại</h1>
 
-      {orderId && (
-        <p>
-          Mã đơn: <b>{orderId}</b>
+        <p className={styles.subtitle}>
+          Đơn hàng của bạn chưa được thanh toán hoặc đã bị huỷ.
         </p>
-      )}
 
-      <div style={{ marginTop: 20 }}>
-        <button onClick={() => navigate("/payment")}>Thử lại</button>
+        {orderId && (
+          <div className={styles.orderId}>
+            Mã đơn: <b>{orderId}</b>
+          </div>
+        )}
 
-        <button style={{ marginLeft: 10 }} onClick={() => navigate("/")}>
-          Về trang chủ
-        </button>
+        <div className={styles.actions}>
+          <button
+            className={styles.primaryBtn}
+            onClick={() => navigate("/orders")}
+          >
+            Xem đơn hàng
+          </button>
+
+          <button
+            className={styles.secondaryBtn}
+            onClick={() => navigate("/home")}
+          >
+            Về trang chủ
+          </button>
+        </div>
       </div>
     </div>
   );
