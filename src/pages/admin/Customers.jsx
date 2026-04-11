@@ -120,16 +120,6 @@ const Customers = () => {
               onChange={(e) => setKeyword(e.target.value)}
             />
           </div>
-
-          <button
-            className={styles.filterBtn}
-            onClick={() =>
-              setStatus(status === "ACTIVE" ? "CANCELLED" : "ACTIVE")
-            }
-          >
-            <Filter size={16} />
-            {status === "ACTIVE" ? "Đang lọc: Hoạt động" : "Lọc"}
-          </button>
         </div>
 
         {/* TABLE */}
