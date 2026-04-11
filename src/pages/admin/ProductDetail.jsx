@@ -6,7 +6,7 @@ import styles from "../../styles/Admin.module.css";
 import { Pencil } from "lucide-react";
 import { getProductAdminByIdApi } from "../../api/productAdminApi";
 
-const ProductDetail = () => {
+const AdminProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
@@ -156,4 +156,4 @@ const ProductDetail = () => {
   );
 };
 
-export default ProductDetail;
+export default AdminProductDetail;

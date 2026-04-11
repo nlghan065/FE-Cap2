@@ -233,15 +233,22 @@ const ProductsAdmin = () => {
                 <span>{p.stock || 0}</span>
                 <span>{renderStock(p)}</span>
                 <div className={styles.actions}>
-                  <button onClick={() => navigate(`/admin/products/${p.id}`)}>
+                  <button
+                    className={styles.viewBtn}
+                    onClick={() => navigate(`/admin/products/${p.id}`)}
+                  >
                     <Eye size={14} />
                   </button>
                   <button
+                    className={styles.editBtn}
                     onClick={() => navigate(`/admin/products/${p.id}/edit`)}
                   >
                     <Pencil size={14} />
                   </button>
-                  <button onClick={() => handleDelete(p.id)}>
+                  <button
+                    className={styles.deleteBtn}
+                    onClick={() => handleDelete(p.id)}
+                  >
                     <Trash2 size={14} />
                   </button>
                 </div>

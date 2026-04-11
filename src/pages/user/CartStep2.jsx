@@ -16,6 +16,8 @@ import { getCitiesApi, getWardsApi } from "../../api/authApi";
 function CartStep2() {
   const navigate = useNavigate();
   const location = useLocation();
+  const role = localStorage.getItem("role") || sessionStorage.getItem("role");
+  const isAdminPreview = role === "ADMIN";
 
   // ================= STATE =================
   const [profileId, setProfileId] = useState(null);
@@ -92,9 +94,20 @@ function CartStep2() {
   };
 
   const fetchCart = async () => {
-    const data = await getCartApi();
-    setCart(data.items || []);
-    setShipping(calculateShipping(data.totalPrice || 0));
+    try {
+      const data = await getCartApi();
+      setCart(data.items || []);
+      setShipping(calculateShipping(data.totalPrice || 0));
+    } catch (err) {
+      console.error(err);
+
+      if (!isAdminPreview) {
+        alert("Không thể tải giỏ hàng");
+      }
+
+      setCart([]);
+      setShipping(0);
+    }
   };
 
   // ================= CITY =================

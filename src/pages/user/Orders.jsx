@@ -16,6 +16,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { createVnpayPaymentApi } from "../../api/paymentApi";
+import logoImage from "../../assets/logo.png";
+import {
+  getResolvedOrderItemImage,
+  hydrateOrderItemsWithImages,
+} from "../../utils/orderItemImage";
 
 const PAGE_SIZE = 5;
 
@@ -57,8 +62,18 @@ export default function OrdersPage() {
       const res = await getOrdersApi();
 
       const ordersData = res?.data?.content || res?.content || [];
+      const imageCache = new Map();
+      const hydratedOrders = await Promise.all(
+        ordersData.map(async (order) => ({
+          ...order,
+          items: await hydrateOrderItemsWithImages(
+            order.items || [],
+            imageCache,
+          ),
+        })),
+      );
 
-      setOrders(ordersData);
+      setOrders(hydratedOrders);
     } catch (error) {
       console.error("Fetch orders error:", error);
       toast.error("Không thể tải đơn hàng");
@@ -196,9 +211,13 @@ export default function OrdersPage() {
                 {order.items?.slice(0, 3).map((item, idx) => (
                   <img
                     key={item.id ?? idx}
-                    src={item.productImage}
+                    src={getResolvedOrderItemImage(item) || logoImage}
                     alt={item.productName}
                     className={styles.productImg}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = logoImage;
+                    }}
                   />
                 ))}
 

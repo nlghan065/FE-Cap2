@@ -11,6 +11,7 @@ import CustomerEdit from "./pages/admin/CustomerEdit";
 import ProductsAdmin from "./pages/admin/ProductsAdmin";
 
 import ProductEdit from "./pages/admin/ProductEdit";
+import AdminProductDetail from "./pages/admin/ProductDetail";
 import ProductCreate from "./pages/admin/ProductCreate";
 import OrdersAdmin from "./pages/admin/OrdersAdmin";
 import OrderDetail from "./pages/admin/OrderDetail";
@@ -100,8 +101,7 @@ function App() {
             <Route path="/admin/orders/:id/edit" element={<OrderEdit />} />
           </Route>
           <Route path="/admin/products" element={<ProductsAdmin />} />
-          <Route path="/admin/products/:id" element={<ProductDetail />} />
-
+          <Route path="/admin/products/:id" element={<AdminProductDetail />} />
           <Route path="/admin/products/:id/edit" element={<ProductEdit />} />
           <Route path="/admin/products/create" element={<ProductCreate />} />
         </Route>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Settings, LogOut } from "lucide-react";
+import { User, Settings, LogOut, Store } from "lucide-react";
 import styles from "../../styles/Admin.module.css";
 import { useNavigate } from "react-router-dom";
 import { getUserByIdApi } from "../../api/authApi";
@@ -10,10 +10,17 @@ function AdminHeader() {
 
   const navigate = useNavigate();
 
+  const handleGoToUserView = () => {
+    navigate("/home");
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("role");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("userId");
+    sessionStorage.removeItem("role");
 
     navigate("/login");
   };
@@ -21,7 +28,8 @@ function AdminHeader() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const userId = localStorage.getItem("userId");
+        const userId =
+          localStorage.getItem("userId") || sessionStorage.getItem("userId");
 
         if (!userId) return;
 
@@ -48,6 +56,11 @@ function AdminHeader() {
       </div>
 
       <div className={styles.headerRight}>
+        <button className={styles.switchViewBtn} onClick={handleGoToUserView}>
+          <Store size={18} />
+          Trang user
+        </button>
+
         <div className={styles.adminBox} onClick={() => setOpen(!open)}>
           <div className={styles.welcomeBox}>
             <span className={styles.welcomeText}>Chào mừng trở lại</span>

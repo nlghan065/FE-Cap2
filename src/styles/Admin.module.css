@@ -73,6 +73,28 @@
   gap: 14px;
 }
 
+.switchViewBtn {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.switchViewBtn:hover {
+  background: white;
+  color: #2c7a7b;
+  transform: translateY(-1px);
+}
+
 .welcomeBox {
   text-align: right;
   line-height: 1.3;

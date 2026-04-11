@@ -6,10 +6,12 @@ import {
   LogIn,
   Settings,
   Search,
+  ArrowLeft,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getProfileApi } from "../../api/profileApi";
 import { getCartApi } from "../../api/cartApi";
+import { getUserByIdApi } from "../../api/authApi";
 import styles from "../../styles/LayoutUser.module.css";
 
 function UserHeader() {
@@ -27,6 +29,8 @@ function UserHeader() {
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef();
+  const role = localStorage.getItem("role") || sessionStorage.getItem("role");
+  const isAdminPreview = role === "ADMIN";
 
   /* ================= SEARCH ================= */
   const handleSearch = () => {
@@ -68,10 +72,35 @@ function UserHeader() {
     navigate("/login");
   };
 
+  const handleBackToAdmin = () => {
+    navigate("/dashboard");
+  };
+
   /* ================= AVATAR ================= */
   const getInitial = (name) => {
     if (!name) return "U";
     return name.trim().split(" ").slice(-1)[0].charAt(0).toUpperCase();
+  };
+
+  const loadAdminProfile = async () => {
+    const userId =
+      localStorage.getItem("userId") || sessionStorage.getItem("userId");
+
+    if (!userId) {
+      return { fullName: "Admin preview" };
+    }
+
+    try {
+      const data = await getUserByIdApi(userId);
+
+      return {
+        fullName: "Admin preview",
+        email: data?.email || "",
+      };
+    } catch (err) {
+      console.error("Admin fallback profile error:", err);
+      return { fullName: "Admin preview" };
+    }
   };
 
   /* ================= FETCH PROFILE ================= */
@@ -86,8 +115,21 @@ function UserHeader() {
     const fetchProfile = async () => {
       try {
         const data = await getProfileApi();
-        if (isMounted) setProfile(data);
+        if (isMounted) {
+          setProfile(
+            isAdminPreview ? { ...data, fullName: "Admin preview" } : data,
+          );
+        }
       } catch (err) {
+        if (isAdminPreview) {
+          const adminProfile = await loadAdminProfile();
+
+          if (isMounted) {
+            setProfile(adminProfile);
+          }
+          return;
+        }
+
         handleLogout();
       }
     };
@@ -97,7 +139,7 @@ function UserHeader() {
     return () => {
       isMounted = false;
     };
-  }, [token]);
+  }, [token, isAdminPreview]);
 
   /* ================= FETCH CART ================= */
   const fetchCart = async () => {
@@ -106,12 +148,13 @@ function UserHeader() {
       setCartCount(cart?.items?.length || 0);
     } catch (err) {
       console.error("Cart error:", err);
+      setCartCount(0);
     }
   };
 
   useEffect(() => {
     if (token) fetchCart();
-  }, [token]);
+  }, [token, isAdminPreview]);
 
   // ✅ sync toàn app
   useEffect(() => {
@@ -184,6 +227,16 @@ function UserHeader() {
 
         {token && (
           <>
+            {isAdminPreview && (
+              <button
+                className={styles.previewBackBtn}
+                onClick={handleBackToAdmin}
+              >
+                <ArrowLeft size={16} />
+                Quay lại admin
+              </button>
+            )}
+
             {/* CART */}
             <div className={styles.iconBtn} onClick={() => navigate("/cart")}>
               <ShoppingCart size={20} />

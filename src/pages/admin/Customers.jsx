@@ -5,11 +5,13 @@ import {
 } from "../../api/adminCustomerApi";
 
 import styles from "../../styles/Admin.module.css";
-import { Eye, Pencil, Trash2, Search, Filter } from "lucide-react";
+import { Eye, Pencil, Trash2, Search } from "lucide-react";
 import AdminHeader from "../../layout/admin/AdminHeader";
 import AdminMenu from "../../layout/admin/AdminMenu";
 import { useNavigate } from "react-router-dom";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+
+const PAGE_SIZE = 10;
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
@@ -26,13 +28,12 @@ const Customers = () => {
   // ===== FETCH =====
   useEffect(() => {
     fetchData();
-  }, [page]);
+  }, []);
 
   const fetchData = async () => {
     try {
-      const res = await getCustomersFullApi(page, 10);
+      const res = await getCustomersFullApi(0, 1000);
       setCustomers(res.data || []);
-      setTotalPages(res.totalPages || 1);
     } catch (e) {
       console.error(e);
     }
@@ -43,14 +44,21 @@ const Customers = () => {
     handleFilter();
   }, [keyword, status, customers]);
 
+  useEffect(() => {
+    setPage(0);
+  }, [keyword, status]);
+
   const handleFilter = () => {
     let data = [...customers];
+    const normalizedKeyword = keyword.trim().toLowerCase();
 
-    if (keyword) {
+    if (normalizedKeyword) {
       data = data.filter(
         (c) =>
-          c.name?.toLowerCase().includes(keyword.toLowerCase()) ||
-          c.email?.toLowerCase().includes(keyword.toLowerCase()),
+          c.name?.toLowerCase().includes(normalizedKeyword) ||
+          c.fullName?.toLowerCase().includes(normalizedKeyword) ||
+          c.email?.toLowerCase().includes(normalizedKeyword) ||
+          c.phone?.toLowerCase().includes(normalizedKeyword),
       );
     }
 
@@ -59,6 +67,7 @@ const Customers = () => {
     }
 
     setFiltered(data);
+    setTotalPages(Math.max(1, Math.ceil(data.length / PAGE_SIZE)));
   };
 
   // ===== TOAST AUTO HIDE =====
@@ -68,6 +77,14 @@ const Customers = () => {
     const timer = setTimeout(() => setMessage(null), 3000);
     return () => clearTimeout(timer);
   }, [message]);
+
+  useEffect(() => {
+    const lastPage = Math.max(0, totalPages - 1);
+
+    if (page > lastPage) {
+      setPage(lastPage);
+    }
+  }, [page, totalPages]);
 
   // ===== ACTION =====
   const handleDelete = async (id) => {
@@ -85,6 +102,11 @@ const Customers = () => {
 
   // ===== UI =====
   const formatMoney = (n) => (n || 0).toLocaleString("vi-VN") + " đ";
+
+  const paginatedCustomers = filtered.slice(
+    page * PAGE_SIZE,
+    page * PAGE_SIZE + PAGE_SIZE,
+  );
 
   const renderStatus = (c) =>
     c.status === "CANCELLED" ? (
@@ -134,7 +156,7 @@ const Customers = () => {
             <span>Thao tác</span>
           </div>
 
-          {filtered.map((c) => (
+          {paginatedCustomers.map((c) => (
             <div key={c.id} className={styles.row}>
               <div>
                 <b>{c.name}</b>

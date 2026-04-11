@@ -3,12 +3,20 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { getOrderByIdApi } from "../../api/orderApi";
 import styles from "../../styles/OrderDetail.module.css";
+import logoImage from "../../assets/logo.png";
+import {
+  getResolvedOrderItemImage,
+  hydrateOrderItemsWithImages,
+} from "../../utils/orderItemImage";
 
 export default function OrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [order, setOrder] = useState(null);
+  const [error, setError] = useState("");
+  const role = localStorage.getItem("role") || sessionStorage.getItem("role");
+  const isAdminPreview = role === "ADMIN";
 
   const formatPrice = (value) =>
     Number(value || 0).toLocaleString("vi-VN") + " đ";
@@ -16,15 +24,31 @@ export default function OrderDetailPage() {
   const fetchOrder = async () => {
     try {
       const data = await getOrderByIdApi(id);
-      setOrder(data);
+      const hydratedItems = await hydrateOrderItemsWithImages(
+        data?.items || [],
+      );
+
+      console.log("ORDER ITEMS:", data?.items);
+      console.log("HYDRATED ITEMS:", hydratedItems);
+      setOrder({
+        ...data,
+        items: hydratedItems,
+      });
     } catch (error) {
       console.error("Fetch order detail error:", error);
+      setError(
+        isAdminPreview
+          ? "Admin đang ở chế độ xem user nên không có dữ liệu đơn hàng này."
+          : "Không thể tải chi tiết đơn hàng.",
+      );
     }
   };
 
   useEffect(() => {
     fetchOrder();
   }, [id]);
+
+  if (error) return <div className={styles.loading}>{error}</div>;
 
   if (!order) return <div className={styles.loading}>Đang tải...</div>;
 
@@ -94,7 +118,14 @@ export default function OrderDetailPage() {
             <div className={styles.products}>
               {order.items?.map((item, index) => (
                 <div key={item.id || index} className={styles.product}>
-                  <img src={item.productImage} alt={item.productName} />
+                  <img
+                    src={getResolvedOrderItemImage(item) || logoImage}
+                    alt={item.productName}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = logoImage;
+                    }}
+                  />
 
                   <div className={styles.productInfo}>
                     <div className={styles.productName}>{item.productName}</div>
