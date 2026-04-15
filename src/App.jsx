@@ -21,6 +21,7 @@ import UserLayout from "./layout/user/UserLayout";
 import Home from "./pages/user/Home";
 import Products from "./pages/user/Products";
 import ProductDetail from "./pages/user/ProductDetail";
+import AIDesignerPage from "./pages/user/AIDesignerPage";
 import Cart from "./pages/user/Cart";
 import CartStep2 from "./pages/user/CartStep2";
 import CartStep3 from "./pages/user/CartStep3";
@@ -62,6 +63,8 @@ function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products/:id" element={<ProductDetail />} />
+          <Route path="/ai-designer" element={<AIDesignerPage />} />
+          <Route path="/ai-design" element={<AIDesignerPage />} />
         </Route>
 
         {/* ================= PROTECTED USER ================= */}
