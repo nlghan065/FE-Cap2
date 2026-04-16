@@ -37,7 +37,12 @@
       rgba(103, 232, 249, 0.14),
       transparent 28%
     ),
-    linear-gradient(180deg, var(--ai-bg) 0%, var(--ai-bg-soft) 42%, var(--ai-bg-deep) 100%);
+    linear-gradient(
+      180deg,
+      var(--ai-bg) 0%,
+      var(--ai-bg-soft) 42%,
+      var(--ai-bg-deep) 100%
+    );
   color: var(--ai-text);
 }
 
@@ -48,7 +53,7 @@
 .heroInner,
 .content,
 .progressBar {
-  width: min(1180px, 100%);
+  width: min(1400px, 100%);
   margin: 0 auto;
 }
 
@@ -79,7 +84,7 @@
 .heroInner h1,
 .summaryHero h2 {
   margin: 18px 0 14px;
-  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: clamp(36px, 6vw, 60px);
   line-height: 1.04;
 }
@@ -137,7 +142,11 @@
 }
 
 .progressCircleActive {
-  background: linear-gradient(135deg, var(--ai-accent), var(--ai-accent-strong));
+  background: linear-gradient(
+    135deg,
+    var(--ai-accent),
+    var(--ai-accent-strong)
+  );
   color: #fff;
 }
 
@@ -192,7 +201,7 @@
 
 .stepHeading h2 {
   margin: 0 0 10px;
-  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: clamp(28px, 4vw, 42px);
 }
 
@@ -256,7 +265,11 @@
 
 .primaryButton,
 .generateButton {
-  background: linear-gradient(135deg, var(--ai-accent), var(--ai-accent-strong));
+  background: linear-gradient(
+    135deg,
+    var(--ai-accent),
+    var(--ai-accent-strong)
+  );
   color: #fff;
   box-shadow: 0 14px 30px rgba(11, 116, 107, 0.24);
 }
@@ -528,7 +541,11 @@
   height: 92px;
   margin: 0 auto 18px;
   border-radius: 32px;
-  background: linear-gradient(135deg, var(--ai-accent), var(--ai-accent-strong));
+  background: linear-gradient(
+    135deg,
+    var(--ai-accent),
+    var(--ai-accent-strong)
+  );
   color: #fff;
 }
 
@@ -593,7 +610,7 @@
 
 .resultHeroTitle {
   margin: 16px 0 12px;
-  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: clamp(30px, 4vw, 46px);
   line-height: 1.04;
 }
@@ -695,7 +712,11 @@
   width: 34px;
   height: 34px;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--ai-accent), var(--ai-accent-strong));
+  background: linear-gradient(
+    135deg,
+    var(--ai-accent),
+    var(--ai-accent-strong)
+  );
   color: #fff;
 }
 
