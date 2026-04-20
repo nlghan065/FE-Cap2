@@ -10,7 +10,7 @@ import AIDesignerProgress from "../../components/user/ai-designer/AIDesignerProg
 import AIDesignerResultsPanel from "../../components/user/ai-designer/AIDesignerResultsPanel";
 import AIDesignerUploadStep from "../../components/user/ai-designer/AIDesignerUploadStep";
 import styles from "../../styles/AIDesigner.module.css";
-import { hydrateAiRecommendProducts } from "../../utils/aiRecommendResultV2";
+import { normalizeAiRecommendResult } from "../../utils/aiRecommendResultV2";
 
 function AIDesignerPage() {
   const navigate = useNavigate();
@@ -44,6 +44,7 @@ function AIDesignerPage() {
     }
 
     setUploadedFile(fileOrUrl);
+
     const reader = new FileReader();
     reader.onloadend = () => {
       if (typeof reader.result === "string") {
@@ -109,53 +110,13 @@ function AIDesignerPage() {
 
       console.log("[AI Design FE] raw source response", response);
 
-      const source = response || {};
-
-      const normalizedResult = {
-        roomType: source.roomType || "",
-        style: source.style || "",
-        furnitureDensity: source.furnitureDensity || "",
-        gender: source.gender || "",
-        imageUrl: source.imageUrl || "",
-        createdAt: source.createdAt || "",
-        products: source.recommendedProducts || [],
-        totalPrice: (source.recommendedProducts || []).reduce(
-          (sum, item) => sum + (Number(item.price) || 0),
-          0,
-        ),
-        roomAnalysis: {
-          width: source.dimensions?.width || "",
-          length: source.dimensions?.length || "",
-          height: source.dimensions?.height || "",
-          reasoning: source.reasoning || "",
-        },
-        requestMeta: {
-          id: source.id || "",
-          status: source.recommendedProducts?.length ? "COMPLETED" : "PENDING",
-          message: source.recommendedProducts?.length
-            ? "AI đã trả danh sách sản phẩm."
-            : "Yêu cầu thiết kế đã được tạo, nhưng chưa có danh sách sản phẩm.",
-        },
-        raw: source,
-      };
+      const normalizedResult = normalizeAiRecommendResult(response || {});
 
       console.log("[AI Design FE] normalized result", normalizedResult);
 
-      const hydratedProducts = await hydrateAiRecommendProducts(
-        normalizedResult.products,
-      );
+      setAiResults(normalizedResult);
 
-      console.log("[AI Design FE] hydrated products", hydratedProducts);
-
-      setAiResults({
-        ...normalizedResult,
-        products: hydratedProducts,
-        totalPrice:
-          normalizedResult.totalPrice ||
-          hydratedProducts.reduce((sum, item) => sum + (item.price || 0), 0),
-      });
-
-      if (!hydratedProducts.length) {
+      if (!normalizedResult.products.length) {
         toast(
           normalizedResult.requestMeta.message ||
             "Yêu cầu thiết kế đã được tạo, AI chưa trả danh sách sản phẩm ngay.",

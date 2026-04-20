@@ -131,7 +131,6 @@ function AIDesignerResultsPanel({
                     />
                     <div>
                       <strong>{item.name}</strong>
-                      <small>{item.percentage}% diện tích</small>
                     </div>
                     <code>{item.color}</code>
                   </div>

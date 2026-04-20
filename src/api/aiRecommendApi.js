@@ -86,5 +86,5 @@ export async function postAiRecommendApi({
   console.log("[AI Design FE] response status", response?.status);
   console.log("[AI Design FE] response data", response?.data);
 
-  return response?.data?.data || response?.data || null;
+  return response?.data?.data || null;
 }

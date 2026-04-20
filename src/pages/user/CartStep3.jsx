@@ -83,7 +83,7 @@ function Payment() {
     try {
       setLoading(true);
 
-      const order = await createOrderApi({
+      const orderData = {
         customerName: checkout.name,
         customerPhone: checkout.phone,
         shippingAddress: checkout.address,
@@ -93,8 +93,10 @@ function Payment() {
         note: checkout.note || "",
         paymentMethod,
         discountCode: discountCode || "",
-        totalPrice: total,
-      });
+      };
+      console.log("CREATE ORDER payload:", orderData);
+
+      const order = await createOrderApi(orderData);
 
       if (paymentMethod === "COD") {
         toast.success("Đặt hàng thành công!");

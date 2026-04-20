@@ -152,25 +152,27 @@ function CartStep2() {
     if (!validate()) return;
 
     try {
-      // ✅ Lưu DB
       if (profileId) {
-        await updateProfileApi(profileId, {
+        const payload = {
           fullName: form.name,
           phone: form.phone,
-          email: form.email,
           address: form.address,
           city: form.city,
           ward: form.ward,
-        });
+        };
+
+        console.log("UPDATE PROFILE payload:", payload);
+        console.log("profileId:", profileId);
+
+        await updateProfileApi(profileId, payload);
       }
 
-      // ✅ Lưu tạm checkout
       localStorage.setItem("checkout", JSON.stringify(form));
-
       navigate("/payment");
     } catch (err) {
-      console.error(err);
-      alert("Cập nhật thất bại");
+      console.error("Update profile error:", err);
+      console.log("Response data:", err.response?.data);
+      alert(err.response?.data?.message || "Cập nhật thất bại");
     }
   };
 
