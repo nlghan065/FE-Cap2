@@ -13,7 +13,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { getProductsApi } from "../../api/productApi";
-import styles from "../../styles/Home.module.css";
+import styles from "../../styles/Landing.module.css";
 
 const features = [
   {
@@ -56,12 +56,14 @@ const steps = [
   {
     number: "03",
     title: "Tối ưu không gian",
-    description: "So sánh màu sắc, chất liệu và công năng trước khi quyết định.",
+    description:
+      "So sánh màu sắc, chất liệu và công năng trước khi quyết định.",
   },
   {
     number: "04",
     title: "Đặt mua nhanh",
-    description: "Thêm vào giỏ, thanh toán và theo dõi đơn hàng ngay trong hệ thống.",
+    description:
+      "Thêm vào giỏ, thanh toán và theo dõi đơn hàng ngay trong hệ thống.",
   },
 ];
 
@@ -158,7 +160,9 @@ function Home() {
         id: item.id || item._id || `product-${index}`,
         name: item.name || "Sản phẩm nội thất",
         price: item.price || 0,
-        image: item.images?.[0] || fallbackProducts[index % fallbackProducts.length].image,
+        image:
+          item.images?.[0] ||
+          fallbackProducts[index % fallbackProducts.length].image,
         isFallback: false,
       }));
 
@@ -259,8 +263,8 @@ function Home() {
       </section>
 
       <section className={styles.section}>
-          <div className={styles.sectionHeading}>
-            <p className={styles.eyebrow}>Tính năng nổi bật</p>
+        <div className={styles.sectionHeading}>
+          <p className={styles.eyebrow}>Tính năng nổi bật</p>
           <h2>Những điểm chạm giúp khách hàng ở lại lâu hơn trên trang chủ</h2>
           <p>
             Từ phần giới thiệu cảm hứng đến khu vực sản phẩm nổi bật, mọi khối
@@ -313,7 +317,8 @@ function Home() {
             <h2>Những bố cục giúp người xem hình dung ngay phong cách sống</h2>
             <p>
               Hình ảnh lớn, giàu cảm xúc và nhịp điệu thị giác rõ ràng giúp
-              trang chủ mang cảm giác biên tập thay vì chỉ là danh sách bán hàng.
+              trang chủ mang cảm giác biên tập thay vì chỉ là danh sách bán
+              hàng.
             </p>
             <Link to="/products" className={styles.inlineLink}>
               Xem toàn bộ sản phẩm
@@ -371,7 +376,9 @@ function Home() {
         <div className={styles.productsHeader}>
           <div className={styles.sectionHeadingCompact}>
             <p className={styles.eyebrow}>Sản phẩm nổi bật</p>
-            <h2>Khám phá nhanh những món đồ đang đại diện cho trải nghiệm mua sắm</h2>
+            <h2>
+              Khám phá nhanh những món đồ đang đại diện cho trải nghiệm mua sắm
+            </h2>
           </div>
 
           <Link to="/products" className={styles.inlineLink}>
@@ -408,7 +415,9 @@ function Home() {
         <div className={styles.ctaCard}>
           <div>
             <p className={styles.eyebrow}>Sẵn sàng sử dụng</p>
-            <h2>Bắt đầu hành trình hoàn thiện không gian sống của bạn hôm nay</h2>
+            <h2>
+              Bắt đầu hành trình hoàn thiện không gian sống của bạn hôm nay
+            </h2>
             <p className={styles.ctaText}>
               Khám phá danh mục nội thất, chọn phong cách phù hợp và chuyển sang
               mua sắm chỉ với vài thao tác đơn giản.
