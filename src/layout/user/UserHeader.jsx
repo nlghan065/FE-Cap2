@@ -185,7 +185,7 @@ function UserHeader() {
   return (
     <header className={styles.header}>
       {/* LEFT */}
-      <div className={styles.left} onClick={() => navigate("/landing")}>
+      <div className={styles.left} onClick={() => navigate("/")}>
         <img src="/src/assets/logo.png" className={styles.logo} />
         <div>
           <h2 className={styles.brand}>VirtuSpace</h2>

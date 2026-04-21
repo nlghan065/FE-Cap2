@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, Navigate } from "react-router-dom";
 
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -53,14 +53,14 @@ function App() {
       <Toaster position="top-right" />
       <Routes>
         {/* ================= AUTH ================= */}
-        <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* ================= PUBLIC USER ================= */}
         <Route element={<UserLayout />}>
-          <Route path="/landing" element={<Landing />} />
+          <Route index element={<Landing />} />
+          <Route path="/landing" element={<Navigate to="/" replace />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/ai-designer" element={<AIDesignerPage />} />

@@ -58,7 +58,7 @@ function Login() {
       if (role === "ADMIN") {
         navigate("/dashboard");
       } else {
-        navigate("/landing");
+        navigate("/");
       }
     } catch (error) {
       console.error("LOGIN ERROR:", error);
