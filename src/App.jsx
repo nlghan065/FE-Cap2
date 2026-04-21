@@ -18,7 +18,7 @@ import OrderDetail from "./pages/admin/OrderDetail";
 import OrderEdit from "./pages/admin/OrderEdit";
 
 import UserLayout from "./layout/user/UserLayout";
-import Home from "./pages/user/Home";
+import Landing from "./pages/user/Landing";
 import Products from "./pages/user/Products";
 import ProductDetail from "./pages/user/ProductDetail";
 import AIDesignerPage from "./pages/user/AIDesignerPage";
@@ -60,7 +60,7 @@ function App() {
 
         {/* ================= PUBLIC USER ================= */}
         <Route element={<UserLayout />}>
-          <Route path="/home" element={<Home />} />
+          <Route path="/landing" element={<Landing />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/ai-designer" element={<AIDesignerPage />} />
