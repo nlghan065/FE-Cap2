@@ -1,6 +1,6 @@
 import apiClient from "./apiClient";
 
-const AI_RECOMMEND_ENDPOINT = "http://localhost:8000/api/design-requests";
+const AI_RECOMMEND_ENDPOINT = "https://capstone02.onrender.com/api/design-requests";
 
 const toNumber = (value, fallback) => {
   const parsed = Number(value);

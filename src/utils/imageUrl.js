@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
+  import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "https://capstone02.onrender.com";
 
 const ABSOLUTE_URL_REGEX = /^(?:https?:)?\/\//i;
 

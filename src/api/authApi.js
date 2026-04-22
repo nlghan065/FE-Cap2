@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: "http://localhost:8000", // gọi thẳng BE
+  baseURL: "https://capstone02.onrender.com", // gọi thẳng BE
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
