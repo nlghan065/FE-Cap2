@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import styles from "../../styles/ProductDetail.module.css";
 import { getProductByIdApi } from "../../api/productApi";
@@ -10,12 +10,63 @@ import {
   Plus,
   ArrowLeft,
   FileText,
+  Heart,
   MessageCircle,
   RefreshCw,
+  Trash2,
   MessageCircle as Msg,
 } from "lucide-react";
-import { getReviewsByProductApi } from "../../api/reviewApi";
+import {
+  deleteReviewApi,
+  getReviewSummaryByProductApi,
+  getReviewsByProductApi,
+} from "../../api/reviewApi";
 import { addToCartApi } from "../../api/cartApi";
+import {
+  addToWishlistApi,
+  checkWishlistApi,
+  removeFromWishlistApi,
+} from "../../api/wishlistApi";
+
+const getAuthToken = () =>
+  localStorage.getItem("token") || sessionStorage.getItem("token");
+
+const getCurrentUserId = () =>
+  localStorage.getItem("userId") || sessionStorage.getItem("userId");
+
+const normalizeId = (value) => {
+  if (!value) return null;
+  if (typeof value === "object") {
+    return value.id || value._id || value.userId || value.customerId || null;
+  }
+
+  return value;
+};
+
+const getReviewId = (review) => review?.id || review?._id || review?.reviewId;
+
+const getReviewOwnerId = (review) =>
+  normalizeId(
+    review?.userId ||
+      review?.customerId ||
+      review?.reviewerId ||
+      review?.user ||
+      review?.customer ||
+      review?.reviewer,
+  );
+
+const canDeleteReview = (review) => {
+  if (review?.canDelete || review?.mine || review?.ownedByCurrentUser) {
+    return true;
+  }
+
+  const currentUserId = getCurrentUserId();
+  const ownerId = getReviewOwnerId(review);
+
+  return Boolean(
+    currentUserId && ownerId && String(currentUserId) === String(ownerId),
+  );
+};
 
 function ProductDetail() {
   const { id } = useParams();
@@ -30,7 +81,22 @@ function ProductDetail() {
   const [reviewPage, setReviewPage] = useState(0);
   const [reviewTotalPages, setReviewTotalPages] = useState(1);
   const [loadingReview, setLoadingReview] = useState(false);
+  const [reviewSummary, setReviewSummary] = useState(null);
+  const [reviewNotice, setReviewNotice] = useState(null);
+  const [deletingReviewId, setDeletingReviewId] = useState(null);
   const [added, setAdded] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  const showToast = (message, error = false) => {
+    setToast({ message, error });
+    setTimeout(() => setToast(null), 1500);
+  };
+
+  const showReviewNotice = (message, error = false) => {
+    setReviewNotice({ message, error });
+    setTimeout(() => setReviewNotice(null), 1800);
+  };
 
   useEffect(() => {
     if (!id || id === "undefined") {
@@ -73,6 +139,32 @@ function ProductDetail() {
 
     fetch();
   }, [id]);
+
+  useEffect(() => {
+    if (!id || id === "undefined" || !getAuthToken()) {
+      setIsWishlisted(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchWishlistStatus = async () => {
+      try {
+        const checked = await checkWishlistApi(id);
+        if (isMounted) setIsWishlisted(checked);
+      } catch (err) {
+        console.error("Check wishlist error:", err);
+        if (isMounted) setIsWishlisted(false);
+      }
+    };
+
+    fetchWishlistStatus();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
   const handleAddToCart = async () => {
     if (!product || product.stock === 0) return;
 
@@ -109,8 +201,39 @@ function ProductDetail() {
       navigate("/cart");
     } catch (err) {
       console.error(err);
-      setToast({ message: "Lỗi mua ngay!", error: true });
-      setTimeout(() => setToast(null), 1500);
+      showToast("Lỗi mua ngay!", true);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    if (!product) return;
+
+    if (!getAuthToken()) {
+      showToast("Vui lòng đăng nhập!", true);
+      navigate("/login");
+      return;
+    }
+
+    const productId = product.id || product._id || id;
+    const nextStatus = !isWishlisted;
+
+    setWishlistLoading(true);
+
+    try {
+      if (isWishlisted) {
+        await removeFromWishlistApi(productId);
+      } else {
+        await addToWishlistApi(productId);
+      }
+
+      setIsWishlisted(nextStatus);
+      window.dispatchEvent(new Event("wishlistUpdated"));
+      showToast(nextStatus ? "Đã thêm vào yêu thích!" : "Đã bỏ yêu thích!");
+    } catch (err) {
+      console.error("Toggle wishlist error:", err);
+      showToast("Lỗi yêu thích!", true);
+    } finally {
+      setWishlistLoading(false);
     }
   };
 
@@ -118,25 +241,57 @@ function ProductDetail() {
     if (product && product.stock === 0) setQty(0);
   }, [product]);
 
+  const fetchReviewSummary = useCallback(async () => {
+    if (!id || id === "undefined") return;
+
+    const summary = await getReviewSummaryByProductApi(id);
+    setReviewSummary(summary);
+  }, [id]);
+
+  const fetchReviews = useCallback(async () => {
+    if (!product?.id) return;
+
+    setLoadingReview(true);
+
+    const res = await getReviewsByProductApi({
+      productId: product.id,
+      page: reviewPage,
+      size: 5,
+    });
+
+    setReviews(res.content);
+    setReviewTotalPages(res.totalPages);
+    setLoadingReview(false);
+  }, [product?.id, reviewPage]);
+
   useEffect(() => {
-    if (activeTab !== "review" || !product?.id) return;
+    fetchReviewSummary();
+  }, [fetchReviewSummary]);
 
-    const fetchReviews = async () => {
-      setLoadingReview(true);
-
-      const res = await getReviewsByProductApi({
-        productId: product.id,
-        page: reviewPage,
-        size: 5,
-      });
-
-      setReviews(res.content);
-      setReviewTotalPages(res.totalPages);
-      setLoadingReview(false);
-    };
-
+  useEffect(() => {
+    if (activeTab !== "review") return;
     fetchReviews();
-  }, [activeTab, product?.id, reviewPage]);
+  }, [activeTab, fetchReviews]);
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!reviewId) return;
+    const confirmed = window.confirm("Bạn có chắc muốn xóa đánh giá này?");
+    if (!confirmed) return;
+
+    setDeletingReviewId(reviewId);
+
+    try {
+      await deleteReviewApi(reviewId);
+      setReviews((prev) => prev.filter((item) => getReviewId(item) !== reviewId));
+      await Promise.all([fetchReviews(), fetchReviewSummary()]);
+      showReviewNotice("Đã xóa đánh giá");
+    } catch (err) {
+      console.error("Delete review error:", err);
+      showReviewNotice("Xóa đánh giá thất bại", true);
+    } finally {
+      setDeletingReviewId(null);
+    }
+  };
 
   const increase = () => {
     if (product && qty < product.stock) setQty(qty + 1);
@@ -147,6 +302,21 @@ function ProductDetail() {
 
   if (loading) return <p style={{ padding: 20 }}>Đang tải...</p>;
   if (!product) return <p>Không tìm thấy sản phẩm</p>;
+
+  const summaryAverage = Number(
+    reviewSummary?.averageRating ??
+      reviewSummary?.avgRating ??
+      reviewSummary?.ratingAverage ??
+      product.rating ??
+      0,
+  );
+  const summaryTotal = Number(
+    reviewSummary?.totalReviews ??
+      reviewSummary?.reviewCount ??
+      reviewSummary?.totalElements ??
+      product.reviewCount ??
+      0,
+  );
 
   return (
     <div className={styles.container}>
@@ -196,10 +366,10 @@ function ProductDetail() {
         <div className={styles.right}>
           <h1 className={styles.title}>{product.name}</h1>
           <div className={styles.rating}>
-            {product.reviewCount > 0 ? (
+            {summaryTotal > 0 ? (
               <>
                 <Star size={16} fill="#ee4d2d" color="#ee4d2d" />
-                {product.rating.toFixed(1)} ({product.reviewCount})
+                {summaryAverage.toFixed(1)} ({summaryTotal})
               </>
             ) : (
               <span className={styles.noRating}>Chưa có đánh giá</span>
@@ -255,6 +425,17 @@ function ProductDetail() {
                 {toast.message}
               </div>
             )}
+            <button
+              type="button"
+              className={`${styles.wishlistBtn} ${
+                isWishlisted ? styles.wishlisted : ""
+              }`}
+              disabled={wishlistLoading}
+              onClick={handleToggleWishlist}
+            >
+              <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
+              {isWishlisted ? "Đã yêu thích" : "Yêu thích"}
+            </button>
             <button
               className={`${styles.addCart} ${added ? styles.added : ""}`}
               disabled={product.stock === 0}
@@ -362,17 +543,27 @@ function ProductDetail() {
         {activeTab === "review" && (
           <div className={styles.reviewBox}>
             {/* ⭐ Tổng rating */}
-            {product.reviewCount > 0 ? (
+            {summaryTotal > 0 ? (
               <div className={styles.summary}>
                 <div className={styles.bigRating}>
-                  {product.rating.toFixed(1)}
+                  {summaryAverage.toFixed(1)}
                 </div>
                 <div className={styles.total}>
-                  {product.reviewCount} đánh giá
+                  {summaryTotal} đánh giá
                 </div>
               </div>
             ) : (
               <p className={styles.noRating}>Chưa có đánh giá</p>
+            )}
+
+            {reviewNotice && (
+              <div
+                className={`${styles.reviewNotice} ${
+                  reviewNotice.error ? styles.reviewNoticeError : ""
+                }`}
+              >
+                {reviewNotice.message}
+              </div>
             )}
 
             {/* 🔥 LIST REVIEW */}
@@ -385,7 +576,7 @@ function ProductDetail() {
                 )}
 
                 {reviews.map((r) => (
-                  <div key={r.id} className={styles.reviewItem}>
+                  <div key={getReviewId(r) || r.id} className={styles.reviewItem}>
                     <div className={styles.reviewHeader}>
                       <span className={styles.user}>
                         {r.reviewerName || "Ẩn danh"}
@@ -394,6 +585,18 @@ function ProductDetail() {
                       <span className={styles.date}>
                         {new Date(r.createdAt).toLocaleDateString("vi-VN")}
                       </span>
+
+                      {canDeleteReview(r) && (
+                        <button
+                          type="button"
+                          className={styles.deleteReviewBtn}
+                          disabled={deletingReviewId === getReviewId(r)}
+                          onClick={() => handleDeleteReview(getReviewId(r))}
+                        >
+                          <Trash2 size={14} />
+                          Xóa
+                        </button>
+                      )}
                     </div>
 
                     {/* ⭐ rating */}

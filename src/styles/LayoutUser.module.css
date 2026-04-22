@@ -236,7 +236,7 @@
   padding: 6px;
 
   display: grid;
-  grid-template-columns: repeat(5, 1fr); /* 🔥 chia đều */
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); /* 🔥 chia đều */
   gap: 6px;
 
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
@@ -347,7 +347,7 @@
   padding: 6px;
 
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 6px;
 
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);

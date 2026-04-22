@@ -3,6 +3,7 @@ import {
   User,
   LogOut,
   ShoppingCart,
+  Heart,
   LogIn,
   Settings,
   Search,
@@ -12,6 +13,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { getProfileApi } from "../../api/profileApi";
 import { getCartApi } from "../../api/cartApi";
 import { getUserByIdApi } from "../../api/authApi";
+import { getWishlistApi, normalizeWishlistItems } from "../../api/wishlistApi";
 import styles from "../../styles/LayoutUser.module.css";
 
 function UserHeader() {
@@ -25,6 +27,7 @@ function UserHeader() {
   const [keyword, setKeyword] = useState("");
 
   const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,6 +71,7 @@ function UserHeader() {
     setToken(null);
     setProfile(null);
     setCartCount(0);
+    setWishlistCount(0);
 
     navigate("/login");
   };
@@ -152,8 +156,29 @@ function UserHeader() {
     }
   };
 
+  const fetchWishlist = async () => {
+    const currentToken =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
+
+    if (!currentToken) {
+      setWishlistCount(0);
+      return;
+    }
+
+    try {
+      const data = await getWishlistApi();
+      setWishlistCount(normalizeWishlistItems(data).length);
+    } catch (err) {
+      console.error("Wishlist error:", err);
+      setWishlistCount(0);
+    }
+  };
+
   useEffect(() => {
-    if (token) fetchCart();
+    if (token) {
+      fetchCart();
+      fetchWishlist();
+    }
   }, [token, isAdminPreview]);
 
   // ✅ sync toàn app
@@ -166,6 +191,18 @@ function UserHeader() {
 
     return () => {
       window.removeEventListener("cartUpdated", handleCartUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleWishlistUpdate = () => {
+      fetchWishlist();
+    };
+
+    window.addEventListener("wishlistUpdated", handleWishlistUpdate);
+
+    return () => {
+      window.removeEventListener("wishlistUpdated", handleWishlistUpdate);
     };
   }, []);
 
@@ -237,6 +274,18 @@ function UserHeader() {
               </button>
             )}
 
+            {/* WISHLIST */}
+            <div
+              className={styles.iconBtn}
+              onClick={() => navigate("/wishlist")}
+              title="Yêu thích"
+            >
+              <Heart size={20} />
+              {wishlistCount > 0 && (
+                <span className={styles.badge}>{wishlistCount}</span>
+              )}
+            </div>
+
             {/* CART */}
             <div className={styles.iconBtn} onClick={() => navigate("/cart")}>
               <ShoppingCart size={20} />
@@ -294,6 +343,10 @@ function UserHeader() {
 
                 <button onClick={() => navigate("/orders")}>
                   <ShoppingCart size={16} /> Đơn hàng
+                </button>
+
+                <button onClick={() => navigate("/wishlist")}>
+                  <Heart size={16} /> Yêu thích
                 </button>
 
                 <button onClick={() => navigate("/settings")}>
