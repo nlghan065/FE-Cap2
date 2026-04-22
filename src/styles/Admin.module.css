@@ -228,7 +228,7 @@
   padding: 6px;
 
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 6px;
 
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
@@ -1871,6 +1871,158 @@ tr:hover {
 
 .pay_failed {
   color: red;
+}
+
+/* ===== ADMIN REVIEWS ===== */
+.reviewAdminContainer {
+  padding: 24px;
+  width: 100%;
+}
+
+.reviewAdminHeader {
+  background: white;
+  border: 1px solid #ccfbf1;
+  border-radius: 18px;
+  padding: 22px 24px;
+  margin-bottom: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.reviewAdminHeader h2 {
+  color: #0f766e;
+  margin: 8px 0 6px;
+  font-size: 24px;
+}
+
+.reviewAdminHeader p {
+  color: #64748b;
+  margin: 0;
+  font-size: 14px;
+}
+
+.reviewAdminKicker {
+  color: #0d9488;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  text-transform: uppercase;
+}
+
+.reviewAdminToolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.reviewAdminToolbar .orderSearchBox {
+  width: min(460px, 100%);
+}
+
+.reviewAdminTable {
+  background: white;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.reviewAdminThead,
+.reviewAdminRow {
+  display: grid;
+  grid-template-columns: 1.35fr 1.45fr 0.75fr 2.2fr 1fr 0.9fr 0.8fr;
+  gap: 14px;
+  align-items: center;
+  padding: 16px 20px;
+}
+
+.reviewAdminThead {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.reviewAdminRow {
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 14px;
+  transition: background 0.2s ease;
+}
+
+.reviewAdminRow:hover {
+  background: #ecfeff;
+}
+
+.reviewAdminRow b,
+.reviewAdminRow small {
+  display: block;
+}
+
+.reviewAdminRow small {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.reviewProductCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.reviewProductCell > span:last-child {
+  min-width: 0;
+}
+
+.reviewProductCell img,
+.reviewProductImageFallback {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  object-fit: cover;
+}
+
+.reviewProductCell b {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.reviewRating {
+  color: #f59e0b;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.reviewComment {
+  color: #334155;
+  line-height: 1.5;
+}
+
+.reviewAdminState {
+  padding: 24px;
+  color: #64748b;
+}
+
+@media (max-width: 980px) {
+  .reviewAdminThead,
+  .reviewAdminRow {
+    grid-template-columns: 1fr;
+  }
+
+  .reviewAdminThead {
+    display: none;
+  }
 }
 /* Container filter bar */
 .filterBar {

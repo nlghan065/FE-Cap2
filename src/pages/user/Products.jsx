@@ -1,12 +1,21 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { searchProductsApi } from "../../api/productApi";
 import { addToCartApi, getCartApi } from "../../api/cartApi";
+import {
+  addToWishlistApi,
+  getWishlistApi,
+  getWishlistProductId,
+  normalizeWishlistItems,
+  removeFromWishlistApi,
+} from "../../api/wishlistApi";
 import styles from "../../styles/Products.module.css";
-import { ShoppingCart } from "lucide-react";
+import { Heart, ShoppingCart } from "lucide-react";
 
 const PAGE_SIZE = 20;
 const CACHE_KEY = "categories_cache_v2";
+const getAuthToken = () =>
+  localStorage.getItem("token") || sessionStorage.getItem("token");
 
 function Products() {
   const [products, setProducts] = useState([]);
@@ -15,8 +24,10 @@ function Products() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
+  const [, setCartCount] = useState(0);
   const [toast, setToast] = useState(null);
+  const [wishlistIds, setWishlistIds] = useState(() => new Set());
+  const [wishlistLoadingIds, setWishlistLoadingIds] = useState(() => new Set());
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -98,7 +109,7 @@ function Products() {
         const data = JSON.parse(cached);
         setCategories(data.categories || []);
         return;
-      } catch (e) {}
+      } catch {}
     }
 
     const fetchCategories = async () => {
@@ -128,6 +139,11 @@ function Products() {
 
   /* ================= FETCH CART ================= */
   const fetchCart = async () => {
+    if (!getAuthToken()) {
+      setCartCount(0);
+      return;
+    }
+
     try {
       const cart = await getCartApi();
       setCartCount(cart?.items?.length || 0);
@@ -139,6 +155,38 @@ function Products() {
   useEffect(() => {
     fetchCart();
   }, []);
+
+  /* ================= FETCH WISHLIST ================= */
+  const fetchWishlist = useCallback(async () => {
+    if (!getAuthToken()) {
+      setWishlistIds(new Set());
+      return;
+    }
+
+    try {
+      const data = await getWishlistApi();
+      const ids = normalizeWishlistItems(data)
+        .map((item) => getWishlistProductId(item))
+        .filter(Boolean)
+        .map(String);
+
+      setWishlistIds(new Set(ids));
+    } catch (err) {
+      console.error("Wishlist error:", err);
+      setWishlistIds(new Set());
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchWishlist();
+
+    const handleWishlistUpdate = () => fetchWishlist();
+    window.addEventListener("wishlistUpdated", handleWishlistUpdate);
+
+    return () => {
+      window.removeEventListener("wishlistUpdated", handleWishlistUpdate);
+    };
+  }, [fetchWishlist]);
 
   /* ================= CART HANDLER ================= */
   const addToCart = async (item) => {
@@ -158,6 +206,68 @@ function Products() {
       console.error(err);
       setToast({ id: item.id, message: "Lỗi!", error: true });
       setTimeout(() => setToast(null), 1500);
+    }
+  };
+
+  const setWishlistBusy = (productId, busy) => {
+    setWishlistLoadingIds((prev) => {
+      const next = new Set(prev);
+
+      if (busy) next.add(String(productId));
+      else next.delete(String(productId));
+
+      return next;
+    });
+  };
+
+  const toggleWishlist = async (item) => {
+    if (!getAuthToken()) {
+      setToast({
+        id: item.id,
+        message: "Vui lòng đăng nhập!",
+        error: true,
+      });
+      setTimeout(() => setToast(null), 1500);
+      navigate("/login");
+      return;
+    }
+
+    const productId = String(item.id);
+    const wasWishlisted = wishlistIds.has(productId);
+
+    setWishlistBusy(productId, true);
+    setWishlistIds((prev) => {
+      const next = new Set(prev);
+      if (wasWishlisted) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+
+    try {
+      if (wasWishlisted) {
+        await removeFromWishlistApi(productId);
+      } else {
+        await addToWishlistApi(productId);
+      }
+
+      window.dispatchEvent(new Event("wishlistUpdated"));
+      setToast({
+        id: item.id,
+        message: wasWishlisted ? "Đã bỏ yêu thích!" : "Đã yêu thích!",
+      });
+      setTimeout(() => setToast(null), 1500);
+    } catch (err) {
+      console.error("Toggle wishlist error:", err);
+      setWishlistIds((prev) => {
+        const next = new Set(prev);
+        if (wasWishlisted) next.add(productId);
+        else next.delete(productId);
+        return next;
+      });
+      setToast({ id: item.id, message: "Lỗi yêu thích!", error: true });
+      setTimeout(() => setToast(null), 1500);
+    } finally {
+      setWishlistBusy(productId, false);
     }
   };
 
@@ -298,24 +408,52 @@ function Products() {
           <p>Đang tải...</p>
         ) : (
           <div className={styles.grid}>
-            {products.map((item) => (
-              <div
-                key={item.id}
-                className={styles.card}
-                onClick={() => navigate(`/products/${item.id}`)}
-              >
-                <div className={styles.imageWrap}>
-                  <img src={item.image} alt={item.name} />
-                  <div
-                    className={`${styles.cartBtn} ${
-                      item.stock === 0 ? styles.disabled : ""
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addToCart(item);
-                    }}
-                  >
-                    <ShoppingCart size={18} />
+            {products.map((item) => {
+              const productId = String(item.id);
+              const isWishlisted = wishlistIds.has(productId);
+              const isWishlistLoading = wishlistLoadingIds.has(productId);
+
+              return (
+                <div
+                  key={item.id}
+                  className={styles.card}
+                  onClick={() => navigate(`/products/${item.id}`)}
+                >
+                  <div className={styles.imageWrap}>
+                    <img src={item.image} alt={item.name} />
+                    <button
+                      type="button"
+                      className={`${styles.wishlistBtn} ${
+                        isWishlisted ? styles.wishlisted : ""
+                      }`}
+                      disabled={isWishlistLoading}
+                      aria-label={
+                        isWishlisted ? "Bỏ yêu thích" : "Thêm vào yêu thích"
+                      }
+                      title={
+                        isWishlisted ? "Bỏ yêu thích" : "Thêm vào yêu thích"
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleWishlist(item);
+                      }}
+                    >
+                      <Heart
+                        size={18}
+                        fill={isWishlisted ? "currentColor" : "none"}
+                      />
+                    </button>
+                    <div
+                      className={`${styles.cartBtn} ${
+                        item.stock === 0 ? styles.disabled : ""
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(item);
+                      }}
+                    >
+                      <ShoppingCart size={18} />
+                    </div>
                     {toast?.id === item.id && (
                       <span
                         className={`${styles.toast} ${
@@ -326,38 +464,38 @@ function Products() {
                       </span>
                     )}
                   </div>
-                </div>
 
-                <div className={styles.info}>
-                  <div className={styles.name}>{item.name}</div>
-                  <div className={styles.desc}>
-                    {item.description?.slice(0, 60)}
-                  </div>
-                  <div className={styles.priceWrap}>
-                    <span className={styles.price}>
-                      {item.price?.toLocaleString("vi-VN")}đ
-                    </span>
-                  </div>
-                  <div
-                    className={
-                      item.stock === 0
-                        ? styles.out
-                        : item.stock <= 5
-                          ? styles.lowStock
-                          : styles.stock
-                    }
-                  >
-                    {item.availabilityText}
-                  </div>
-                  <div className={styles.ratingSold}>
-                    <span className={styles.rating}>
-                      ⭐ {item.rating.toFixed(1)}
-                    </span>
-                    <span className={styles.sold}>| Đã bán {item.sold}</span>
+                  <div className={styles.info}>
+                    <div className={styles.name}>{item.name}</div>
+                    <div className={styles.desc}>
+                      {item.description?.slice(0, 60)}
+                    </div>
+                    <div className={styles.priceWrap}>
+                      <span className={styles.price}>
+                        {item.price?.toLocaleString("vi-VN")}đ
+                      </span>
+                    </div>
+                    <div
+                      className={
+                        item.stock === 0
+                          ? styles.out
+                          : item.stock <= 5
+                            ? styles.lowStock
+                            : styles.stock
+                      }
+                    >
+                      {item.availabilityText}
+                    </div>
+                    <div className={styles.ratingSold}>
+                      <span className={styles.rating}>
+                        ⭐ {item.rating.toFixed(1)}
+                      </span>
+                      <span className={styles.sold}>| Đã bán {item.sold}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

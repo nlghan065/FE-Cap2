@@ -1,20 +1,35 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { ArrowLeft, Send, Star } from "lucide-react";
 import { getOrderByIdApi } from "../../api/orderApi";
+import { createReviewApi } from "../../api/reviewApi";
 import styles from "../../styles/OrderDetail.module.css";
 import logoImage from "../../assets/logo.png";
 import {
   getResolvedOrderItemImage,
   hydrateOrderItemsWithImages,
 } from "../../utils/orderItemImage";
+import {
+  getOrderProductId,
+  getOrderReviewStats,
+  isOrderItemReviewed,
+  markOrderItemReviewed,
+} from "../../utils/reviewStatus";
+import toast from "react-hot-toast";
+
+const REVIEWABLE_STATUSES = new Set(["DELIVERED", "COMPLETED"]);
 
 export default function OrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const reviewSectionRef = useRef(null);
 
   const [order, setOrder] = useState(null);
   const [error, setError] = useState("");
+  const [reviewForms, setReviewForms] = useState({});
+  const [reviewingId, setReviewingId] = useState(null);
+  const [reviewedIds, setReviewedIds] = useState(() => new Set());
   const role = localStorage.getItem("role") || sessionStorage.getItem("role");
   const isAdminPreview = role === "ADMIN";
 
@@ -30,10 +45,18 @@ export default function OrderDetailPage() {
 
       console.log("ORDER ITEMS:", data?.items);
       console.log("HYDRATED ITEMS:", hydratedItems);
-      setOrder({
+      const hydratedOrder = {
         ...data,
         items: hydratedItems,
-      });
+      };
+      const reviewedProductIds = hydratedItems
+        .filter((item) => isOrderItemReviewed(hydratedOrder, item))
+        .map((item) => getOrderProductId(item))
+        .filter(Boolean)
+        .map(String);
+
+      setOrder(hydratedOrder);
+      setReviewedIds(new Set(reviewedProductIds));
     } catch (error) {
       console.error("Fetch order detail error:", error);
       setError(
@@ -44,13 +67,155 @@ export default function OrderDetailPage() {
     }
   };
 
+  const updateReviewForm = (productId, patch) => {
+    setReviewForms((prev) => ({
+      ...prev,
+      [productId]: {
+        rating: 5,
+        comment: "",
+        ...prev[productId],
+        ...patch,
+      },
+    }));
+  };
+
+  const submitReview = async (item) => {
+    const productId = getOrderProductId(item);
+    const reviewKey = String(productId || "");
+    const form = reviewForms[reviewKey] || { rating: 5, comment: "" };
+    const rating = Number(form.rating || 5);
+    const comment = form.comment.trim();
+
+    if (!productId) {
+      toast.error("Không tìm thấy sản phẩm để đánh giá");
+      return;
+    }
+
+    if (!comment) {
+      toast.error("Vui lòng nhập nội dung đánh giá");
+      return;
+    }
+
+    if (!order?.orderCode) {
+      toast.error("Không tìm thấy mã đơn hàng để đánh giá");
+      return;
+    }
+
+    setReviewingId(reviewKey);
+
+    try {
+      await createReviewApi({
+        productId,
+        orderCode: order.orderCode,
+        rating,
+        comment,
+      });
+
+      markOrderItemReviewed(order, item);
+      setReviewedIds((prev) => new Set(prev).add(reviewKey));
+      updateReviewForm(reviewKey, { comment: "" });
+      toast.success("Đã gửi đánh giá");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        "Không thể gửi đánh giá. Có thể sản phẩm đã được đánh giá trước đó.";
+      toast.error(message);
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
+  const renderReviewForm = (item) => {
+    const productId = getOrderProductId(item);
+    const reviewKey = String(productId || "");
+
+    if (!order || !REVIEWABLE_STATUSES.has(order.status) || !productId) {
+      return null;
+    }
+
+    const form = reviewForms[reviewKey] || {
+      rating: 5,
+      comment: "",
+    };
+    const isReviewed =
+      getOrderReviewStats(order).fullyReviewed ||
+      reviewedIds.has(reviewKey) ||
+      isOrderItemReviewed(order, item);
+
+    if (isReviewed) {
+      return <div className={styles.reviewedInline}>Đã đánh giá</div>;
+    }
+
+    return (
+      <div className={styles.reviewForm}>
+        <div className={styles.reviewTitle}>Đánh giá sản phẩm</div>
+
+        <div className={styles.starPicker}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              className={
+                Number(form.rating) >= star ? styles.starActive : ""
+              }
+              onClick={() => updateReviewForm(reviewKey, { rating: star })}
+              aria-label={`${star} sao`}
+            >
+              <Star
+                size={18}
+                fill={Number(form.rating) >= star ? "currentColor" : "none"}
+              />
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          value={form.comment}
+          placeholder="Chia sẻ cảm nhận của bạn sau khi nhận hàng..."
+          onChange={(e) =>
+            updateReviewForm(reviewKey, { comment: e.target.value })
+          }
+          disabled={isReviewed || reviewingId === reviewKey}
+        />
+
+        <button
+          type="button"
+          className={styles.submitReview}
+          onClick={() => submitReview(item)}
+          disabled={isReviewed || reviewingId === reviewKey}
+        >
+          <Send size={15} />
+          {isReviewed ? "Đã gửi" : "Gửi đánh giá"}
+        </button>
+      </div>
+    );
+  };
+
   useEffect(() => {
     fetchOrder();
   }, [id]);
 
+  useEffect(() => {
+    if (!order) return;
+
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get("review") !== "1") return;
+
+    const timeout = setTimeout(() => {
+      reviewSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 150);
+
+    return () => clearTimeout(timeout);
+  }, [order, location.search]);
+
   if (error) return <div className={styles.loading}>{error}</div>;
 
   if (!order) return <div className={styles.loading}>Đang tải...</div>;
+
+  const reviewStats = getOrderReviewStats(order);
 
   return (
     <div className={styles.container}>
@@ -111,9 +276,15 @@ export default function OrderDetailPage() {
         </div>
 
         {/* RIGHT BLOCK */}
-        <div className={styles.card}>
+        <div className={styles.card} ref={reviewSectionRef}>
           <div className={styles.right}>
-            <h3>Sản phẩm</h3>
+            <div className={styles.productHeader}>
+              <h3>Sản phẩm</h3>
+              {REVIEWABLE_STATUSES.has(order.status) &&
+                reviewStats.fullyReviewed && (
+                  <span className={styles.reviewedBadge}>Đã đánh giá</span>
+                )}
+            </div>
 
             <div className={styles.products}>
               {order.items?.map((item, index) => (
@@ -134,6 +305,7 @@ export default function OrderDetailPage() {
                       {formatPrice(item.price)}
                     </div>
                     <div>Tạm tính: {formatPrice(item.subtotal)}</div>
+                    {renderReviewForm(item)}
                   </div>
                 </div>
               ))}

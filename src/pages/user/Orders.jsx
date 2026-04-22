@@ -12,6 +12,7 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
+  Star,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -21,8 +22,10 @@ import {
   getResolvedOrderItemImage,
   hydrateOrderItemsWithImages,
 } from "../../utils/orderItemImage";
+import { getOrderReviewStats } from "../../utils/reviewStatus";
 
 const PAGE_SIZE = 5;
+const REVIEWABLE_STATUSES = new Set(["DELIVERED", "COMPLETED"]);
 
 /* ===== Tabs filter ===== */
 const ORDER_STATUS = [
@@ -35,6 +38,7 @@ const ORDER_STATUS = [
 
 /* ===== Status config ===== */
 const STATUS_CONFIG = {
+  COMPLETED: { text: "Hoàn thành", icon: CheckCircle, className: "delivered" },
   PENDING: { text: "Đang xử lý", icon: Clock, className: "pending" },
   CONFIRMED: { text: "Đã xác nhận", icon: CheckCircle, className: "confirmed" },
   SHIPPING: { text: "Đang giao", icon: Truck, className: "shipping" },
@@ -47,6 +51,7 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [, setReviewSync] = useState(0);
 
   const navigate = useNavigate();
 
@@ -119,6 +124,18 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => {
+    const handleReviewUpdate = () => {
+      setReviewSync((value) => value + 1);
+    };
+
+    window.addEventListener("reviewUpdated", handleReviewUpdate);
+
+    return () => {
+      window.removeEventListener("reviewUpdated", handleReviewUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
     setPage(0);
   }, [statusFilter]);
 
@@ -188,6 +205,9 @@ export default function OrdersPage() {
       {!loading &&
         paginatedOrders.map((order, index) => {
           const status = STATUS_CONFIG[order.status] || STATUS_CONFIG.PENDING;
+          const canReviewOrder = REVIEWABLE_STATUSES.has(order.status);
+          const reviewStats = getOrderReviewStats(order);
+          const orderReviewed = canReviewOrder && reviewStats.fullyReviewed;
 
           const StatusIcon = status.icon;
 
@@ -241,6 +261,9 @@ export default function OrdersPage() {
                     Thanh toán:{" "}
                     {order.paymentMethod === "VNPAY" ? "VNPAY" : "COD"}
                   </div>
+                  {orderReviewed && (
+                    <div className={styles.reviewedNote}>Đã đánh giá</div>
+                  )}
                 </div>
 
                 <div className={styles.actions}>
@@ -254,7 +277,7 @@ export default function OrdersPage() {
                   {order.paymentMethod === "VNPAY" &&
                     order.paymentStatus !== "PAID" && // ✅ FIX
                     order.status !== "CANCELLED" &&
-                    order.status !== "DELIVERED" && ( // ✅ thêm cái này
+                    !canReviewOrder && (
                       <button
                         className={styles.payBtn}
                         onClick={() => handlePay(order.id)}
@@ -272,7 +295,17 @@ export default function OrdersPage() {
                       </button>
                     )}
 
-                  {order.status === "DELIVERED" && (
+                  {canReviewOrder && !orderReviewed && (
+                    <button
+                      className={styles.reviewBtn}
+                      onClick={() => navigate(`/orders/${order.id}?review=1`)}
+                    >
+                      <Star size={16} />
+                      Đánh giá
+                    </button>
+                  )}
+
+                  {canReviewOrder && (
                     <button
                       className={styles.buyAgain}
                       onClick={() => handleBuyAgain(order)}
