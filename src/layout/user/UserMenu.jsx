@@ -9,7 +9,7 @@ function UserMenu() {
   const menu = [
     {
       label: "Trang chủ",
-      path: "/home",
+      path: "/",
       icon: <Home size={18} />,
     },
     {

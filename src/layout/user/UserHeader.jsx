@@ -249,7 +249,7 @@ function UserHeader() {
       <div className={styles.right}>
         {!token && (
           <div className={styles.authButtons}>
-            <button onClick={() => navigate("/login")}>
+            <button className={styles.login} onClick={() => navigate("/login")}>
               <LogIn size={16} /> Đăng nhập
             </button>
 
