@@ -1,0 +1,235 @@
+.profilePage {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 28px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+}
+
+.profileBadge {
+  min-width: 64px;
+  min-height: 64px;
+  display: grid;
+  place-items: center;
+  background: #2c7a7b;
+  border-radius: 18px;
+  color: white;
+}
+
+.profileTitle {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.profileSubtitle {
+  color: #4b5563;
+}
+
+.profileCard {
+  background: white;
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.cardTitle {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.cardSubtitle {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.editButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #2c7a7b;
+  background: #2c7a7b;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.editButton:hover {
+  background: #256d6f;
+}
+
+.errorMessage {
+  margin-bottom: 18px;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.formGroup,
+.formGroupFull {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formGroupFull {
+  grid-column: span 2;
+}
+
+.input {
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #111827;
+  transition: border-color 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #2c7a7b;
+}
+
+.input:disabled {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.formActions {
+  grid-column: span 2;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.saveButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: #2c7a7b;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.saveButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.profileGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.profileItem {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: #f8fafc;
+}
+
+.label {
+  display: block;
+  color: #6b7280;
+  font-size: 13px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  word-break: break-word;
+}
+
+.extraSection {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.extraCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  background: white;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+}
+
+.extraCard p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.extraCard strong {
+  display: block;
+  margin-top: 4px;
+  color: #111827;
+  font-size: 15px;
+}
+
+.loading,
+.error,
+.empty {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  padding: 40px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+  color: #374151;
+}
+
+.error {
+  color: #b91c1c;
+}
+
+@media (max-width: 768px) {
+  .profileGrid,
+  .extraSection {
+    grid-template-columns: 1fr;
+  }
+
+  .profileHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

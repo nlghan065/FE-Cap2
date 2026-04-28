@@ -302,14 +302,6 @@ function UserHeader() {
               <User size={20} />
             </div>
 
-            {/* SETTINGS */}
-            <div
-              className={styles.iconBtn}
-              onClick={() => navigate("/settings")}
-            >
-              <Settings size={20} />
-            </div>
-
             {/* USER */}
             <div
               className={styles.userBox}
@@ -347,10 +339,6 @@ function UserHeader() {
 
                 <button onClick={() => navigate("/wishlist")}>
                   <Heart size={16} /> Yêu thích
-                </button>
-
-                <button onClick={() => navigate("/settings")}>
-                  <Settings size={16} /> Cài đặt
                 </button>
 
                 <button className={styles.logout} onClick={handleLogout}>

@@ -386,6 +386,17 @@
   font-size: 18px;
 }
 
+.profileNotice {
+  margin: -4px 0 2px;
+  padding: 11px 13px;
+  border: 1px solid rgba(15, 118, 110, 0.14);
+  border-radius: 12px;
+  background: rgba(217, 246, 241, 0.62);
+  color: var(--ai-text-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .roomGrid,
 .inlineOptionGrid {
   display: grid;

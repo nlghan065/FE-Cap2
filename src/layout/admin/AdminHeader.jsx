@@ -78,11 +78,6 @@ function AdminHeader() {
                 Hồ sơ
               </button>
 
-              <button>
-                <Settings size={18} />
-                Cài đặt
-              </button>
-
               <button className={styles.logout} onClick={handleLogout}>
                 <LogOut size={18} />
                 Đăng xuất
