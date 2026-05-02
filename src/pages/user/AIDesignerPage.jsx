@@ -14,6 +14,8 @@ import AIDesignerUploadStep from "../../components/user/ai-designer/AIDesignerUp
 import styles from "../../styles/AIDesigner.module.css";
 import { normalizeAiRecommendResult } from "../../utils/aiRecommendResultV2";
 
+const STORAGE_KEY = "aiDesignerData";
+
 const getAuthToken = () =>
   localStorage.getItem("token") || sessionStorage.getItem("token");
 
@@ -63,10 +65,7 @@ const getProfileAge = (profile) => {
   }
 
   return calculateAge(
-    profile.dateOfBirth ||
-      profile.birthDate ||
-      profile.birthday ||
-      profile.dob,
+    profile.dateOfBirth || profile.birthDate || profile.birthday || profile.dob,
   );
 };
 
@@ -117,6 +116,32 @@ function AIDesignerPage() {
     gender: "",
     age: "",
   });
+
+  const saveToStorage = useCallback((data) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      console.error("Save AI designer data to storage error:", error);
+    }
+  }, []);
+
+  const loadFromStorage = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.error("Load AI designer data from storage error:", error);
+      return null;
+    }
+  }, []);
+
+  const clearStorage = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error("Clear AI designer data from storage error:", error);
+    }
+  }, []);
 
   const loadProfileDemographics = useCallback(async () => {
     const token = getAuthToken();
@@ -171,8 +196,28 @@ function AIDesignerPage() {
   }, []);
 
   useEffect(() => {
+    const storedData = loadFromStorage();
+    if (storedData) {
+      setStep(storedData.step || 1);
+      setUploadedImage(storedData.uploadedImage || null);
+      setAiResults(storedData.aiResults || null);
+      setFormData(
+        storedData.formData || {
+          roomType: "",
+          dimensions: {
+            width: "",
+            length: "",
+            height: "",
+          },
+          style: "",
+          furnitureDensity: "",
+          gender: "",
+          age: "",
+        },
+      );
+    }
     loadProfileDemographics();
-  }, [loadProfileDemographics]);
+  }, [loadFromStorage, loadProfileDemographics]);
 
   const applyImage = (fileOrUrl) => {
     setAiResults(null);
@@ -281,20 +326,35 @@ function AIDesignerPage() {
   };
 
   const handleChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => {
+      const newFormData = { ...prev, [field]: value };
+      saveToStorage({
+        step,
+        uploadedImage,
+        aiResults,
+        formData: newFormData,
+      });
+      return newFormData;
+    });
   };
 
   const handleDimensionChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      dimensions: {
-        ...prev.dimensions,
-        [field]: value,
-      },
-    }));
+    setFormData((prev) => {
+      const newFormData = {
+        ...prev,
+        dimensions: {
+          ...prev.dimensions,
+          [field]: value,
+        },
+      };
+      saveToStorage({
+        step,
+        uploadedImage,
+        aiResults,
+        formData: newFormData,
+      });
+      return newFormData;
+    });
   };
 
   const handleReset = () => {
@@ -315,6 +375,7 @@ function AIDesignerPage() {
       gender: userDemographics.gender,
       age: userDemographics.age,
     });
+    clearStorage();
   };
 
   const handleView3D = () => {
@@ -348,6 +409,18 @@ function AIDesignerPage() {
       style: "currency",
       currency: "VND",
     }).format(Number(price) || 0);
+
+  // Save state changes to storage
+  useEffect(() => {
+    if (step !== 1 || uploadedImage || aiResults) {
+      saveToStorage({
+        step,
+        uploadedImage,
+        aiResults,
+        formData,
+      });
+    }
+  }, [step, uploadedImage, aiResults, formData, saveToStorage]);
 
   return (
     <div className={styles.page}>

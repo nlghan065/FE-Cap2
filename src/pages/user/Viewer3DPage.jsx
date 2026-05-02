@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import {
   ContactShadows,
@@ -26,6 +26,26 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { addToCartApi } from "../../api/cartApi";
 import { resolveImageUrl } from "../../utils/imageUrl";
 import styles from "../../styles/Viewer3D.module.css";
+
+const STORAGE_KEY = "aiDesignerData";
+
+const loadFromStorage = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch (error) {
+    console.error("Load AI designer data from storage error:", error);
+    return null;
+  }
+};
+
+const saveToStorage = (data) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error("Save AI designer data to storage error:", error);
+  }
+};
 
 const CATEGORY_TYPES = [
   {
@@ -81,10 +101,13 @@ const getProductId = (product) =>
   product?.id || product?._id || product?.productId || product?.product?.id;
 
 const getItemType = (product) => {
-  const source = normalizeText(`${product?.category || ""} ${product?.name || ""}`);
+  const source = normalizeText(
+    `${product?.category || ""} ${product?.name || ""}`,
+  );
   return (
-    CATEGORY_TYPES.find((item) => item.keys.some((key) => source.includes(key))) ||
-    CATEGORY_TYPES[0]
+    CATEGORY_TYPES.find((item) =>
+      item.keys.some((key) => source.includes(key)),
+    ) || CATEGORY_TYPES[0]
   );
 };
 
@@ -122,7 +145,9 @@ function Room({ dimensions }) {
 function ProductLabel({ item, selected }) {
   return (
     <Html center distanceFactor={8} position={[0, selected ? 1.65 : 1.35, 0]}>
-      <div className={`${styles.sceneLabel} ${selected ? styles.sceneLabelActive : ""}`}>
+      <div
+        className={`${styles.sceneLabel} ${selected ? styles.sceneLabelActive : ""}`}
+      >
         <span>{item.name}</span>
         <strong>{formatPrice(item.price)}</strong>
       </div>
@@ -137,7 +162,8 @@ function FurnitureModel({ item, selected, onSelect }) {
 
   useFrame((state) => {
     if (!groupRef.current || !active) return;
-    groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 2.4) * 0.025;
+    groupRef.current.position.y =
+      Math.sin(state.clock.elapsedTime * 2.4) * 0.025;
   });
 
   return (
@@ -173,16 +199,36 @@ function FurnitureModel({ item, selected, onSelect }) {
 
       {item.type === "seat" && (
         <>
-          <RoundedBox castShadow args={[1.9, 0.38, 0.92]} radius={0.08} position={[0, 0.42, 0]}>
+          <RoundedBox
+            castShadow
+            args={[1.9, 0.38, 0.92]}
+            radius={0.08}
+            position={[0, 0.42, 0]}
+          >
             <meshStandardMaterial color={item.color} roughness={0.68} />
           </RoundedBox>
-          <RoundedBox castShadow args={[1.95, 0.86, 0.22]} radius={0.07} position={[0, 0.86, -0.42]}>
+          <RoundedBox
+            castShadow
+            args={[1.95, 0.86, 0.22]}
+            radius={0.07}
+            position={[0, 0.86, -0.42]}
+          >
             <meshStandardMaterial color={item.color} roughness={0.72} />
           </RoundedBox>
-          <RoundedBox castShadow args={[0.22, 0.68, 0.95]} radius={0.06} position={[-1.08, 0.66, 0]}>
+          <RoundedBox
+            castShadow
+            args={[0.22, 0.68, 0.95]}
+            radius={0.06}
+            position={[-1.08, 0.66, 0]}
+          >
             <meshStandardMaterial color={item.color} roughness={0.7} />
           </RoundedBox>
-          <RoundedBox castShadow args={[0.22, 0.68, 0.95]} radius={0.06} position={[1.08, 0.66, 0]}>
+          <RoundedBox
+            castShadow
+            args={[0.22, 0.68, 0.95]}
+            radius={0.06}
+            position={[1.08, 0.66, 0]}
+          >
             <meshStandardMaterial color={item.color} roughness={0.7} />
           </RoundedBox>
         </>
@@ -190,16 +236,36 @@ function FurnitureModel({ item, selected, onSelect }) {
 
       {item.type === "bed" && (
         <>
-          <RoundedBox castShadow args={[1.65, 0.34, 2.15]} radius={0.08} position={[0, 0.36, 0]}>
+          <RoundedBox
+            castShadow
+            args={[1.65, 0.34, 2.15]}
+            radius={0.08}
+            position={[0, 0.36, 0]}
+          >
             <meshStandardMaterial color={item.color} roughness={0.78} />
           </RoundedBox>
-          <RoundedBox castShadow args={[1.78, 0.96, 0.16]} radius={0.05} position={[0, 0.74, -1.12]}>
+          <RoundedBox
+            castShadow
+            args={[1.78, 0.96, 0.16]}
+            radius={0.05}
+            position={[0, 0.74, -1.12]}
+          >
             <meshStandardMaterial color="#8a684d" roughness={0.62} />
           </RoundedBox>
-          <RoundedBox castShadow args={[0.62, 0.12, 0.38]} radius={0.05} position={[-0.38, 0.62, -0.72]}>
+          <RoundedBox
+            castShadow
+            args={[0.62, 0.12, 0.38]}
+            radius={0.05}
+            position={[-0.38, 0.62, -0.72]}
+          >
             <meshStandardMaterial color="#fffaf0" roughness={0.85} />
           </RoundedBox>
-          <RoundedBox castShadow args={[0.62, 0.12, 0.38]} radius={0.05} position={[0.38, 0.62, -0.72]}>
+          <RoundedBox
+            castShadow
+            args={[0.62, 0.12, 0.38]}
+            radius={0.05}
+            position={[0.38, 0.62, -0.72]}
+          >
             <meshStandardMaterial color="#fffaf0" roughness={0.85} />
           </RoundedBox>
         </>
@@ -207,7 +273,12 @@ function FurnitureModel({ item, selected, onSelect }) {
 
       {item.type === "storage" && (
         <>
-          <RoundedBox castShadow args={[1.15, 1.35, 0.42]} radius={0.04} position={[0, 0.68, 0]}>
+          <RoundedBox
+            castShadow
+            args={[1.15, 1.35, 0.42]}
+            radius={0.04}
+            position={[0, 0.68, 0]}
+          >
             <meshStandardMaterial color={item.color} roughness={0.58} />
           </RoundedBox>
           <mesh castShadow position={[-0.28, 0.67, 0.23]}>
@@ -225,13 +296,22 @@ function FurnitureModel({ item, selected, onSelect }) {
         <>
           <mesh castShadow position={[0, 1, 0]}>
             <cylinderGeometry args={[0.035, 0.035, 1.8, 18]} />
-            <meshStandardMaterial color="#282a30" metalness={0.42} roughness={0.32} />
+            <meshStandardMaterial
+              color="#282a30"
+              metalness={0.42}
+              roughness={0.32}
+            />
           </mesh>
           <mesh castShadow position={[0, 0.28, 0]}>
             <coneGeometry args={[0.34, 0.48, 32]} />
             <meshStandardMaterial color={item.color} roughness={0.36} />
           </mesh>
-          <pointLight color="#fff1c2" distance={4.2} intensity={active ? 1.4 : 0.85} position={[0, 0.2, 0]} />
+          <pointLight
+            color="#fff1c2"
+            distance={4.2}
+            intensity={active ? 1.4 : 0.85}
+            position={[0, 0.2, 0]}
+          />
         </>
       )}
 
@@ -303,7 +383,13 @@ function Scene({ items, roomDimensions, selectedId, onSelect }) {
           selected={String(selectedId) === String(item.id)}
         />
       ))}
-      <ContactShadows blur={2.8} far={4.5} opacity={0.34} position={[0, 0.02, 0]} scale={7} />
+      <ContactShadows
+        blur={2.8}
+        far={4.5}
+        opacity={0.34}
+        position={[0, 0.02, 0]}
+        scale={7}
+      />
       <Environment preset="apartment" />
     </>
   );
@@ -312,9 +398,22 @@ function Scene({ items, roomDimensions, selectedId, onSelect }) {
 function Viewer3DPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const aiResults = location.state?.aiResults || null;
+  const [aiResults, setAiResults] = useState(location.state?.aiResults || null);
   const [selectedId, setSelectedId] = useState(null);
   const [addingCart, setAddingCart] = useState(false);
+
+  useEffect(() => {
+    if (!aiResults) {
+      const storedData = loadFromStorage();
+      if (storedData?.aiResults) {
+        setAiResults(storedData.aiResults);
+        setSelectedId(storedData.selectedId || null);
+      }
+    } else {
+      // Save to storage when aiResults is set
+      saveToStorage({ aiResults, selectedId });
+    }
+  }, [aiResults, selectedId]);
 
   const products = useMemo(
     () => (Array.isArray(aiResults?.products) ? aiResults.products : []),
@@ -331,7 +430,11 @@ function Viewer3DPage() {
           color: product?.colors?.[0] || meta.color,
           image: resolveImageUrl(product?.imageUrl || product?.image),
           position: product?.position
-            ? [product.position.x || 0, product.position.y || 0, product.position.z || 0]
+            ? [
+                product.position.x || 0,
+                product.position.y || 0,
+                product.position.z || 0,
+              ]
             : ROOM_POSITIONS[index % ROOM_POSITIONS.length],
           type: meta.type,
         };
@@ -344,14 +447,21 @@ function Viewer3DPage() {
     sceneItems[0] ||
     null;
 
-  const totalPrice = sceneItems.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+  const totalPrice = sceneItems.reduce(
+    (sum, item) => sum + (Number(item.price) || 0),
+    0,
+  );
 
   const handleSelect = (item) => {
-    setSelectedId(item.id);
+    const newSelectedId = item.id;
+    setSelectedId(newSelectedId);
+    saveToStorage({ aiResults, selectedId: newSelectedId });
   };
 
   const handleAddAllToCart = async () => {
-    const realItems = sceneItems.filter((item) => !String(item.id).startsWith("ai-product-"));
+    const realItems = sceneItems.filter(
+      (item) => !String(item.id).startsWith("ai-product-"),
+    );
 
     if (!realItems.length) {
       toast.error("Danh sách AI chưa có productId thật để thêm vào giỏ.");
@@ -373,7 +483,9 @@ function Viewer3DPage() {
       navigate("/cart");
     } catch (error) {
       console.error("Add AI products to cart error:", error);
-      toast.error(error?.response?.data?.message || "Không thêm được vào giỏ hàng.");
+      toast.error(
+        error?.response?.data?.message || "Không thêm được vào giỏ hàng.",
+      );
     } finally {
       setAddingCart(false);
     }
@@ -385,7 +497,10 @@ function Viewer3DPage() {
         <div className={styles.emptyPanel}>
           <Box size={42} />
           <h1>Chưa có dữ liệu 3D</h1>
-          <p>Hãy tạo thiết kế bằng AI Designer để viewer dựng không gian từ response thật của API.</p>
+          <p>
+            Hãy tạo thiết kế bằng AI Designer để viewer dựng không gian từ
+            response thật của API.
+          </p>
           <button type="button" onClick={() => navigate("/ai-designer")}>
             Mở AI Designer
             <ChevronRight size={18} />
@@ -399,7 +514,12 @@ function Viewer3DPage() {
     <div className={styles.page}>
       <header className={styles.toolbar}>
         <div className={styles.toolbarMain}>
-          <button className={styles.iconButton} onClick={() => navigate(-1)} title="Quay lại" type="button">
+          <button
+            className={styles.iconButton}
+            onClick={() => navigate(-1)}
+            title="Quay lại"
+            type="button"
+          >
             <ArrowLeft size={19} />
           </button>
           <div>
@@ -412,14 +532,31 @@ function Viewer3DPage() {
         </div>
 
         <div className={styles.toolbarActions}>
-          <button className={styles.iconButton} title="Reset góc nhìn" type="button">
+          <button
+            className={styles.iconButton}
+            title="Reset góc nhìn"
+            type="button"
+          >
             <RotateCcw size={18} />
           </button>
-          <button className={styles.iconButton} title="Toàn màn hình" type="button">
+          <button
+            className={styles.iconButton}
+            title="Toàn màn hình"
+            type="button"
+          >
             <Maximize2 size={18} />
           </button>
-          <button className={styles.cartButton} disabled={addingCart} onClick={handleAddAllToCart} type="button">
-            {addingCart ? <Loader2 className={styles.spin} size={18} /> : <ShoppingCart size={18} />}
+          <button
+            className={styles.cartButton}
+            disabled={addingCart}
+            onClick={handleAddAllToCart}
+            type="button"
+          >
+            {addingCart ? (
+              <Loader2 className={styles.spin} size={18} />
+            ) : (
+              <ShoppingCart size={18} />
+            )}
             <span>Mua tất cả</span>
           </button>
         </div>
@@ -451,7 +588,10 @@ function Viewer3DPage() {
           <section className={styles.summaryBlock}>
             <span>Tổng giá trị</span>
             <strong>{formatPrice(totalPrice)}</strong>
-            <p>{aiResults?.reasoning || "Viewer đang dùng danh sách sản phẩm từ kết quả AI recommend."}</p>
+            <p>
+              {aiResults?.reasoning ||
+                "Viewer đang dùng danh sách sản phẩm từ kết quả AI recommend."}
+            </p>
           </section>
 
           {selectedItem && (
@@ -462,7 +602,10 @@ function Viewer3DPage() {
               <span>{selectedItem.category || selectedItem.type}</span>
               <h2>{selectedItem.name}</h2>
               <strong>{formatPrice(selectedItem.price)}</strong>
-              <p>{selectedItem.reason || "Sản phẩm phù hợp với cấu hình phòng đã chọn."}</p>
+              <p>
+                {selectedItem.reason ||
+                  "Sản phẩm phù hợp với cấu hình phòng đã chọn."}
+              </p>
               <dl>
                 <div>
                   <dt>Chất liệu</dt>
@@ -476,7 +619,8 @@ function Viewer3DPage() {
               <button
                 type="button"
                 onClick={() =>
-                  selectedItem.id && !String(selectedItem.id).startsWith("ai-product-")
+                  selectedItem.id &&
+                  !String(selectedItem.id).startsWith("ai-product-")
                     ? navigate(`/products/${selectedItem.id}`)
                     : navigate("/products")
                 }
@@ -491,7 +635,11 @@ function Viewer3DPage() {
             <h3>Danh sách sản phẩm</h3>
             {sceneItems.map((item) => (
               <button
-                className={String(item.id) === String(selectedItem?.id) ? styles.activeItem : ""}
+                className={
+                  String(item.id) === String(selectedItem?.id)
+                    ? styles.activeItem
+                    : ""
+                }
                 key={item.id}
                 onClick={() => handleSelect(item)}
                 type="button"
