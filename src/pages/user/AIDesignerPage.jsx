@@ -44,7 +44,7 @@ const calculateAge = (dateValue) => {
   return age > 0 ? String(age) : "";
 };
 
-const normalizeGender = (value) => {
+const _normalizeGender = (value) => {
   const normalized = String(value || "")
     .trim()
     .toLowerCase();
@@ -298,7 +298,14 @@ function AIDesignerPage() {
 
       console.log("[AI Design FE] raw source response", response);
 
-      const normalizedResult = normalizeAiRecommendResult(response || {});
+      const normalizedResult = normalizeAiRecommendResult({
+        ...(response || {}),
+        roomType: response?.roomType || formData.roomType,
+        style: response?.style || formData.style,
+        furnitureDensity: response?.furnitureDensity || formData.furnitureDensity,
+        gender: response?.gender || formData.gender,
+        dimensions: response?.dimensions || formData.dimensions,
+      });
 
       console.log("[AI Design FE] normalized result", normalizedResult);
 

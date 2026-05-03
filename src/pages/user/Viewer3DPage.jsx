@@ -23,11 +23,14 @@ import {
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { postAiLayoutFromRecommendationApi } from "../../api/aiRecommendApi";
 import { addToCartApi } from "../../api/cartApi";
+import { mergeAiLayoutResult } from "../../utils/aiRecommendResultV2";
 import { resolveImageUrl } from "../../utils/imageUrl";
 import styles from "../../styles/Viewer3D.module.css";
 
 const STORAGE_KEY = "cap2-ai-viewer-state";
+const LAYOUT_REQUEST_VERSION = "layout-model-url-v3";
 const DEFAULT_CAMERA_POSITION = [5.3, 3.7, 6.4];
 const DEFAULT_CAMERA_TARGET = [0, 0.55, 0];
 const TV_STAND_KEYS = [
@@ -900,6 +903,136 @@ const getPlacement = (type, typeIndex, overallIndex) => {
   return {
     position: [-1.5 + column * 1.5, 0, -0.4 - row * 1.35],
     rotation: column === 1 ? Math.PI : 0,
+  };
+};
+
+const parseOptionalNumber = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(/[^\d.-]/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+};
+
+const pickOptionalNumber = (source, keys) => {
+  if (!source || typeof source !== "object") return undefined;
+
+  for (const key of keys) {
+    if (source[key] === undefined || source[key] === null) continue;
+
+    const parsed = parseOptionalNumber(source[key]);
+    if (parsed !== null) return parsed;
+  }
+
+  return undefined;
+};
+
+const normalizeViewerLayoutPosition = (value) => {
+  if (Array.isArray(value)) {
+    const x = parseOptionalNumber(value[0]);
+    const y = value.length >= 3 ? parseOptionalNumber(value[1]) : 0;
+    const z =
+      value.length >= 3 ? parseOptionalNumber(value[2]) : parseOptionalNumber(value[1]);
+
+    return x === null || z === null ? null : [x, y ?? 0, z];
+  }
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const x = pickOptionalNumber(value, ["x", "xM", "x_m", "centerX", "center_x"]);
+  const explicitZ = pickOptionalNumber(value, [
+    "z",
+    "zM",
+    "z_m",
+    "centerZ",
+    "center_z",
+  ]);
+  const floorY = pickOptionalNumber(value, [
+    "y",
+    "yM",
+    "y_m",
+    "centerY",
+    "center_y",
+  ]);
+  const verticalY =
+    pickOptionalNumber(value, [
+      "positionY",
+      "position_y",
+      "verticalY",
+      "vertical_y",
+      "elevation",
+      "elevationM",
+    ]) ?? 0;
+  const z = explicitZ ?? floorY;
+
+  if (x === undefined || z === undefined) {
+    return null;
+  }
+
+  return [x, explicitZ === undefined ? 0 : verticalY, z];
+};
+
+const normalizeViewerLayoutRotation = (value) => {
+  let parsed;
+  let unit = "";
+
+  if (typeof value === "number" || typeof value === "string") {
+    parsed = parseOptionalNumber(value);
+  } else if (value && typeof value === "object") {
+    parsed = pickOptionalNumber(value, [
+      "y",
+      "yaw",
+      "angle",
+      "rotationY",
+      "rotation_y",
+      "radians",
+      "rad",
+      "degrees",
+      "deg",
+    ]);
+    unit = value.unit || value.rotationUnit || "";
+  }
+
+  if (parsed === null || parsed === undefined) {
+    return 0;
+  }
+
+  if (String(unit).toLowerCase().includes("deg") || Math.abs(parsed) > Math.PI * 2) {
+    return (parsed * Math.PI) / 180;
+  }
+
+  return parsed;
+};
+
+const getAiLayoutPlacement = (product) => {
+  const source =
+    product?.layoutPlacement ||
+    product?.aiLayout ||
+    product?.layout ||
+    product?.placement;
+  const positionSource =
+    source?.position ||
+    source?.coordinates ||
+    source?.coordinate ||
+    source?.center ||
+    source?.location ||
+    product?.position;
+  const position = normalizeViewerLayoutPosition(positionSource);
+
+  if (!position) {
+    return null;
+  }
+
+  return {
+    position,
+    rotation: normalizeViewerLayoutRotation(source?.rotation ?? product?.rotation),
+    modelUrl: source?.modelUrl || product?.modelUrl || "",
+    score: source?.score ?? product?.layoutScore,
   };
 };
 
@@ -2184,25 +2317,107 @@ function Viewer3DPage() {
   const location = useLocation();
   const controlsRef = useRef(null);
   const canvasPanelRef = useRef(null);
+  const layoutRequestKeyRef = useRef("");
   const [selectedId, setSelectedId] = useState(null);
   const [addingCart, setAddingCart] = useState(false);
+  const [layoutLoading, setLayoutLoading] = useState(false);
   const [resetToken, setResetToken] = useState(0);
 
-  const aiResults = useMemo(
+  const initialAiResults = useMemo(
     () => location.state?.aiResults || getSavedAiViewerState() || null,
     [location.state],
   );
+  const [aiResults, setAiResults] = useState(initialAiResults);
 
   useEffect(() => {
-    if (location.state?.aiResults) {
-      saveAiViewerState(location.state.aiResults);
+    setAiResults(initialAiResults);
+    layoutRequestKeyRef.current = "";
+
+    if (initialAiResults) {
+      saveAiViewerState(initialAiResults);
     }
-  }, [location.state]);
+  }, [initialAiResults]);
 
   const products = useMemo(
     () => (Array.isArray(aiResults?.products) ? aiResults.products : []),
     [aiResults],
   );
+
+  useEffect(() => {
+    if (!aiResults || !products.length) return;
+
+    const hasLayoutPlacement =
+      aiResults?.layout?.requestVersion === LAYOUT_REQUEST_VERSION &&
+      (products.some((product) => product?.layoutPlacement) ||
+        Boolean(aiResults?.layout?.items?.length) ||
+        Boolean(aiResults?.layout?.rejected?.length));
+
+    if (hasLayoutPlacement) return;
+
+    const requestKey = JSON.stringify({
+      id: aiResults.id || aiResults.requestMeta?.id || "",
+      roomType: aiResults.roomType || "",
+      style: aiResults.style || "",
+      room: aiResults.roomAnalysis || {},
+      products: products.map((product) => getProductId(product)).join("|"),
+      version: LAYOUT_REQUEST_VERSION,
+    });
+
+    if (layoutRequestKeyRef.current === requestKey) return;
+
+    let cancelled = false;
+    layoutRequestKeyRef.current = requestKey;
+    setLayoutLoading(true);
+
+    const loadLayout = async () => {
+      try {
+        const layoutResponse = await postAiLayoutFromRecommendationApi({
+          roomType: aiResults.roomType,
+          dimensions: aiResults.roomAnalysis,
+          style: aiResults.style,
+          products,
+          topK: Math.max(products.length, 1),
+          minScore: 0.55,
+        });
+
+        if (cancelled) return;
+
+        const mergedResult = mergeAiLayoutResult(aiResults, layoutResponse);
+        const versionedResult = {
+          ...mergedResult,
+          layout: {
+            ...(mergedResult?.layout || {}),
+            requestVersion: LAYOUT_REQUEST_VERSION,
+          },
+        };
+
+        if (versionedResult?.layout?.rejected?.length) {
+          console.warn(
+            "[AI Viewer] layout rejected products",
+            versionedResult.layout.rejected,
+          );
+        }
+
+        setAiResults(versionedResult);
+        saveAiViewerState(versionedResult);
+      } catch (error) {
+        if (cancelled) return;
+
+        console.error("AI viewer layout error:", error);
+        toast.error("Khong lay duoc vi tri AI, viewer se dung bo cuc mac dinh.");
+      } finally {
+        if (!cancelled) {
+          setLayoutLoading(false);
+        }
+      }
+    };
+
+    loadLayout();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [aiResults, products]);
 
   const sceneItems = useMemo(() => {
     const counts = {};
@@ -2214,7 +2429,8 @@ function Viewer3DPage() {
       const typeIndex = counts[placementKey] || 0;
       counts[placementKey] = typeIndex + 1;
 
-      const placement = getPlacement(placementKey, typeIndex, index);
+      const aiPlacement = getAiLayoutPlacement(product);
+      const placement = aiPlacement || getPlacement(placementKey, typeIndex, index);
       const rawColor = product?.colors?.[0];
 
       return {
@@ -2227,6 +2443,9 @@ function Viewer3DPage() {
           storageVariant,
           type: meta.type,
         }),
+        hasAiPlacement: Boolean(aiPlacement),
+        layoutScore: aiPlacement?.score ?? product?.layoutScore,
+        modelUrl: aiPlacement?.modelUrl || product?.modelUrl || "",
         position: placement.position,
         rotation: placement.rotation,
         storageVariant,
@@ -2245,7 +2464,7 @@ function Viewer3DPage() {
     const accessoryCounts = { tray: 0, vase: 0 };
 
     return mappedItems.map((item) => {
-      if (!["tray", "vase"].includes(item.type)) {
+      if (!["tray", "vase"].includes(item.type) || item.hasAiPlacement) {
         return item;
       }
 
@@ -2269,6 +2488,9 @@ function Viewer3DPage() {
       };
     });
   }, [products]);
+
+  const aiPlacedCount = sceneItems.filter((item) => item.hasAiPlacement).length;
+  const hasLayoutResult = Boolean(aiResults?.layout);
 
   const selectedItem =
     sceneItems.find((item) => String(item.id) === String(selectedId)) ||
@@ -2429,7 +2651,13 @@ function Viewer3DPage() {
               <Home size={17} />
               <span>{aiResults?.roomType || "Không gian AI"}</span>
             </div>
-            <strong>{sceneItems.length} sản phẩm</strong>
+            <strong>
+              {layoutLoading
+                ? "Dang xep vi tri AI..."
+                : hasLayoutResult
+                  ? `${aiPlacedCount}/${sceneItems.length} vị trí AI`
+                  : `${sceneItems.length} sản phẩm`}
+            </strong>
           </div>
         </section>
 
