@@ -5,11 +5,12 @@ import styles from "../../styles/LayoutUser.module.css";
 function UserMenu() {
   const token =
     localStorage.getItem("token") || sessionStorage.getItem("token");
+  const homePath = token ? "/home" : "/";
 
   const menu = [
     {
       label: "Trang chủ",
-      path: "/home",
+      path: homePath,
       icon: <Home size={18} />,
     },
     {
@@ -44,6 +45,7 @@ function UserMenu() {
         <NavLink
           key={index}
           to={item.path}
+          end={item.path === "/" || item.path === "/home"}
           className={({ isActive }) =>
             isActive ? `${styles.menuItem} ${styles.active}` : styles.menuItem
           }
