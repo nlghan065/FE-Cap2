@@ -1,7 +1,13 @@
 import styles from "../../styles/Admin.module.css";
 import { NavLink } from "react-router-dom";
 
-import { LayoutDashboard, ShoppingCart, Package, Users } from "lucide-react";
+import {
+  LayoutDashboard,
+  MessageSquare,
+  ShoppingCart,
+  Package,
+  Users,
+} from "lucide-react";
 
 function AdminMenu() {
   const menu = [
@@ -28,6 +34,12 @@ function AdminMenu() {
       label: "Khách hàng",
       icon: <Users size={18} />,
       path: "/admin/customers",
+    },
+    {
+      id: "reviews",
+      label: "Bình luận",
+      icon: <MessageSquare size={18} />,
+      path: "/admin/reviews",
     },
   ];
 

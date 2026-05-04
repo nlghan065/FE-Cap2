@@ -14,6 +14,8 @@ function AIDesignerConfigStep({
   onDimensionChange,
   onGenerate,
   loading,
+  profileLoading,
+  userDemographics,
 }) {
   const isDisabled =
     loading ||
@@ -43,6 +45,13 @@ function AIDesignerConfigStep({
       <div className={styles.formPanel}>
         <div className={styles.formSection}>
           <h3>Thông tin request</h3>
+          <p className={styles.profileNotice}>
+            {profileLoading
+              ? "Đang lấy giới tính và độ tuổi từ hồ sơ người dùng..."
+              : userDemographics?.gender || userDemographics?.age
+                ? "Giới tính và độ tuổi đã được tự động lấy từ hồ sơ người dùng. Bạn vẫn có thể chỉnh lại trước khi gửi AI."
+                : "Chưa có dữ liệu giới tính/độ tuổi trong hồ sơ, hãy nhập thủ công để AI tối ưu gợi ý."}
+          </p>
 
           <div className={styles.inputGrid}>
             <label className={styles.inputField}>

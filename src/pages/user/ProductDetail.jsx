@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { getReviewsByProductApi } from "../../api/reviewApi";
 import { addToCartApi } from "../../api/cartApi";
+import { trackBehaviorApi } from "../../api/behaviorApi";
 
 function ProductDetail() {
   const { id } = useParams();
@@ -137,6 +138,20 @@ function ProductDetail() {
 
     fetchReviews();
   }, [activeTab, product?.id, reviewPage]);
+
+  useEffect(() => {
+    const trackedProductId = product?.id || product?._id;
+    if (!trackedProductId) return;
+
+    const token =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
+    if (!token) return;
+
+    trackBehaviorApi({
+      productId: trackedProductId,
+      eventType: "PRODUCT_VIEW",
+    });
+  }, [product?.id, product?._id]);
 
   const increase = () => {
     if (product && qty < product.stock) setQty(qty + 1);

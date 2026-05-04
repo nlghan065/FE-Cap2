@@ -1,4 +1,10 @@
-import { BrowserRouter, Routes, Route, Outlet, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Outlet,
+  Navigate,
+} from "react-router-dom";
 
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -16,6 +22,7 @@ import ProductCreate from "./pages/admin/ProductCreate";
 import OrdersAdmin from "./pages/admin/OrdersAdmin";
 import OrderDetail from "./pages/admin/OrderDetail";
 import OrderEdit from "./pages/admin/OrderEdit";
+import ReviewsAdmin from "./pages/admin/ReviewsAdmin";
 
 import UserLayout from "./layout/user/UserLayout";
 import Home from "./pages/user/Home";
@@ -23,10 +30,13 @@ import Landing from "./pages/user/Landing";
 import Products from "./pages/user/Products";
 import ProductDetail from "./pages/user/ProductDetail";
 import AIDesignerPage from "./pages/user/AIDesignerPage";
+import Viewer3DPage from "./pages/user/Viewer3DPage";
 import Cart from "./pages/user/Cart";
 import CartStep2 from "./pages/user/CartStep2";
 import CartStep3 from "./pages/user/CartStep3";
 import PaymentResult from "./pages/user/PaymentResult";
+import Wishlist from "./pages/user/Wishlist";
+import Profile from "./pages/user/Profile";
 
 import OrderSuccess from "./pages/user/OrderSuccess";
 import OrderFail from "./pages/user/OrderFail";
@@ -66,6 +76,7 @@ function App() {
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/ai-designer" element={<AIDesignerPage />} />
           <Route path="/ai-design" element={<AIDesignerPage />} />
+          <Route path="/viewer" element={<Viewer3DPage />} />
         </Route>
 
         {/* ================= PROTECTED USER ================= */}
@@ -81,8 +92,8 @@ function App() {
             <Route path="/order-fail" element={<OrderFail />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/orders/:id" element={<OrderDetailPage />} />
-            <Route path="/profile" element={<h1>Profile</h1>} />
-            <Route path="/settings" element={<h1>Settings</h1>} />
+            <Route path="/wishlist" element={<Wishlist />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
         </Route>
 
@@ -104,6 +115,7 @@ function App() {
             <Route path="/admin/orders" element={<OrdersAdmin />} />
             <Route path="/admin/orders/:id" element={<OrderDetail />} />
             <Route path="/admin/orders/:id/edit" element={<OrderEdit />} />
+            <Route path="/admin/reviews" element={<ReviewsAdmin />} />
           </Route>
           <Route path="/admin/products" element={<ProductsAdmin />} />
           <Route path="/admin/products/:id" element={<AdminProductDetail />} />

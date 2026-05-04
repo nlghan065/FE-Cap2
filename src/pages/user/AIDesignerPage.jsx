@@ -1,8 +1,10 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import { postAiRecommendApi } from "../../api/aiRecommendApi";
+import { getUserByIdApi } from "../../api/authApi";
+import { getProfileApi } from "../../api/profileApi";
 import AIDesignerConfigStep from "../../components/user/ai-designer/AIDesignerConfigStep";
 import AIDesignerHero from "../../components/user/ai-designer/AIDesignerHero";
 import AIDesignerProcessingStep from "../../components/user/ai-designer/AIDesignerProcessingStep";
@@ -12,6 +14,83 @@ import AIDesignerUploadStep from "../../components/user/ai-designer/AIDesignerUp
 import styles from "../../styles/AIDesigner.module.css";
 import { normalizeAiRecommendResult } from "../../utils/aiRecommendResultV2";
 
+const STORAGE_KEY = "aiDesignerData";
+
+const getAuthToken = () =>
+  localStorage.getItem("token") || sessionStorage.getItem("token");
+
+const getCurrentUserId = () =>
+  localStorage.getItem("userId") || sessionStorage.getItem("userId");
+
+const calculateAge = (dateValue) => {
+  if (!dateValue) return "";
+
+  const birthDate = Array.isArray(dateValue)
+    ? new Date(dateValue[0], Number(dateValue[1] || 1) - 1, dateValue[2] || 1)
+    : new Date(dateValue);
+  if (Number.isNaN(birthDate.getTime())) return "";
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age -= 1;
+  }
+
+  return age > 0 ? String(age) : "";
+};
+
+const _normalizeGender = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  if (["male", "nam", "m"].includes(normalized)) return "male";
+  if (["female", "nu", "nữ", "f"].includes(normalized)) return "female";
+  if (["other", "khac", "khác"].includes(normalized)) return "other";
+
+  return "";
+};
+
+const getProfileAge = (profile) => {
+  if (!profile) return "";
+
+  const directAge = Number(profile.age);
+  if (Number.isFinite(directAge) && directAge > 0) {
+    return String(directAge);
+  }
+
+  return calculateAge(
+    profile.dateOfBirth || profile.birthDate || profile.birthday || profile.dob,
+  );
+};
+
+const normalizeProfileGender = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  if (["male", "nam", "m"].includes(normalized)) return "male";
+  if (["female", "nu", "f"].includes(normalized)) return "female";
+  if (["other", "khac"].includes(normalized)) return "other";
+
+  return "";
+};
+
+const getDemographicsFromProfile = (profile) => ({
+  gender: normalizeProfileGender(profile?.gender || profile?.user?.gender),
+  age:
+    getProfileAge(profile) ||
+    getProfileAge(profile?.user) ||
+    calculateAge(profile?.user?.dateOfBirth || profile?.user?.birthDate),
+});
+
 function AIDesignerPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -19,6 +98,11 @@ function AIDesignerPage() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiResults, setAiResults] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [userDemographics, setUserDemographics] = useState({
+    gender: "",
+    age: "",
+  });
 
   const [formData, setFormData] = useState({
     roomType: "",
@@ -33,6 +117,108 @@ function AIDesignerPage() {
     age: "",
   });
 
+  const saveToStorage = useCallback((data) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      console.error("Save AI designer data to storage error:", error);
+    }
+  }, []);
+
+  const loadFromStorage = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.error("Load AI designer data from storage error:", error);
+      return null;
+    }
+  }, []);
+
+  const clearStorage = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error("Clear AI designer data from storage error:", error);
+    }
+  }, []);
+
+  const loadProfileDemographics = useCallback(async () => {
+    const token = getAuthToken();
+
+    if (!token) {
+      setUserDemographics({ gender: "", age: "" });
+      return { gender: "", age: "" };
+    }
+
+    setProfileLoading(true);
+
+    try {
+      const profile = await getProfileApi();
+      let demographics = getDemographicsFromProfile(profile);
+
+      if (!demographics.gender || !demographics.age) {
+        const userId =
+          profile?.userId ||
+          profile?.user?.id ||
+          profile?.user?._id ||
+          getCurrentUserId();
+
+        if (userId) {
+          try {
+            const user = await getUserByIdApi(userId);
+            const userDemographics = getDemographicsFromProfile(user);
+
+            demographics = {
+              gender: demographics.gender || userDemographics.gender,
+              age: demographics.age || userDemographics.age,
+            };
+          } catch (error) {
+            console.error("Load AI designer user fallback data error:", error);
+          }
+        }
+      }
+
+      setUserDemographics(demographics);
+      setFormData((prev) => ({
+        ...prev,
+        gender: prev.gender || demographics.gender,
+        age: prev.age || demographics.age,
+      }));
+
+      return demographics;
+    } catch (error) {
+      console.error("Load AI designer profile data error:", error);
+      return { gender: "", age: "" };
+    } finally {
+      setProfileLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const storedData = loadFromStorage();
+    if (storedData) {
+      setStep(storedData.step || 1);
+      setUploadedImage(storedData.uploadedImage || null);
+      setAiResults(storedData.aiResults || null);
+      setFormData(
+        storedData.formData || {
+          roomType: "",
+          dimensions: {
+            width: "",
+            length: "",
+            height: "",
+          },
+          style: "",
+          furnitureDensity: "",
+          gender: "",
+          age: "",
+        },
+      );
+    }
+    loadProfileDemographics();
+  }, [loadFromStorage, loadProfileDemographics]);
+
   const applyImage = (fileOrUrl) => {
     setAiResults(null);
 
@@ -40,6 +226,7 @@ function AIDesignerPage() {
       setUploadedImage(fileOrUrl);
       setUploadedFile(null);
       setStep(2);
+      loadProfileDemographics();
       return;
     }
 
@@ -50,6 +237,7 @@ function AIDesignerPage() {
       if (typeof reader.result === "string") {
         setUploadedImage(reader.result);
         setStep(2);
+        loadProfileDemographics();
       }
     };
     reader.readAsDataURL(fileOrUrl);
@@ -110,7 +298,14 @@ function AIDesignerPage() {
 
       console.log("[AI Design FE] raw source response", response);
 
-      const normalizedResult = normalizeAiRecommendResult(response || {});
+      const normalizedResult = normalizeAiRecommendResult({
+        ...(response || {}),
+        roomType: response?.roomType || formData.roomType,
+        style: response?.style || formData.style,
+        furnitureDensity: response?.furnitureDensity || formData.furnitureDensity,
+        gender: response?.gender || formData.gender,
+        dimensions: response?.dimensions || formData.dimensions,
+      });
 
       console.log("[AI Design FE] normalized result", normalizedResult);
 
@@ -138,20 +333,35 @@ function AIDesignerPage() {
   };
 
   const handleChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => {
+      const newFormData = { ...prev, [field]: value };
+      saveToStorage({
+        step,
+        uploadedImage,
+        aiResults,
+        formData: newFormData,
+      });
+      return newFormData;
+    });
   };
 
   const handleDimensionChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      dimensions: {
-        ...prev.dimensions,
-        [field]: value,
-      },
-    }));
+    setFormData((prev) => {
+      const newFormData = {
+        ...prev,
+        dimensions: {
+          ...prev.dimensions,
+          [field]: value,
+        },
+      };
+      saveToStorage({
+        step,
+        uploadedImage,
+        aiResults,
+        formData: newFormData,
+      });
+      return newFormData;
+    });
   };
 
   const handleReset = () => {
@@ -169,13 +379,23 @@ function AIDesignerPage() {
       },
       style: "",
       furnitureDensity: "",
-      gender: "",
-      age: "",
+      gender: userDemographics.gender,
+      age: userDemographics.age,
     });
+    clearStorage();
   };
 
   const handleView3D = () => {
-    toast("Chưa có trang 3D Viewer để kết nối.");
+    if (!aiResults?.products?.length) {
+      toast.error("Chưa có danh sách sản phẩm để dựng không gian 3D.");
+      return;
+    }
+
+    navigate("/viewer", {
+      state: {
+        aiResults,
+      },
+    });
   };
 
   const handleAddAllToCart = () => {
@@ -196,6 +416,18 @@ function AIDesignerPage() {
       style: "currency",
       currency: "VND",
     }).format(Number(price) || 0);
+
+  // Save state changes to storage
+  useEffect(() => {
+    if (step !== 1 || uploadedImage || aiResults) {
+      saveToStorage({
+        step,
+        uploadedImage,
+        aiResults,
+        formData,
+      });
+    }
+  }, [step, uploadedImage, aiResults, formData, saveToStorage]);
 
   return (
     <div className={styles.page}>
@@ -219,6 +451,8 @@ function AIDesignerPage() {
             onGenerate={handleGenerateDesign}
             uploadedImage={uploadedImage}
             loading={isProcessing}
+            profileLoading={profileLoading}
+            userDemographics={userDemographics}
           />
         )}
 

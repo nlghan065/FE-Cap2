@@ -205,11 +205,6 @@
   cursor: pointer;
 }
 
-.register {
-  background: #0d9488;
-  color: white;
-}
-
 /* ICON BUTTON */
 .iconBtn {
   position: relative;
@@ -227,6 +222,87 @@
   border-radius: 10px;
 }
 
+/* AUTH BUTTONS */
+.authButtons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Base button */
+.authButtons button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+
+  border-radius: 8px;
+  border: 1px solid transparent;
+
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* 🔵 LOGIN BUTTON */
+.authButtons button:first-child {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: white;
+}
+
+.authButtons button:first-child:hover {
+  background: white;
+  color: #2c7a7b;
+}
+.login {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+
+  background: rgba(255, 255, 255, 0.14);
+  color: #fdffff;
+
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* Hover */
+.login:hover {
+  background: white;
+  color: #2c7a7b;
+}
+
+/* Click */
+.login:active {
+  transform: scale(0.96);
+}
+
+/* 🟢 REGISTER BUTTON */
+.register {
+  background: white;
+  color: #2c7a7b;
+  border: 1px solid #38b2ac;
+}
+
+.register:hover {
+  background: #38b2ac;
+  color: white;
+}
+
+.register:hover {
+  background-color: #0f766e;
+}
+
 /* MENU WRAPPER */
 /* MENU WRAPPER */
 .menuWrapper {
@@ -236,7 +312,7 @@
   padding: 6px;
 
   display: grid;
-  grid-template-columns: repeat(5, 1fr); /* 🔥 chia đều */
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); /* 🔥 chia đều */
   gap: 6px;
 
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
@@ -347,7 +423,7 @@
   padding: 6px;
 
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 6px;
 
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);

@@ -3,7 +3,7 @@ import axios from "axios";
 // ================= BASE CLIENT =================
 const createClient = () => {
   const instance = axios.create({
-    baseURL: "http://localhost:8000",
+    baseURL: "https://capstone02.onrender.com",
     withCredentials: true,
     headers: {
       "Content-Type": "application/json",

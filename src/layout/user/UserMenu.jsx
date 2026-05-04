@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, Store, Sparkles, Box, ShoppingCart } from "lucide-react";
+import { Home, Store, Sparkles, Box, ShoppingCart, Heart } from "lucide-react";
 import styles from "../../styles/LayoutUser.module.css";
 
 function UserMenu() {
@@ -10,7 +10,11 @@ function UserMenu() {
   const menu = [
     {
       label: "Trang chủ",
+<<<<<<< HEAD
       path: homePath,
+=======
+      path: "/",
+>>>>>>> 1e9902e2d63983cd0b2ec34f0030bb33f770d53d
       icon: <Home size={18} />,
     },
     {
@@ -32,6 +36,12 @@ function UserMenu() {
 
   // 👉 thêm khi login
   if (token) {
+    menu.push({
+      label: "Yêu thích",
+      path: "/wishlist",
+      icon: <Heart size={18} />,
+    });
+
     menu.push({
       label: "Đơn hàng",
       path: "/orders",

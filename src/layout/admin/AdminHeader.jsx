@@ -11,7 +11,7 @@ function AdminHeader() {
   const navigate = useNavigate();
 
   const handleGoToUserView = () => {
-    navigate("/home");
+    navigate("/");
   };
 
   const handleLogout = () => {
@@ -76,11 +76,6 @@ function AdminHeader() {
               <button>
                 <User size={18} />
                 Hồ sơ
-              </button>
-
-              <button>
-                <Settings size={18} />
-                Cài đặt
               </button>
 
               <button className={styles.logout} onClick={handleLogout}>
