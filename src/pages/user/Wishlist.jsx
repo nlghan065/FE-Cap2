@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowRight,
-  Heart,
-  Loader2,
-  ShoppingCart,
-  Trash2,
-} from "lucide-react";
+import { ArrowRight, Heart, Loader2, ShoppingCart, Trash2 } from "lucide-react";
 import { addToCartApi } from "../../api/cartApi";
 import {
   getWishlistApi,

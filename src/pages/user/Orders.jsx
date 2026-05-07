@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { getOrdersApi } from "../../api/orderApi";
-import { addToCartApi } from "../../api/cartApi";
-import { cancelOrderApi } from "../../api/orderApi";
-import styles from "../../styles/Orders.module.css";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
   Package,
   Clock,
@@ -14,9 +12,10 @@ import {
   ChevronRight,
   Star,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import { getOrdersApi, cancelOrderApi } from "../../api/orderApi";
+import { addToCartApi } from "../../api/cartApi";
 import { createVnpayPaymentApi } from "../../api/paymentApi";
+import styles from "../../styles/Orders.module.css";
 import logoImage from "../../assets/logo.png";
 import {
   getResolvedOrderItemImage,
@@ -27,7 +26,6 @@ import { getOrderReviewStats } from "../../utils/reviewStatus";
 const PAGE_SIZE = 5;
 const REVIEWABLE_STATUSES = new Set(["DELIVERED", "COMPLETED"]);
 
-/* ===== Tabs filter ===== */
 const ORDER_STATUS = [
   { value: "ALL", label: "Tất cả", icon: Package },
   { value: "PENDING", label: "Đang xử lý", icon: Clock },
@@ -36,14 +34,13 @@ const ORDER_STATUS = [
   { value: "DELIVERED", label: "Đã giao", icon: CheckCircle },
 ];
 
-/* ===== Status config ===== */
 const STATUS_CONFIG = {
   COMPLETED: { text: "Hoàn thành", icon: CheckCircle, className: "delivered" },
   PENDING: { text: "Đang xử lý", icon: Clock, className: "pending" },
   CONFIRMED: { text: "Đã xác nhận", icon: CheckCircle, className: "confirmed" },
   SHIPPING: { text: "Đang giao", icon: Truck, className: "shipping" },
   DELIVERED: { text: "Đã giao", icon: CheckCircle, className: "delivered" },
-  CANCELLED: { text: "Đã huỷ", icon: Package, className: "cancelled" },
+  CANCELLED: { text: "Đã hủy", icon: Package, className: "cancelled" },
 };
 
 export default function OrdersPage() {
@@ -52,20 +49,19 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [, setReviewSync] = useState(0);
+  const [cancelOrderId, setCancelOrderId] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const navigate = useNavigate();
 
-  /* ===== format price ===== */
   const formatPrice = (value) =>
     Number(value || 0).toLocaleString("vi-VN") + " đ";
 
-  /* ===== Fetch orders ===== */
   const fetchOrders = async () => {
     setLoading(true);
 
     try {
       const res = await getOrdersApi();
-
       const ordersData = res?.data?.content || res?.content || [];
       const imageCache = new Map();
       const hydratedOrders = await Promise.all(
@@ -83,39 +79,51 @@ export default function OrdersPage() {
       console.error("Fetch orders error:", error);
       toast.error("Không thể tải đơn hàng");
       setOrders([]);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
+
   const handlePay = async (orderId) => {
     try {
       const res = await createVnpayPaymentApi(orderId);
 
-      // ✅ lưu lại để dùng sau khi redirect
       localStorage.setItem("pendingOrderId", orderId);
-
       window.location.href = res.paymentUrl;
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || "Không thể thanh toán!");
     }
   };
-  const handleCancel = async (orderId) => {
-    const confirm = window.confirm("Bạn có chắc muốn huỷ đơn hàng này?");
-    if (!confirm) return;
+
+  const openCancelModal = (orderId) => {
+    setCancelOrderId(orderId);
+  };
+
+  const closeCancelModal = () => {
+    if (isCancelling) return;
+    setCancelOrderId(null);
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!cancelOrderId) return;
+
+    setIsCancelling(true);
 
     try {
-      await cancelOrderApi(orderId);
-
-      toast.success("Đã huỷ đơn hàng");
-      fetchOrders();
+      await cancelOrderApi(cancelOrderId);
+      toast.success("Đã hủy đơn hàng");
+      setCancelOrderId(null);
+      await fetchOrders();
     } catch (error) {
       console.error("Cancel error:", error);
 
       const msg =
-        error?.response?.data?.message || error.message || "Huỷ đơn thất bại";
+        error?.response?.data?.message || error.message || "Hủy đơn thất bại";
 
       toast.error(msg);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -139,7 +147,22 @@ export default function OrdersPage() {
     setPage(0);
   }, [statusFilter]);
 
-  /* ===== BUY AGAIN ===== */
+  useEffect(() => {
+    if (!cancelOrderId) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        closeCancelModal();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [cancelOrderId, isCancelling]);
+
   const handleBuyAgain = async (order) => {
     try {
       for (const item of order.items) {
@@ -157,13 +180,11 @@ export default function OrdersPage() {
     }
   };
 
-  /* ===== Filter orders ===== */
   const filteredOrders = orders.filter((order) => {
     if (statusFilter === "ALL") return true;
     return order.status === statusFilter;
   });
 
-  /* ===== Pagination ===== */
   const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
 
   const paginatedOrders = filteredOrders.slice(
@@ -175,7 +196,6 @@ export default function OrdersPage() {
     <div className={styles.container}>
       <h2 className={styles.title}>Đơn hàng của tôi</h2>
 
-      {/* ===== Tabs ===== */}
       <div className={styles.tabs}>
         {ORDER_STATUS.map((status) => {
           const Icon = status.icon;
@@ -201,19 +221,16 @@ export default function OrdersPage() {
         <div className={styles.empty}>Bạn chưa có đơn hàng nào</div>
       )}
 
-      {/* ===== Orders ===== */}
       {!loading &&
         paginatedOrders.map((order, index) => {
           const status = STATUS_CONFIG[order.status] || STATUS_CONFIG.PENDING;
           const canReviewOrder = REVIEWABLE_STATUSES.has(order.status);
           const reviewStats = getOrderReviewStats(order);
           const orderReviewed = canReviewOrder && reviewStats.fullyReviewed;
-
           const StatusIcon = status.icon;
 
           return (
             <div key={order.id ?? index} className={styles.card}>
-              {/* TOP */}
               <div className={styles.topRow}>
                 <div>
                   <div className={styles.label}>Mã đơn hàng</div>
@@ -226,7 +243,6 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              {/* PRODUCTS */}
               <div className={styles.products}>
                 {order.items?.slice(0, 3).map((item, idx) => (
                   <img
@@ -234,9 +250,9 @@ export default function OrdersPage() {
                     src={getResolvedOrderItemImage(item) || logoImage}
                     alt={item.productName}
                     className={styles.productImg}
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = logoImage;
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = logoImage;
                     }}
                   />
                 ))}
@@ -248,7 +264,6 @@ export default function OrdersPage() {
 
               <div className={styles.divider}></div>
 
-              {/* BOTTOM */}
               <div className={styles.bottomRow}>
                 <div>
                   <div className={styles.label}>Tổng giá trị</div>
@@ -261,6 +276,7 @@ export default function OrdersPage() {
                     Thanh toán:{" "}
                     {order.paymentMethod === "VNPAY" ? "VNPAY" : "COD"}
                   </div>
+
                   {orderReviewed && (
                     <div className={styles.reviewedNote}>Đã đánh giá</div>
                   )}
@@ -274,8 +290,9 @@ export default function OrdersPage() {
                     <Eye size={16} />
                     Chi tiết
                   </button>
+
                   {order.paymentMethod === "VNPAY" &&
-                    order.paymentStatus !== "PAID" && // ✅ FIX
+                    order.paymentStatus !== "PAID" &&
                     order.status !== "CANCELLED" &&
                     !canReviewOrder && (
                       <button
@@ -285,13 +302,14 @@ export default function OrdersPage() {
                         Thanh toán
                       </button>
                     )}
+
                   {["PENDING", "CONFIRMED"].includes(order.status) &&
                     order.paymentStatus !== "PAID" && (
                       <button
                         className={styles.cancelBtn}
-                        onClick={() => handleCancel(order.id)}
+                        onClick={() => openCancelModal(order.id)}
                       >
-                        Huỷ đơn
+                        Hủy đơn
                       </button>
                     )}
 
@@ -320,7 +338,6 @@ export default function OrdersPage() {
           );
         })}
 
-      {/* ===== Pagination ===== */}
       {totalPages > 1 && (
         <div className={styles.pagination}>
           <button disabled={page === 0} onClick={() => setPage(page - 1)}>
@@ -337,6 +354,46 @@ export default function OrdersPage() {
           >
             <ChevronRight size={16} />
           </button>
+        </div>
+      )}
+
+      {cancelOrderId && (
+        <div className={styles.modalOverlay} onClick={closeCancelModal}>
+          <div
+            className={styles.confirmModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancel-order-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div id="cancel-order-title" className={styles.confirmModalTitle}>
+              Hủy đơn hàng
+            </div>
+
+            <p className={styles.confirmModalText}>
+              Bạn có chắc muốn hủy đơn hàng này?
+            </p>
+
+            <div className={styles.confirmModalActions}>
+              <button
+                type="button"
+                className={styles.confirmPrimaryBtn}
+                onClick={confirmCancelOrder}
+                disabled={isCancelling}
+              >
+                {isCancelling ? "Đang hủy..." : "OK"}
+              </button>
+
+              <button
+                type="button"
+                className={styles.confirmSecondaryBtn}
+                onClick={closeCancelModal}
+                disabled={isCancelling}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
