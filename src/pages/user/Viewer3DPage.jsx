@@ -31,13 +31,14 @@ import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Plane, Vector3 } from "three";
 
+import { postAiLayoutFromRecommendationApi } from "../../api/aiRecommendApi";
 import { addToCartApi } from "../../api/cartApi";
 import { mergeAiLayoutResult } from "../../utils/aiRecommendResultV2";
 import { resolveImageUrl } from "../../utils/imageUrl";
 import styles from "../../styles/Viewer3D.module.css";
 
 const STORAGE_KEY = "cap2-ai-viewer-state";
-const LAYOUT_REQUEST_VERSION = "layout-model-url-v4";
+const LAYOUT_REQUEST_VERSION = "layout-model-url-v5";
 const DEFAULT_CAMERA_POSITION = [5.3, 3.7, 6.4];
 const DEFAULT_CAMERA_TARGET = [0, 0.55, 0];
 const DEFAULT_ROOM_DIMENSIONS = { width: 4.8, length: 5.8, height: 3 };
@@ -4222,6 +4223,7 @@ function Viewer3DPage() {
   const controlsRef = useRef(null);
   const canvasPanelRef = useRef(null);
   const pageRef = useRef(null);
+  const layoutRequestKeyRef = useRef("");
   const [draggingId, setDraggingId] = useState(null);
   const [manualSceneEntries, setManualSceneEntries] = useState([]);
   const [manualPositions, setManualPositions] = useState({});
@@ -4229,7 +4231,7 @@ function Viewer3DPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [addingCart, setAddingCart] = useState(false);
   const [resetToken, setResetToken] = useState(0);
-  const layoutLoading = false;
+  const [layoutLoading, setLayoutLoading] = useState(false);
 
   const initialAiResults = useMemo(
     () => location.state?.aiResults || getSavedAiViewerState() || null,
@@ -4243,6 +4245,7 @@ function Viewer3DPage() {
     setManualSceneEntries([]);
     setManualPositions({});
     setSelectedId(null);
+    layoutRequestKeyRef.current = "";
 
     if (initialAiResults) {
       saveAiViewerState(initialAiResults);
@@ -4257,25 +4260,6 @@ function Viewer3DPage() {
   useEffect(() => {
     if (!aiResults || !products.length) return;
 
-    if (
-      aiResults?.layout?.items?.length &&
-      aiResults?.layout?.requestVersion !== LAYOUT_REQUEST_VERSION
-    ) {
-      const mergedResult = mergeAiLayoutResult(aiResults, aiResults.layout);
-
-      const versionedResult = {
-        ...mergedResult,
-        layout: {
-          ...(mergedResult?.layout || {}),
-          requestVersion: LAYOUT_REQUEST_VERSION,
-        },
-      };
-
-      setAiResults(versionedResult);
-      saveAiViewerState(versionedResult);
-      return;
-    }
-
     const hasLayoutPlacement =
       aiResults?.layout?.requestVersion === LAYOUT_REQUEST_VERSION &&
       (products.some((product) => product?.layoutPlacement) ||
@@ -4283,6 +4267,72 @@ function Viewer3DPage() {
         Boolean(aiResults?.layout?.rejected?.length));
 
     if (hasLayoutPlacement) return;
+
+    const requestKey = JSON.stringify({
+      id: aiResults.id || aiResults.requestMeta?.id || "",
+      roomType: aiResults.roomType || "",
+      style: aiResults.style || "",
+      room: aiResults.roomAnalysis || {},
+      products: products.map((product) => getProductId(product)).join("|"),
+      version: LAYOUT_REQUEST_VERSION,
+    });
+
+    if (layoutRequestKeyRef.current === requestKey) return;
+
+    let cancelled = false;
+    layoutRequestKeyRef.current = requestKey;
+    setLayoutLoading(true);
+
+    const loadLayout = async () => {
+      try {
+        const layoutResponse = await postAiLayoutFromRecommendationApi({
+          roomType: aiResults.roomType,
+          dimensions: aiResults.roomAnalysis,
+          style: aiResults.style,
+          products,
+          topK: Math.max(products.length, 1),
+          minScore: 0.55,
+        });
+
+        if (cancelled) return;
+
+        const mergedResult = mergeAiLayoutResult(aiResults, layoutResponse);
+        const versionedResult = {
+          ...mergedResult,
+          layout: {
+            ...(mergedResult?.layout || {}),
+            requestVersion: LAYOUT_REQUEST_VERSION,
+          },
+        };
+
+        if (versionedResult?.layout?.rejected?.length) {
+          console.warn(
+            "[AI Viewer] layout rejected products",
+            versionedResult.layout.rejected,
+          );
+        }
+
+        setAiResults(versionedResult);
+        saveAiViewerState(versionedResult);
+      } catch (error) {
+        if (cancelled) return;
+
+        console.error("AI viewer layout error:", error);
+        toast.error(
+          "Không lấy được vị trí AI, viewer sẽ dùng bố cục mặc định.",
+        );
+      } finally {
+        if (!cancelled) {
+          setLayoutLoading(false);
+        }
+      }
+    };
+
+    loadLayout();
+
+    return () => {
+      cancelled = true;
+    };
   }, [aiResults, products]);
 
   useLayoutEffect(() => {
