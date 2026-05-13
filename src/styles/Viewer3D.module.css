@@ -78,6 +78,11 @@
   font-weight: 800;
 }
 
+.secondaryButton {
+  background: #eef4f1 !important;
+  color: #22312f !important;
+}
+
 .cartButton:disabled {
   cursor: not-allowed;
   opacity: 0.72;
@@ -244,6 +249,13 @@
   padding: 16px;
 }
 
+.detailMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .detailBlock img {
   display: block;
   width: 100%;
@@ -263,6 +275,44 @@
   display: block;
   color: #0f766e;
   font-size: 22px;
+}
+
+.aiPlacementChip,
+.manualPlacementChip,
+.pendingPlacementChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.aiPlacementChip {
+  background: #dff4ef;
+  color: #0f766e;
+}
+
+.manualPlacementChip {
+  background: #eef4f1;
+  color: #22312f;
+}
+
+.pendingPlacementChip {
+  background: #f7ead7;
+  color: #8a5a12;
+}
+
+.manualPlacementHint {
+  margin-top: 14px;
+  padding: 12px 13px;
+  border-radius: 8px;
+  background: #f7f3ea;
+  color: #546560;
+  line-height: 1.55;
 }
 
 .detailBlock dl {
@@ -293,6 +343,11 @@
 
 .detailBlock button {
   width: 100%;
+}
+
+.detailActions {
+  display: grid;
+  gap: 10px;
 }
 
 .productList {

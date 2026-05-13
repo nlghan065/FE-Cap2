@@ -693,6 +693,15 @@ const GENERAL_LAYOUTS = [
   { position: [0, 0, -1.8], rotation: 0 },
 ];
 
+const MANUAL_PREVIEW_LAYOUTS = [
+  { position: [0, 0, 0.9], rotation: 0 },
+  { position: [0.85, 0, 0.9], rotation: 0 },
+  { position: [-0.85, 0, 0.9], rotation: 0 },
+  { position: [0, 0, 0.2], rotation: 0 },
+  { position: [0.85, 0, 0.2], rotation: 0 },
+  { position: [-0.85, 0, 0.2], rotation: 0 },
+];
+
 const getSavedAiViewerState = () => {
   if (typeof window === "undefined" || !window.sessionStorage) return null;
 
@@ -1252,6 +1261,20 @@ const getPlacement = (type, typeIndex, overallIndex) => {
   return {
     position: [-1.5 + column * 1.5, 0, -0.4 - row * 1.35],
     rotation: column === 1 ? Math.PI : 0,
+  };
+};
+
+const getManualPreviewPlacement = (manualIndex) => {
+  if (MANUAL_PREVIEW_LAYOUTS[manualIndex]) {
+    return MANUAL_PREVIEW_LAYOUTS[manualIndex];
+  }
+
+  const row = Math.floor(manualIndex / 3);
+  const column = manualIndex % 3;
+
+  return {
+    position: [-0.85 + column * 0.85, 0, 0.9 - row * 0.7],
+    rotation: 0,
   };
 };
 
@@ -4200,6 +4223,7 @@ function Viewer3DPage() {
   const canvasPanelRef = useRef(null);
   const pageRef = useRef(null);
   const [draggingId, setDraggingId] = useState(null);
+  const [manualSceneEntries, setManualSceneEntries] = useState([]);
   const [manualPositions, setManualPositions] = useState({});
   const [availableHeight, setAvailableHeight] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
@@ -4216,7 +4240,9 @@ function Viewer3DPage() {
   useEffect(() => {
     setAiResults(initialAiResults);
     setDraggingId(null);
+    setManualSceneEntries([]);
     setManualPositions({});
+    setSelectedId(null);
 
     if (initialAiResults) {
       saveAiViewerState(initialAiResults);
@@ -4332,8 +4358,39 @@ function Viewer3DPage() {
     });
   }, [products]);
 
+  const manualSceneEntryById = useMemo(
+    () =>
+      new Map(
+        manualSceneEntries.map((entry) => [String(entry.id), entry]),
+      ),
+    [manualSceneEntries],
+  );
+
   const sceneItems = useMemo(() => {
-    const mappedItems = productItems.filter((item) => item.hasAiPlacement);
+    const mappedItems = productItems
+      .filter(
+        (item) =>
+          item.hasAiPlacement || manualSceneEntryById.has(String(item.id)),
+      )
+      .map((item) => {
+        if (item.hasAiPlacement) {
+          return {
+            ...item,
+            isManualPlaced: false,
+            sceneMode: "ai",
+          };
+        }
+
+        const manualEntry = manualSceneEntryById.get(String(item.id));
+
+        return {
+          ...item,
+          isManualPlaced: true,
+          sceneMode: "manual",
+          position: manualEntry?.position || [0, 0, 0.9],
+          rotation: manualEntry?.rotation ?? 0,
+        };
+      });
 
     const baseItems = mappedItems.map((item) => {
       const manualPlacement = manualPositions[item.id];
@@ -4367,6 +4424,7 @@ function Viewer3DPage() {
       if (
         !["tray", "vase", "storageBox", "textile"].includes(item.type) ||
         item.hasAiPlacement ||
+        item.isManualPlaced ||
         manualPositions[item.id]
       ) {
         return item;
@@ -4391,13 +4449,19 @@ function Viewer3DPage() {
         rotation: placement.rotation,
       };
     });
-  }, [manualPositions, productItems]);
+  }, [manualPositions, manualSceneEntryById, productItems]);
 
   const aiPlacedCount = sceneItems.filter((item) => item.hasAiPlacement).length;
+  const manualPlacedCount = sceneItems.filter(
+    (item) => item.isManualPlaced,
+  ).length;
   const hasLayoutResult = Boolean(aiResults?.layout);
   const manualMovedCount = Object.keys(manualPositions).length;
 
+  const selectedSceneItem =
+    sceneItems.find((item) => String(item.id) === String(selectedId)) || null;
   const selectedItem =
+    selectedSceneItem ||
     productItems.find((item) => String(item.id) === String(selectedId)) ||
     productItems[0] ||
     null;
@@ -4407,8 +4471,44 @@ function Viewer3DPage() {
     0,
   );
 
+  const selectedItemHasAiPlacement = Boolean(selectedItem?.hasAiPlacement);
+  const selectedItemIsManualPlaced = Boolean(selectedSceneItem?.isManualPlaced);
+  const selectedItemNeedsManualPlacement = Boolean(
+    selectedItem && !selectedItemHasAiPlacement,
+  );
+
   const handleSelect = (item) => {
     setSelectedId(item.id);
+  };
+
+  const handlePreviewProduct = (product) => {
+    const productId = String(product?.id || "");
+
+    if (!productId) return;
+
+    if (product?.hasAiPlacement) {
+      setSelectedId(productId);
+      return;
+    }
+
+    setManualSceneEntries((current) => {
+      const existingEntry = current.find(
+        (entry) => String(entry.id) === productId,
+      );
+
+      if (existingEntry) {
+        return current;
+      }
+
+      return [
+        ...current,
+        {
+          id: productId,
+          ...getManualPreviewPlacement(current.length),
+        },
+      ];
+    });
+    setSelectedId(productId);
   };
 
   const handleMoveItem = (itemId, nextPosition) => {
@@ -4610,6 +4710,11 @@ function Viewer3DPage() {
                   ? "Dang xep vi tri AI..."
                   : `${aiPlacedCount}/${productItems.length} vị trí AI`}
               </strong>
+              {manualPlacedCount > 0 && (
+                <small className={styles.sceneStatsHint}>
+                  {manualPlacedCount} món đặt thủ công
+                </small>
+              )}
               {manualMovedCount > 0 && (
                 <small className={styles.sceneStatsHint}>
                   {manualMovedCount} món đã chỉnh tay
@@ -4639,31 +4744,68 @@ function Viewer3DPage() {
               {selectedItem.image && (
                 <img src={selectedItem.image} alt={selectedItem.name} />
               )}
-              <span>{selectedItem.category || selectedItem.type}</span>
+              <div className={styles.detailMeta}>
+                <span>{selectedItem.category || selectedItem.type}</span>
+                <strong
+                  className={
+                    selectedItemHasAiPlacement
+                      ? styles.aiPlacementChip
+                      : selectedItemIsManualPlaced
+                        ? styles.manualPlacementChip
+                        : styles.pendingPlacementChip
+                  }
+                >
+                  {selectedItemHasAiPlacement
+                    ? "AI placed"
+                    : selectedItemIsManualPlaced
+                      ? "Manual placed"
+                      : "Chưa vào phòng"}
+                </strong>
+              </div>
               <h2>{selectedItem.name}</h2>
               <strong>{formatPrice(selectedItem.price)}</strong>
               <p>
                 {selectedItem.reason ||
                   "Sản phẩm phù hợp với cấu hình phòng đã chọn."}
               </p>
+              {selectedItemNeedsManualPlacement && (
+                <div className={styles.manualPlacementHint}>
+                  Sản phẩm này chưa có vị trí AI. Bạn có thể thêm vào phòng và
+                  kéo để đặt thủ công.
+                </div>
+              )}
               <dl>
                 <div>
                   <dt>Kích thước</dt>
                   <dd>{selectedItem.dimensionsText || "Chưa có dữ liệu"}</dd>
                 </div>
               </dl>
-              <button
-                type="button"
-                onClick={() =>
-                  selectedItem.id &&
-                  !String(selectedItem.id).startsWith("ai-product-")
-                    ? navigate(`/products/${selectedItem.id}`)
-                    : navigate("/products")
-                }
-              >
-                Xem chi tiết sản phẩm
-                <ChevronRight size={16} />
-              </button>
+              <div className={styles.detailActions}>
+                {selectedItemNeedsManualPlacement && (
+                  <button
+                    type="button"
+                    onClick={() => handlePreviewProduct(selectedItem)}
+                  >
+                    {selectedItemIsManualPlaced
+                      ? "Xem trong phòng"
+                      : "Thêm vào phòng"}
+                    <ChevronRight size={16} />
+                  </button>
+                )}
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  onClick={() =>
+                    selectedItem.id &&
+                    !String(selectedItem.id).startsWith("ai-product-")
+                      ? navigate(`/products/${selectedItem.id}`)
+                      : navigate("/products")
+                  }
+                >
+                  Xem chi tiết sản phẩm
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </section>
           )}
 
