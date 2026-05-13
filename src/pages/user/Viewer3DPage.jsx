@@ -4694,10 +4694,6 @@ function Viewer3DPage() {
               </p>
               <dl>
                 <div>
-                  <dt>Chất liệu</dt>
-                  <dd>{selectedItem.materials || "Chưa có dữ liệu"}</dd>
-                </div>
-                <div>
                   <dt>Kích thước</dt>
                   <dd>{selectedItem.dimensionsText || "Chưa có dữ liệu"}</dd>
                 </div>

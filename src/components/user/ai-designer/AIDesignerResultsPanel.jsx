@@ -6,6 +6,7 @@ import {
   Sparkles,
   Wand2,
 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import styles from "../../../styles/AIDesigner.module.css";
 
 function AIDesignerResultsPanel({
@@ -25,6 +26,46 @@ function AIDesignerResultsPanel({
         results.totalPrice / Math.max(results.products.length, 1) / 1000000,
       )
     : 0;
+  const resultSidebarRef = useRef(null);
+  const [productPanelHeight, setProductPanelHeight] = useState(null);
+
+  useEffect(() => {
+    const sidebar = resultSidebarRef.current;
+    if (!sidebar) return undefined;
+
+    const updateProductPanelHeight = () => {
+      const isStackedLayout = window.matchMedia("(max-width: 1024px)").matches;
+
+      if (isStackedLayout) {
+        setProductPanelHeight(null);
+        return;
+      }
+
+      const nextHeight = Math.ceil(sidebar.getBoundingClientRect().height);
+      setProductPanelHeight((currentHeight) =>
+        currentHeight === nextHeight ? currentHeight : nextHeight,
+      );
+    };
+
+    updateProductPanelHeight();
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(updateProductPanelHeight)
+        : null;
+
+    resizeObserver?.observe(sidebar);
+    window.addEventListener("resize", updateProductPanelHeight);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateProductPanelHeight);
+    };
+  }, [results]);
+
+  const productPanelStyle = productPanelHeight
+    ? { height: `${productPanelHeight}px` }
+    : undefined;
 
   return (
     <div className={styles.resultsContainer}>
@@ -92,16 +133,18 @@ function AIDesignerResultsPanel({
       </section>
 
       <div className={styles.resultColumns}>
-        <aside className={styles.resultSidebar}>
+        <aside className={styles.resultSidebar} ref={resultSidebarRef}>
           {!!results.roomAnalysis?.reasoning && (
-            <div className={styles.resultInfoCard}>
+            <div className={`${styles.resultInfoCard} ${styles.resultReviewCard}`}>
               <h3 className={styles.resultCardTitle}>
                 <span className={styles.resultCardIconGreen}>
                   <Sparkles size={16} />
                 </span>
                 <span>Đánh giá AI</span>
               </h3>
-              <p>{results.roomAnalysis.reasoning}</p>
+              <div className={styles.resultReviewContent}>
+                <p>{results.roomAnalysis.reasoning}</p>
+              </div>
             </div>
           )}
 
@@ -178,7 +221,10 @@ function AIDesignerResultsPanel({
           )}
         </aside>
 
-        <section className={styles.resultProductSection}>
+        <section
+          className={styles.resultProductSection}
+          style={productPanelStyle}
+        >
           <div className={styles.resultProductHeader}>
             <h3 className={styles.resultCardTitle}>
               <ShoppingCart size={18} />
@@ -219,7 +265,6 @@ function AIDesignerResultsPanel({
                           product.reasoning ||
                           "Sản phẩm phù hợp với không gian đã chọn."}
                       </p>
-                      <small>Chất liệu: {product.materials || "Chưa có"}</small>
                       <small>
                         Kích thước:{" "}
                         {product.dimensions

@@ -948,7 +948,7 @@ tr:hover {
 /* HEADER */
 .thead {
   display: grid;
-  grid-template-columns: 2fr 1.2fr 1fr 1.5fr 1.3fr 1.2fr 1fr;
+  grid-template-columns: 2fr 1.2fr 1fr 1.3fr 1.2fr 1fr;
   padding: 16px 20px;
   background: linear-gradient(135deg, #0f766e, #134e4a);
   color: white;
@@ -959,7 +959,7 @@ tr:hover {
 /* ROW */
 .row {
   display: grid;
-  grid-template-columns: 2fr 1.2fr 1fr 1.5fr 1.3fr 1.2fr 1fr;
+  grid-template-columns: 2fr 1.2fr 1fr 1.3fr 1.2fr 1fr;
   padding: 18px 20px;
   align-items: center;
   border-bottom: 1px solid #f1f5f5;
@@ -1399,7 +1399,7 @@ tr:hover {
 .thead,
 .row {
   display: grid;
-  grid-template-columns: 2fr 1.2fr 1fr 1.5fr 1.3fr 1.2fr 1fr;
+  grid-template-columns: 2fr 1.2fr 1fr 1.3fr 1.2fr 1fr;
   gap: 12px;
 }
 

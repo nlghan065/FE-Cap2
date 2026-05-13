@@ -13,7 +13,6 @@ import {
 const ProductsAdmin = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [materials, setMaterials] = useState([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -55,7 +54,6 @@ const ProductsAdmin = () => {
           size: 10,
           keyword: searchParams.get("query") || undefined,
           category: searchParams.get("category") || undefined,
-          material: searchParams.get("material") || undefined,
           minPrice: searchParams.get("minPrice")
             ? Number(searchParams.get("minPrice"))
             : undefined,
@@ -82,12 +80,9 @@ const ProductsAdmin = () => {
         setProducts(res.content || []);
         setTotalPages(res.totalPages || 1);
 
-        // dynamic categories & materials
+        // dynamic categories
         setCategories([
           ...new Set(res.content.map((p) => p.category).filter(Boolean)),
-        ]);
-        setMaterials([
-          ...new Set(res.content.map((p) => p.material).filter(Boolean)),
         ]);
       } catch (e) {
         console.error("Fetch products error:", e);
@@ -101,7 +96,6 @@ const ProductsAdmin = () => {
     page,
     searchParams.get("query"),
     searchParams.get("category"),
-    searchParams.get("material"),
     searchParams.get("inStock"),
     searchParams.get("sortBy"),
     searchParams.get("sortDir"),
@@ -206,7 +200,6 @@ const ProductsAdmin = () => {
             <span>Sản phẩm</span>
             <span>Giá</span>
             <span>Danh mục</span>
-            <span>Vật liệu</span>
             <span>Số lượng</span>
             <span>Kho</span>
             <span>Thao tác</span>
@@ -229,7 +222,6 @@ const ProductsAdmin = () => {
                   {Number(p.price).toLocaleString("vi-VN")} VND
                 </span>
                 <span>{p.category || "—"}</span>
-                <span>{p.material || "—"}</span>
                 <span>{p.stock || 0}</span>
                 <span>{renderStock(p)}</span>
                 <div className={styles.actions}>

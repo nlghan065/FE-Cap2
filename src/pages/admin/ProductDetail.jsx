@@ -76,9 +76,6 @@ const AdminProductDetail = () => {
               : "—"}
           </p>
           <p>
-            <b>Chất liệu:</b> {product.material || "—"}
-          </p>
-          <p>
             <b>Màu:</b> {product.color?.name || "—"}{" "}
             {product.color?.hex && `( ${product.color.hex} )`}
           </p>

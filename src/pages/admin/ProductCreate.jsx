@@ -173,11 +173,6 @@ const ProductCreate = () => {
               onChange={(e) => handleChange("price", e.target.value)}
             />
             <input
-              placeholder="Chất liệu"
-              value={form.material}
-              onChange={(e) => handleChange("material", e.target.value)}
-            />
-            <input
               placeholder="Xuất xứ"
               value={form.origin}
               onChange={(e) => handleChange("origin", e.target.value)}

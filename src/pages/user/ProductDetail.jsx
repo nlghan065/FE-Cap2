@@ -360,8 +360,6 @@ function ProductDetail() {
                 <div>{product.category}</div>
                 <div>SKU</div>
                 <div>{product.sku}</div>
-                <div>Chất liệu</div>
-                <div>{product.material}</div>
                 <div>Màu sắc</div>
                 <div>{product.color?.name}</div>
                 <div>Xuất xứ</div>
