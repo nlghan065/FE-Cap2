@@ -20,18 +20,6 @@ const clamp01 = (value, fallback = 0.85) => {
   return Math.min(Math.max(normalized, 0), 1);
 };
 
-const normalizeDimensionValue = (value, minValue = 1) => {
-  const num = toNumber(value, minValue);
-  // Nếu > 20 (quá lớn cho phòng - assume là cm), convert sang m bằng chia 100
-  if (num > 20) {
-    console.log(
-      `[normalizeDimensionValue] Converting ${num}cm to ${num / 100}m`,
-    );
-    return num / 100;
-  }
-  return num;
-};
-
 const normalizeText = (value) =>
   String(value || "")
     .normalize("NFD")

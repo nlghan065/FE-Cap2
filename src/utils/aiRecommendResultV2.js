@@ -67,14 +67,43 @@ const getFirstNumber = (source, keys) => {
   return parsed === null ? undefined : parsed;
 };
 
-const getProductId = (item) =>
-  item?.id ||
-  item?._id ||
-  item?.productId ||
-  item?.product_id ||
-  item?.product?.id ||
-  item?.product?._id ||
-  "";
+const normalizeIdValue = (value) => {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  const normalized = String(value).trim();
+
+  if (
+    !normalized ||
+    normalized.toLowerCase() === "undefined" ||
+    normalized.toLowerCase() === "null"
+  ) {
+    return "";
+  }
+
+  return normalized;
+};
+
+const getProductIdCandidates = (item) =>
+  Array.from(
+    new Set(
+      [
+        item?.id,
+        item?._id,
+        item?.productId,
+        item?.product_id,
+        item?.product?.id,
+        item?.product?._id,
+        item?.product?.productId,
+        item?.product?.product_id,
+      ]
+        .map(normalizeIdValue)
+        .filter(Boolean),
+    ),
+  );
+
+const getProductId = (item) => getProductIdCandidates(item)[0] || "";
 
 const getProductImageUrl = (item) =>
   item?.imageUrl ||
@@ -253,20 +282,29 @@ const extractLayoutItems = (payload) => {
   return candidates.find((value) => Array.isArray(value)) || [];
 };
 
-const getLayoutProductId = (item) =>
-  item?.productId ||
-  item?.product_id ||
-  item?.itemId ||
-  item?.item_id ||
-  item?.furnitureId ||
-  item?.furniture_id ||
-  item?.product?.id ||
-  item?.product?._id ||
-  item?.product?.productId ||
-  item?.product?.product_id ||
-  item?.id ||
-  item?._id ||
-  "";
+const getLayoutProductIdCandidates = (item) =>
+  Array.from(
+    new Set(
+      [
+        item?.productId,
+        item?.product_id,
+        item?.itemId,
+        item?.item_id,
+        item?.furnitureId,
+        item?.furniture_id,
+        item?.product?.id,
+        item?.product?._id,
+        item?.product?.productId,
+        item?.product?.product_id,
+        item?.id,
+        item?._id,
+      ]
+        .map(normalizeIdValue)
+        .filter(Boolean),
+    ),
+  );
+
+const getLayoutProductId = (item) => getLayoutProductIdCandidates(item)[0] || "";
 
 const getLayoutProductName = (item) =>
   item?.name ||
@@ -372,6 +410,8 @@ const normalizeLayoutPosition = (item) => {
 const normalizeLayoutRotation = (item) => {
   const source =
     item?.rotation ??
+    item?.rotationY ??
+    item?.rotation_y ??
     item?.orientation ??
     item?.angle ??
     item?.yaw ??
@@ -542,6 +582,8 @@ const normalizeAiLayoutResult = (layoutPayload, roomAnalysis) => {
   const items = rawItems
     .map((item, index) => {
       const position = normalizeLayoutPosition(item);
+      const rotation = normalizeLayoutRotation(item);
+      const idAliases = getLayoutProductIdCandidates(item);
 
       if (!position) {
         if (index < 3) {
@@ -555,9 +597,11 @@ const normalizeAiLayoutResult = (layoutPayload, roomAnalysis) => {
 
       const normalized = {
         productId: String(getLayoutProductId(item) || ""),
+        idAliases,
         name: getLayoutProductName(item),
         position,
-        rotation: normalizeLayoutRotation(item),
+        rotation,
+        rotationY: rotation,
         modelUrl: getLayoutModelUrl(item),
         score: getLayoutScore(item),
         index,
@@ -615,6 +659,15 @@ const normalizeProducts = (payload) => {
 
     return {
       id: getProductId(item) || `ai-product-${index + 1}`,
+      _id: normalizeIdValue(item?._id || item?.product?._id) || null,
+      productId:
+        normalizeIdValue(
+          item?.productId ||
+            item?.product_id ||
+            item?.product?.productId ||
+            item?.product?.product_id,
+        ) || null,
+      idAliases: getProductIdCandidates(item),
       name:
         item?.name ||
         item?.productName ||
@@ -695,13 +748,21 @@ export function mergeAiLayoutResult(aiResult, layoutPayload) {
   const layoutById = new Map();
   const layoutByName = new Map();
   const layoutHasIdentity = layout.items.some(
-    (item) => item.productId || normalizeText(item.name),
+    (item) =>
+      (Array.isArray(item.idAliases) && item.idAliases.length > 0) ||
+      item.productId ||
+      normalizeText(item.name),
   );
 
   layout.items.forEach((item) => {
-    if (item.productId) {
-      layoutById.set(String(item.productId), item);
-    }
+    const itemIds =
+      Array.isArray(item.idAliases) && item.idAliases.length > 0
+        ? item.idAliases
+        : getLayoutProductIdCandidates(item);
+
+    itemIds.forEach((id) => {
+      layoutById.set(String(id), item);
+    });
 
     const nameKey = normalizeText(item.name);
     if (nameKey) {
@@ -718,9 +779,15 @@ export function mergeAiLayoutResult(aiResult, layoutPayload) {
 
   const products = (aiResult.products || []).map((product, index) => {
     const productId = String(getProductId(product) || "");
+    const productIds =
+      Array.isArray(product?.idAliases) && product.idAliases.length > 0
+        ? product.idAliases.map((id) => String(id))
+        : getProductIdCandidates(product).map((id) => String(id));
     const productName = normalizeText(product?.name);
+    const matchedProductId = productIds.find((id) => layoutById.has(id));
 
     const placement =
+      (matchedProductId ? layoutById.get(matchedProductId) : null) ||
       layoutById.get(productId) ||
       layoutByName.get(productName) ||
       (!layoutHasIdentity ? layout.items[index] : null);
@@ -728,7 +795,7 @@ export function mergeAiLayoutResult(aiResult, layoutPayload) {
     if (!placement) {
       if (index < 3) {
         console.log(
-          `[mergeAiLayoutResult] Product ${index} (${product?.name}) - NO placement found. productId:"${productId}" productName:"${productName}"`,
+          `[mergeAiLayoutResult] Product ${index} (${product?.name}) - NO placement found. productId:"${productId}" productIds:${JSON.stringify(productIds)} productName:"${productName}"`,
         );
       }
       return product;
@@ -743,9 +810,11 @@ export function mergeAiLayoutResult(aiResult, layoutPayload) {
       ...product,
       modelUrl: product.modelUrl || placement.modelUrl || "",
       layoutPlacement: {
-        productId: placement.productId || productId,
+        ...placement,
+        productId: placement.productId || matchedProductId || productId,
         position: placement.position,
         rotation: placement.rotation,
+        rotationY: placement.rotation,
         score: placement.score,
         modelUrl: placement.modelUrl || product.modelUrl || "",
       },
@@ -784,6 +853,7 @@ export function normalizeAiRecommendResult(payload) {
     gender: payload?.gender || "",
     age: payload?.age || "",
     imageUrl: payload?.imageUrl || "",
+    layout: payload?.layout || null,
     reasoning: topLevelReasoning,
     reasoningDetails:
       payload?.reasoning && typeof payload.reasoning === "object"
