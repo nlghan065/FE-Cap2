@@ -13,6 +13,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { getProductsApi } from "../../api/productApi";
+import logoImage from "../../assets/logo.png";
 import styles from "../../styles/Landing.module.css";
 
 const features = [
@@ -30,9 +31,9 @@ const features = [
   },
   {
     icon: Palette,
-    title: "Phối màu và chất liệu dễ dàng",
+    title: "Phối màu hài hòa",
     description:
-      "Từ tông gỗ ấm đến phong cách tối giản, bạn có thể thử nhiều cảm hứng trong một luồng.",
+      "Từ tông ấm đến phong cách tối giản, người dùng có thể khám phá nhiều hướng thiết kế phù hợp.",
   },
   {
     icon: ShoppingBag,
@@ -46,130 +47,83 @@ const steps = [
   {
     number: "01",
     title: "Chọn cảm hứng",
-    description: "Bắt đầu từ phong cách hiện đại, ấm cúng hoặc tinh gọn.",
+    description:
+      "Bắt đầu từ phong cách hiện đại, ấm cúng hoặc tinh gọn phù hợp với nhu cầu.",
   },
   {
     number: "02",
     title: "Khám phá sản phẩm",
-    description: "Duyệt danh mục sofa, bàn, ghế và các món nội thất phù hợp.",
+    description:
+      "Duyệt nhanh các danh mục bàn, ghế, sofa và nội thất phù hợp với không gian.",
   },
   {
     number: "03",
     title: "Tối ưu không gian",
     description:
-      "So sánh màu sắc, chất liệu và công năng trước khi quyết định.",
+      "So sánh bố cục, màu sắc và công năng trước khi đưa ra lựa chọn cuối cùng.",
   },
   {
     number: "04",
     title: "Đặt mua nhanh",
     description:
-      "Thêm vào giỏ, thanh toán và theo dõi đơn hàng ngay trong hệ thống.",
+      "Thêm vào giỏ, thanh toán và theo dõi đơn hàng ngay trong cùng hệ thống.",
   },
 ];
 
-const inspirationRooms = [
-  {
-    title: "Phòng khách đương đại",
-    style: "Modern Balance",
-    image:
-      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    title: "Phòng ngủ thư giãn",
-    style: "Soft Minimal",
-    image:
-      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    title: "Góc làm việc tinh gọn",
-    style: "Focused Living",
-    image:
-      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80",
-  },
-];
+const normalizeLandingProduct = (item, index) => ({
+  id: item.id || item._id || `product-${index}`,
+  name: item.name || "Sản phẩm nội thất",
+  price: Number(item.price) || 0,
+  image: item.images?.[0] || logoImage,
+  category: item.category || "Nội thất",
+  description: item.description || "",
+  stock: Number(item.stock) || 0,
+});
 
-const collections = [
-  {
-    title: "Valencia",
-    subtitle: "Ánh sáng ấm, vật liệu mộc và cảm giác sống nhẹ nhàng.",
-    tag: "24 sản phẩm nổi bật",
-    image:
-      "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    title: "Nordic Calm",
-    subtitle: "Đường nét gọn, bảng màu sáng và công năng rõ ràng.",
-    tag: "18 sản phẩm nổi bật",
-    image:
-      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    title: "Urban Studio",
-    subtitle: "Cho căn hộ hiện đại cần tối ưu diện tích mà vẫn có điểm nhấn.",
-    tag: "32 sản phẩm nổi bật",
-    image:
-      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80",
-  },
-];
+const buildCollectionEntries = (products) => {
+  const counts = new Map();
+  const firstByCategory = new Map();
 
-const fallbackProducts = [
-  {
-    id: "featured-1",
-    name: "Sofa vải tối giản",
-    price: 12500000,
-    image:
-      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "featured-2",
-    name: "Bàn trà mặt đá",
-    price: 4890000,
-    image:
-      "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "featured-3",
-    name: "Ghế lounge gỗ sồi",
-    price: 6790000,
-    image:
-      "https://images.unsplash.com/photo-1519947486511-46149fa0a254?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "featured-4",
-    name: "Đèn thả phòng ăn",
-    price: 3290000,
-    image:
-      "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=900&q=80",
-  },
-];
+  products.forEach((product) => {
+    const category = product.category || "Nội thất";
+    counts.set(category, (counts.get(category) || 0) + 1);
+
+    if (!firstByCategory.has(category)) {
+      firstByCategory.set(category, product);
+    }
+  });
+
+  return Array.from(firstByCategory.entries())
+    .slice(0, 3)
+    .map(([category, product]) => ({
+      title: category,
+      subtitle:
+        product.description ||
+        `Khám phá thêm các sản phẩm trong danh mục ${category.toLowerCase()}.`,
+      tag: `${counts.get(category) || 0} sản phẩm đang hiển thị`,
+      image: product.image || logoImage,
+      href: `/products?category=${encodeURIComponent(category)}`,
+    }));
+};
 
 function Home() {
-  const [featuredProducts, setFeaturedProducts] = useState(
-    fallbackProducts.map((item) => ({ ...item, isFallback: true })),
-  );
+  const [landingProducts, setLandingProducts] = useState([]);
+  const [totalProducts, setTotalProducts] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
 
-    const fetchFeaturedProducts = async () => {
-      const res = await getProductsApi({ page: 0, size: 4 });
+    const fetchLandingProducts = async () => {
+      const res = await getProductsApi({ page: 0, size: 12 });
 
-      if (!isMounted || !res?.content?.length) return;
+      if (!isMounted) return;
 
-      const mappedProducts = res.content.map((item, index) => ({
-        id: item.id || item._id || `product-${index}`,
-        name: item.name || "Sản phẩm nội thất",
-        price: item.price || 0,
-        image:
-          item.images?.[0] ||
-          fallbackProducts[index % fallbackProducts.length].image,
-        isFallback: false,
-      }));
-
-      setFeaturedProducts(mappedProducts);
+      const mappedProducts = (res?.content || []).map(normalizeLandingProduct);
+      setLandingProducts(mappedProducts);
+      setTotalProducts(res?.totalElements || mappedProducts.length);
     };
 
-    fetchFeaturedProducts();
+    fetchLandingProducts();
 
     return () => {
       isMounted = false;
@@ -182,6 +136,17 @@ function Home() {
       currency: "VND",
       maximumFractionDigits: 0,
     }).format(price);
+
+  const heroProduct = landingProducts[0] || null;
+  const showcaseProducts = landingProducts.slice(0, 3);
+  const featuredProducts = landingProducts.slice(0, 4);
+  const collectionEntries = buildCollectionEntries(landingProducts);
+  const uniqueCategoryCount = new Set(
+    landingProducts.map((item) => item.category).filter(Boolean),
+  ).size;
+  const availableProductsCount = landingProducts.filter(
+    (item) => item.stock > 0,
+  ).length;
 
   return (
     <div className={styles.page}>
@@ -220,16 +185,16 @@ function Home() {
 
             <div className={styles.trustRow}>
               <div>
-                <strong>1000+</strong>
-                <span>lượt khám phá không gian</span>
+                <strong>{totalProducts || 0}+</strong>
+                <span>sản phẩm trong hệ thống</span>
               </div>
               <div>
-                <strong>4.9/5</strong>
-                <span>đánh giá trải nghiệm</span>
+                <strong>{uniqueCategoryCount || 0}+</strong>
+                <span>danh mục đang hiển thị</span>
               </div>
               <div>
-                <strong>24/7</strong>
-                <span>sẵn sàng cho hành trình mua sắm</span>
+                <strong>{availableProductsCount || 0}+</strong>
+                <span>sản phẩm còn hàng</span>
               </div>
             </div>
           </div>
@@ -237,25 +202,33 @@ function Home() {
           <div className={styles.heroVisual}>
             <div className={styles.heroCardLarge}>
               <img
-                src="https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80"
-                alt="Không gian nội thất hiện đại"
+                src={heroProduct?.image || logoImage}
+                alt={heroProduct?.name || "Không gian nội thất"}
               />
               <div className={styles.heroOverlay}>
-                <p>Concept nổi bật</p>
-                <h3>Căn hộ tối giản với điểm nhấn gỗ ấm</h3>
+                <p>{heroProduct?.category || "Danh mục nổi bật"}</p>
+                <h3>{heroProduct?.name || "Khám phá sản phẩm nội thất nổi bật"}</h3>
               </div>
             </div>
 
             <div className={styles.heroFloatingTop}>
-              <span>Phong cách đề xuất</span>
-              <strong>Modern Minimal</strong>
+              <span>Danh mục đề xuất</span>
+              <strong>{heroProduct?.category || "Nội thất chọn lọc"}</strong>
             </div>
 
             <div className={styles.heroFloatingBottom}>
               <CheckCircle2 size={18} />
               <div>
-                <strong>Sẵn sàng mua ngay</strong>
-                <span>Kết nối trực tiếp với danh mục sản phẩm</span>
+                <strong>
+                  {availableProductsCount > 0
+                    ? `${availableProductsCount} sản phẩm sẵn sàng mua`
+                    : "Kết nối trực tiếp với danh mục sản phẩm"}
+                </strong>
+                <span>
+                  {heroProduct?.description
+                    ? heroProduct.description.slice(0, 90)
+                    : "Trang chủ đang dùng dữ liệu thật từ hệ thống sản phẩm."}
+                </span>
               </div>
             </div>
           </div>
@@ -316,9 +289,8 @@ function Home() {
             <p className={styles.eyebrow}>Không gian truyền cảm hứng</p>
             <h2>Những bố cục giúp người xem hình dung ngay phong cách sống</h2>
             <p>
-              Hình ảnh lớn, giàu cảm xúc và nhịp điệu thị giác rõ ràng giúp
-              trang chủ mang cảm giác biên tập thay vì chỉ là danh sách bán
-              hàng.
+              Dữ liệu hiển thị ở khu vực này được lấy trực tiếp từ sản phẩm thật
+              trong hệ thống thay vì dùng mẫu minh họa cố định.
             </p>
             <Link to="/products" className={styles.inlineLink}>
               Xem toàn bộ sản phẩm
@@ -327,19 +299,29 @@ function Home() {
           </div>
 
           <div className={styles.showcaseGrid}>
-            {inspirationRooms.map((room) => (
-              <article key={room.title} className={styles.showcaseCard}>
-                <img src={room.image} alt={room.title} />
-                <div className={styles.showcaseOverlay}>
-                  <span>{room.style}</span>
-                  <h3>{room.title}</h3>
-                  <div className={styles.showcaseMeta}>
-                    <Eye size={16} />
-                    <span>Xem cảm hứng</span>
+            {showcaseProducts.length > 0 ? (
+              showcaseProducts.map((product) => (
+                <Link
+                  key={product.id}
+                  to={`/products/${product.id}`}
+                  className={styles.showcaseCard}
+                >
+                  <img src={product.image} alt={product.name} />
+                  <div className={styles.showcaseOverlay}>
+                    <span>{product.category}</span>
+                    <h3>{product.name}</h3>
+                    <div className={styles.showcaseMeta}>
+                      <Eye size={16} />
+                      <span>Xem chi tiết</span>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </Link>
+              ))
+            ) : (
+              <p className={styles.sectionEmpty}>
+                Chưa có sản phẩm để hiển thị cảm hứng.
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -347,28 +329,38 @@ function Home() {
       <section className={`${styles.section} ${styles.collectionSection}`}>
         <div className={styles.sectionHeadingLight}>
           <p className={styles.eyebrowLight}>Bộ sưu tập nổi bật</p>
-          <h2>Những bộ sưu tập được tuyển chọn cho từng phong cách sống</h2>
+          <h2>Những danh mục được chọn trực tiếp từ dữ liệu sản phẩm hiện có</h2>
           <p>
-            Tập hợp các concept nổi bật để khách hàng dễ bắt đầu từ một gu thẩm
-            mỹ cụ thể trước khi đi sâu vào từng món đồ.
+            Các khối dưới đây được nhóm theo danh mục sản phẩm thực tế đang có
+            trong hệ thống để tránh dùng dữ liệu mẫu hardcode.
           </p>
         </div>
 
         <div className={styles.collectionGrid}>
-          {collections.map((collection) => (
-            <article key={collection.title} className={styles.collectionCard}>
-              <img src={collection.image} alt={collection.title} />
-              <div className={styles.collectionOverlay}>
-                <span>{collection.tag}</span>
-                <h3>{collection.title}</h3>
-                <p>{collection.subtitle}</p>
-                <Link to="/products" className={styles.collectionLink}>
-                  Khám phá ngay
-                  <ArrowRight size={16} />
-                </Link>
-              </div>
-            </article>
-          ))}
+          {collectionEntries.length > 0 ? (
+            collectionEntries.map((collection) => (
+              <Link
+                key={collection.title}
+                to={collection.href}
+                className={styles.collectionCard}
+              >
+                <img src={collection.image} alt={collection.title} />
+                <div className={styles.collectionOverlay}>
+                  <span>{collection.tag}</span>
+                  <h3>{collection.title}</h3>
+                  <p>{collection.subtitle}</p>
+                  <span className={styles.collectionLink}>
+                    Khám phá ngay
+                    <ArrowRight size={16} />
+                  </span>
+                </div>
+              </Link>
+            ))
+          ) : (
+            <p className={styles.sectionEmpty}>
+              Chưa có bộ sưu tập động để hiển thị.
+            </p>
+          )}
         </div>
       </section>
 
@@ -388,26 +380,32 @@ function Home() {
         </div>
 
         <div className={styles.productGrid}>
-          {featuredProducts.map((product) => (
-            <Link
-              key={product.id}
-              to={product.isFallback ? "/products" : `/products/${product.id}`}
-              className={styles.productCard}
-            >
-              <div className={styles.productImageWrap}>
-                <img src={product.image} alt={product.name} />
-              </div>
-
-              <div className={styles.productInfo}>
-                <div className={styles.productRating}>
-                  <Star size={14} fill="currentColor" />
-                  <span>Đề xuất nổi bật</span>
+          {featuredProducts.length > 0 ? (
+            featuredProducts.map((product) => (
+              <Link
+                key={product.id}
+                to={`/products/${product.id}`}
+                className={styles.productCard}
+              >
+                <div className={styles.productImageWrap}>
+                  <img src={product.image} alt={product.name} />
                 </div>
-                <h3>{product.name}</h3>
-                <p>{formatPrice(product.price)}</p>
-              </div>
-            </Link>
-          ))}
+
+                <div className={styles.productInfo}>
+                  <div className={styles.productRating}>
+                    <Star size={14} fill="currentColor" />
+                    <span>{product.category}</span>
+                  </div>
+                  <h3>{product.name}</h3>
+                  <p>{formatPrice(product.price)}</p>
+                </div>
+              </Link>
+            ))
+          ) : (
+            <p className={styles.sectionEmpty}>
+              Chưa có sản phẩm nổi bật để hiển thị.
+            </p>
+          )}
         </div>
       </section>
 
@@ -415,9 +413,7 @@ function Home() {
         <div className={styles.ctaCard}>
           <div>
             <p className={styles.eyebrow}>Sẵn sàng sử dụng</p>
-            <h2>
-              Bắt đầu hành trình hoàn thiện không gian sống của bạn hôm nay
-            </h2>
+            <h2>Bắt đầu hành trình hoàn thiện không gian sống của bạn hôm nay</h2>
             <p className={styles.ctaText}>
               Khám phá danh mục nội thất, chọn phong cách phù hợp và chuyển sang
               mua sắm chỉ với vài thao tác đơn giản.

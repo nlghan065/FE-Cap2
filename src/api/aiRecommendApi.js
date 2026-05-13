@@ -228,6 +228,26 @@ const buildRecommendFormData = ({
   return formData;
 };
 
+const extractApiData = (response) => response?.data?.data || response?.data || null;
+
+const extractPagedContent = (payload) => {
+  if (Array.isArray(payload)) {
+    return {
+      content: payload,
+      page: 0,
+      totalPages: 1,
+      totalElements: payload.length,
+    };
+  }
+
+  return {
+    content: Array.isArray(payload?.content) ? payload.content : [],
+    page: payload?.page || 0,
+    totalPages: payload?.totalPages || 1,
+    totalElements: payload?.totalElements || 0,
+  };
+};
+
 export async function postAiRecommendApi({
   imageFile,
   roomType,
@@ -269,7 +289,19 @@ export async function postAiRecommendApi({
   console.log("[AI Design FE] response status", response?.status);
   console.log("[AI Design FE] response data", response?.data);
 
-  return response?.data?.data || null;
+  return extractApiData(response);
+}
+
+export async function getMyDesignRequestsApi({
+  page = 0,
+  size = 10,
+  sort = "createdAt,desc",
+} = {}) {
+  const response = await apiClient.get(`${AI_RECOMMEND_ENDPOINT}/my`, {
+    params: { page, size, sort },
+  });
+
+  return extractPagedContent(extractApiData(response));
 }
 
 export async function postAiLayoutFromRecommendationApi({
@@ -310,7 +342,7 @@ export async function postAiLayoutFromRecommendationApi({
   console.log("[AI Layout FE] response status", response?.status);
   console.log("[AI Layout FE] response data", response?.data);
 
-  const data = response?.data?.data || response?.data || null;
+  const data = extractApiData(response);
 
   if (Array.isArray(data?.rejected) && data.rejected.length) {
     console.warn("[AI Layout FE] rejected products", data.rejected);

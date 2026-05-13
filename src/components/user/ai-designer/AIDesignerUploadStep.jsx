@@ -1,7 +1,15 @@
-import { Image as ImageIcon, Upload } from "lucide-react";
+import { History, Image as ImageIcon, Upload } from "lucide-react";
 import styles from "../../../styles/AIDesigner.module.css";
 
-function AIDesignerUploadStep({ onDrop, onDragOver, onUploadChange }) {
+function AIDesignerUploadStep({
+  onDrop,
+  onDragOver,
+  onUploadChange,
+  historyItems = [],
+  historyLoading = false,
+  onSelectHistory,
+  formatHistoryDate,
+}) {
   return (
     <div className={styles.stepContainer}>
       <div className={styles.stepHeading}>
@@ -34,6 +42,54 @@ function AIDesignerUploadStep({ onDrop, onDragOver, onUploadChange }) {
             <span>Chọn ảnh</span>
           </span>
         </label>
+      </div>
+
+      <div className={styles.historySection}>
+        <div className={styles.historyHeader}>
+          <div>
+            <h3>Lịch sử thiết kế</h3>
+            <p>Xem lại các yêu cầu AI gần đây của bạn.</p>
+          </div>
+          <span className={styles.historyBadge}>
+            <History size={15} />
+            <span>{historyItems.length}</span>
+          </span>
+        </div>
+
+        {historyLoading ? (
+          <p className={styles.historyState}>Đang tải lịch sử thiết kế...</p>
+        ) : historyItems.length > 0 ? (
+          <div className={styles.sampleGrid}>
+            {historyItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`${styles.sampleCard} ${styles.historyCard}`}
+                onClick={() => onSelectHistory?.(item)}
+              >
+                {item.previewImage ? (
+                  <img src={item.previewImage} alt={item.title} />
+                ) : (
+                  <div className={styles.historyCardFallback}>
+                    <ImageIcon size={28} />
+                  </div>
+                )}
+                <div className={styles.historyCardBody}>
+                  <strong>{item.title}</strong>
+                  <span>{item.subtitle}</span>
+                  <small>
+                    {item.statusLabel}
+                    {item.createdAt
+                      ? ` • ${formatHistoryDate?.(item.createdAt) || ""}`
+                      : ""}
+                  </small>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.historyState}>Bạn chưa có lịch sử thiết kế.</p>
+        )}
       </div>
     </div>
   );

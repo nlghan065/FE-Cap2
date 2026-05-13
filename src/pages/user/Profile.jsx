@@ -4,7 +4,6 @@ import {
   Phone,
   MapPin,
   CalendarDays,
-  Hash,
   Edit2,
   Save,
   X,
@@ -347,10 +346,6 @@ function Profile() {
           </div>
         ) : (
           <div className={styles.profileGrid}>
-            <div className={styles.profileItem}>
-              <span className={styles.label}>User ID</span>
-              <p className={styles.value}>{profile.userId || "-"}</p>
-            </div>
             <div className={styles.profileItem}>
               <span className={styles.label}>Họ và tên</span>
               <p className={styles.value}>{profile.fullName || "-"}</p>

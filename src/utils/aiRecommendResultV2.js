@@ -768,6 +768,8 @@ export function normalizeAiRecommendResult(payload) {
   const products = normalizeProducts(payload || {});
   const totalPrice = products.reduce((sum, item) => sum + (item.price || 0), 0);
   const topLevelReasoning = formatReasoningText(payload?.reasoning);
+  const requestStatus =
+    payload?.status || (products.length > 0 ? "COMPLETED" : "PENDING");
 
   return {
     id:
@@ -780,6 +782,7 @@ export function normalizeAiRecommendResult(payload) {
     style: payload?.style || "",
     furnitureDensity: payload?.furnitureDensity || "",
     gender: payload?.gender || "",
+    age: payload?.age || "",
     imageUrl: payload?.imageUrl || "",
     reasoning: topLevelReasoning,
     reasoningDetails:
@@ -806,11 +809,12 @@ export function normalizeAiRecommendResult(payload) {
         payload?.requestId ||
         payload?.designRequestId ||
         null,
-      status: products.length > 0 ? "COMPLETED" : "PENDING",
+      status: requestStatus,
       message:
-        products.length > 0
+        payload?.message ||
+        (products.length > 0
           ? "AI da tra ve phuong an thiet ke."
-          : "Yeu cau thiet ke da duoc tao va dang cho AI xu ly.",
+          : "Yeu cau thiet ke da duoc tao va dang cho AI xu ly."),
       createdAt: payload?.createdAt || null,
     },
   };

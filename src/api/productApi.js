@@ -64,10 +64,11 @@ export const getProductsApi = async ({ page = 0, size = 20 } = {}) => {
     return {
       content: data?.content || [],
       totalPages: data?.totalPages || 1,
+      totalElements: data?.totalElements || 0,
     };
   } catch (error) {
     console.error("Get products error:", error);
-    return { content: [], totalPages: 1 };
+    return { content: [], totalPages: 1, totalElements: 0 };
   }
 };
 

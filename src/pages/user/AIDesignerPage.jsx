@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
-import { postAiRecommendApi } from "../../api/aiRecommendApi";
+import {
+  getMyDesignRequestsApi,
+  postAiRecommendApi,
+} from "../../api/aiRecommendApi";
 import { getUserByIdApi } from "../../api/authApi";
 import { getProfileApi } from "../../api/profileApi";
 import AIDesignerConfigStep from "../../components/user/ai-designer/AIDesignerConfigStep";
@@ -21,6 +24,12 @@ const DIMENSION_LIMITS = {
   height: { min: 2, max: 4 },
 };
 const AGE_LIMITS = { min: 1, max: 120 };
+const REQUEST_STATUS_LABELS = {
+  COMPLETED: "Hoàn tất",
+  PENDING: "Đang chờ xử lý",
+  PROCESSING: "Đang xử lý",
+  FAILED: "Thất bại",
+};
 
 const getAuthToken = () =>
   localStorage.getItem("token") || sessionStorage.getItem("token");
@@ -136,6 +145,11 @@ const getDemographicsFromProfile = (profile) => ({
     calculateAge(profile?.user?.dateOfBirth || profile?.user?.birthDate),
 });
 
+const getHistoryStatusLabel = (status, hasProducts) => {
+  if (!status && hasProducts) return REQUEST_STATUS_LABELS.COMPLETED;
+  return REQUEST_STATUS_LABELS[status] || status || "Đã tạo yêu cầu";
+};
+
 function AIDesignerPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -148,6 +162,8 @@ function AIDesignerPage() {
     gender: "",
     age: "",
   });
+  const [designHistory, setDesignHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     roomType: "",
@@ -187,6 +203,77 @@ function AIDesignerPage() {
       console.error("Clear AI designer data from storage error:", error);
     }
   }, []);
+
+  const formatHistoryDate = useCallback((value) => {
+    if (!value) return "";
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    return new Intl.DateTimeFormat("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  }, []);
+
+  const mapHistoryItem = useCallback((payload, index) => {
+    const normalized = normalizeAiRecommendResult(payload || {});
+    const previewImage =
+      normalized.imageUrl ||
+      normalized.products.find((item) => item.imageUrl || item.image)?.imageUrl ||
+      normalized.products.find((item) => item.imageUrl || item.image)?.image ||
+      "";
+    const status =
+      payload?.status || normalized.requestMeta?.status || "PENDING";
+    const title =
+      normalized.roomType || normalized.style
+        ? [normalized.roomType, normalized.style].filter(Boolean).join(" • ")
+        : `Yêu cầu thiết kế ${index + 1}`;
+    const subtitleParts = [
+      normalized.furnitureDensity || "",
+      normalized.products.length
+        ? `${normalized.products.length} sản phẩm`
+        : "Chưa có sản phẩm",
+    ].filter(Boolean);
+
+    return {
+      id: normalized.id || `design-history-${index + 1}`,
+      title,
+      subtitle: subtitleParts.join(" • "),
+      previewImage,
+      createdAt: normalized.createdAt || payload?.createdAt || null,
+      status,
+      statusLabel: getHistoryStatusLabel(status, normalized.products.length > 0),
+      result: normalized,
+    };
+  }, []);
+
+  const loadDesignHistory = useCallback(async () => {
+    if (!getAuthToken()) {
+      setDesignHistory([]);
+      return;
+    }
+
+    setHistoryLoading(true);
+
+    try {
+      const response = await getMyDesignRequestsApi({
+        page: 0,
+        size: 10,
+        sort: "createdAt,desc",
+      });
+      const historyItems = (response.content || []).map(mapHistoryItem);
+      setDesignHistory(historyItems);
+    } catch (error) {
+      console.error("Load design request history error:", error);
+      setDesignHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [mapHistoryItem]);
 
   const loadProfileDemographics = useCallback(async () => {
     const token = getAuthToken();
@@ -262,7 +349,8 @@ function AIDesignerPage() {
       );
     }
     loadProfileDemographics();
-  }, [loadFromStorage, loadProfileDemographics]);
+    loadDesignHistory();
+  }, [loadFromStorage, loadProfileDemographics, loadDesignHistory]);
 
   const applyImage = (fileOrUrl) => {
     setAiResults(null);
@@ -386,6 +474,7 @@ function AIDesignerPage() {
         );
       }
 
+      loadDesignHistory();
       setStep(4);
     } catch (error) {
       console.error("AI recommend error:", error);
@@ -540,6 +629,49 @@ function AIDesignerPage() {
     });
   };
 
+  const handleSelectHistory = (historyItem) => {
+    const result = historyItem?.result;
+    if (!result) return;
+
+    const nextFormData = {
+      ...formData,
+      roomType: result.roomType || formData.roomType,
+      style: result.style || formData.style,
+      furnitureDensity: result.furnitureDensity || formData.furnitureDensity,
+      gender: result.gender || formData.gender,
+      dimensions: {
+        width:
+          result.roomAnalysis?.width !== undefined &&
+          result.roomAnalysis?.width !== null
+            ? String(result.roomAnalysis.width)
+            : formData.dimensions.width,
+        length:
+          result.roomAnalysis?.length !== undefined &&
+          result.roomAnalysis?.length !== null
+            ? String(result.roomAnalysis.length)
+            : formData.dimensions.length,
+        height:
+          result.roomAnalysis?.height !== undefined &&
+          result.roomAnalysis?.height !== null
+            ? String(result.roomAnalysis.height)
+            : formData.dimensions.height,
+      },
+      age: result.age || formData.age,
+    };
+
+    setFormData(nextFormData);
+    setUploadedImage(historyItem.previewImage || result.imageUrl || null);
+    setUploadedFile(null);
+    setAiResults(result);
+    setStep(4);
+    saveToStorage({
+      step: 4,
+      uploadedImage: historyItem.previewImage || result.imageUrl || null,
+      aiResults: result,
+      formData: nextFormData,
+    });
+  };
+
   const handleView3D = () => {
     if (!aiResults?.products?.length) {
       toast.error("Chưa có danh sách sản phẩm để dựng không gian 3D.");
@@ -595,6 +727,10 @@ function AIDesignerPage() {
             onDragOver={(event) => event.preventDefault()}
             onDrop={handleDrop}
             onUploadChange={handleImageUpload}
+            historyItems={designHistory}
+            historyLoading={historyLoading}
+            onSelectHistory={handleSelectHistory}
+            formatHistoryDate={formatHistoryDate}
           />
         )}
 
