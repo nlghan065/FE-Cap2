@@ -12,7 +12,7 @@
   --accent: #0f766e;
   --accent-dark: #11403d;
   --gold: #b98746;
-  --shadow: 0 18px 60px rgba(22, 35, 42, 0.12);
+  --shadow: 0 16px 48px rgba(22, 35, 42, 0.1);
   background:
     radial-gradient(
       circle at top left,
@@ -21,14 +21,17 @@
     ),
     linear-gradient(180deg, #f7f2ea 0%, #f6f7f7 35%, #edf3f2 100%);
   color: var(--ink);
+  font-family: "Inter", sans-serif;
   margin: -20px;
   padding: 0 0 72px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .hero {
   position: relative;
   overflow: hidden;
-  padding: 72px 24px 48px;
+  padding: 60px 24px 40px;
 }
 
 .heroGlowLeft,
@@ -66,12 +69,18 @@
   z-index: 1;
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
-  gap: 36px;
+  gap: 32px;
   align-items: center;
 }
 
+.heroContent > *,
+.showcaseLayout > *,
+.productsHeader > * {
+  min-width: 0;
+}
+
 .heroText {
-  max-width: 620px;
+  max-width: 600px;
 }
 
 .badge,
@@ -91,15 +100,16 @@
 .badge {
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(15, 118, 110, 0.12);
-  box-shadow: 0 12px 30px rgba(22, 35, 42, 0.08);
+  box-shadow: 0 10px 24px rgba(22, 35, 42, 0.06);
 }
 
 .heroTitle {
   margin: 22px 0 18px;
-  font-family: "Noto Serif", serif;
-  font-size: clamp(2.7rem, 5vw, 5rem);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+  font-family: "Inter", sans-serif;
+  font-size: clamp(2.4rem, 4.4vw, 4.2rem);
+  font-weight: 800;
+  line-height: 1.22;
+  letter-spacing: -0.015em;
 }
 
 .heroTitle span {
@@ -114,9 +124,9 @@
 .featureCard p,
 .stepCard p,
 .collectionOverlay p,
-.productInfo p {
+.productNote {
   color: var(--muted);
-  line-height: 1.7;
+  line-height: 1.68;
 }
 
 .heroDescription {
@@ -162,7 +172,7 @@
 .primaryButton {
   color: #ffffff;
   background: linear-gradient(135deg, var(--accent-dark), var(--accent));
-  box-shadow: 0 18px 32px rgba(15, 118, 110, 0.24);
+  box-shadow: 0 14px 28px rgba(15, 118, 110, 0.2);
 }
 
 .secondaryButton,
@@ -199,7 +209,8 @@
   display: block;
   margin-bottom: 6px;
   font-size: 1.4rem;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: inherit;
+  font-weight: 800;
 }
 
 .trustRow span {
@@ -210,7 +221,8 @@
 
 .heroVisual {
   position: relative;
-  min-height: 580px;
+  min-height: 520px;
+  max-width: 100%;
 }
 
 .heroCardLarge {
@@ -219,6 +231,7 @@
   overflow: hidden;
   border-radius: 36px;
   box-shadow: var(--shadow);
+  max-width: 100%;
 }
 
 .heroCardLarge img,
@@ -258,8 +271,9 @@
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(16px);
-  box-shadow: 0 20px 35px rgba(22, 35, 42, 0.14);
+  box-shadow: 0 16px 28px rgba(22, 35, 42, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.7);
+  max-width: 100%;
 }
 
 .heroFloatingTop {
@@ -308,10 +322,11 @@
 .sectionHeadingCompact h2,
 .ctaCard h2 {
   margin: 12px 0 14px;
-  font-family: "Noto Serif", serif;
+  font-family: "Inter", sans-serif;
   font-size: clamp(2rem, 3.6vw, 3.4rem);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
+  font-weight: 800;
+  line-height: 1.22;
+  letter-spacing: -0.015em;
 }
 
 .eyebrow {
@@ -343,7 +358,7 @@
   border: 1px solid var(--line);
   border-radius: 28px;
   backdrop-filter: blur(16px);
-  box-shadow: 0 12px 26px rgba(22, 35, 42, 0.06);
+  box-shadow: 0 10px 22px rgba(22, 35, 42, 0.05);
 }
 
 .featureCard {
@@ -373,10 +388,12 @@
 .productInfo h3 {
   margin: 0 0 10px;
   font-size: 1.2rem;
+  line-height: 1.35;
 }
 
 .processSection {
   padding-top: 56px;
+  scroll-margin-top: 96px;
 }
 
 .stepGrid {
@@ -393,10 +410,10 @@
   display: inline-block;
   margin-bottom: 18px;
   font-size: 2.8rem;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1;
   color: rgba(15, 118, 110, 0.22);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: inherit;
 }
 
 .showcaseLayout {
@@ -465,8 +482,23 @@
 }
 
 .collectionSection {
+  position: relative;
+  isolation: isolate;
+  z-index: 0;
   margin-top: 60px;
   padding: 56px 0;
+}
+
+.collectionSection::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 50vw);
+  right: calc(50% - 50vw);
+  width: auto;
+  margin-left: 0;
+  margin-right: 0;
   background:
     radial-gradient(
       circle at top right,
@@ -474,6 +506,8 @@
       transparent 24%
     ),
     linear-gradient(135deg, #112523, #183835 48%, #2f2922);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .sectionHeadingLight {
@@ -525,11 +559,17 @@
   padding: 18px 20px 22px;
 }
 
-.productInfo p {
-  margin: 0;
+.productPrice {
+  margin: 0 0 6px;
   color: var(--accent-dark);
   font-size: 1.1rem;
   font-weight: 700;
+  line-height: 1.4;
+}
+
+.productNote {
+  margin: 0;
+  font-size: 0.92rem;
 }
 
 .productRating {
@@ -584,7 +624,7 @@
   }
 
   .heroVisual {
-    min-height: 520px;
+    min-height: 480px;
   }
 }
 
@@ -595,7 +635,7 @@
   }
 
   .hero {
-    padding: 56px 12px 28px;
+    padding: 48px 12px 28px;
   }
 
   .heroContent,
@@ -614,7 +654,7 @@
   }
 
   .heroVisual {
-    min-height: 420px;
+    min-height: 400px;
   }
 
   .heroCardLarge {

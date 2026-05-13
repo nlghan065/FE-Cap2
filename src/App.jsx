@@ -25,6 +25,7 @@ import OrderEdit from "./pages/admin/OrderEdit";
 import ReviewsAdmin from "./pages/admin/ReviewsAdmin";
 
 import UserLayout from "./layout/user/UserLayout";
+import Home from "./pages/user/Home";
 import Landing from "./pages/user/Landing";
 import Products from "./pages/user/Products";
 import ProductDetail from "./pages/user/ProductDetail";
@@ -81,6 +82,7 @@ function App() {
         {/* ================= PROTECTED USER ================= */}
         <Route element={<ProtectedRoute />}>
           <Route element={<UserLayout />}>
+            <Route path="/home" element={<Home />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/cart2" element={<CartStep2 />} />
             <Route path="/payment" element={<CartStep3 />} />
