@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getCustomersFullApi,
   deleteProfileApi,
@@ -15,40 +15,35 @@ const PAGE_SIZE = 10;
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [message, setMessage] = useState(null);
 
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-
   const [keyword, setKeyword] = useState("");
-  const [status, setStatus] = useState("ALL");
 
-  // ===== FETCH =====
   useEffect(() => {
-    fetchData();
+    let isMounted = true;
+
+    const loadCustomers = async () => {
+      try {
+        const res = await getCustomersFullApi(0, 1000);
+
+        if (isMounted) {
+          setCustomers(res.data || []);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    loadCustomers();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const fetchData = async () => {
-    try {
-      const res = await getCustomersFullApi(0, 1000);
-      setCustomers(res.data || []);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  // ===== FILTER =====
-  useEffect(() => {
-    handleFilter();
-  }, [keyword, status, customers]);
-
-  useEffect(() => {
-    setPage(0);
-  }, [keyword, status]);
-
-  const handleFilter = () => {
+  const filtered = useMemo(() => {
     let data = [...customers];
     const normalizedKeyword = keyword.trim().toLowerCase();
 
@@ -62,13 +57,11 @@ const Customers = () => {
       );
     }
 
-    if (status !== "ALL") {
-      data = data.filter((c) => c.status === status);
-    }
+    return data;
+  }, [keyword, customers]);
 
-    setFiltered(data);
-    setTotalPages(Math.max(1, Math.ceil(data.length / PAGE_SIZE)));
-  };
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages - 1);
 
   // ===== TOAST AUTO HIDE =====
   useEffect(() => {
@@ -78,14 +71,6 @@ const Customers = () => {
     return () => clearTimeout(timer);
   }, [message]);
 
-  useEffect(() => {
-    const lastPage = Math.max(0, totalPages - 1);
-
-    if (page > lastPage) {
-      setPage(lastPage);
-    }
-  }, [page, totalPages]);
-
   // ===== ACTION =====
   const handleDelete = async (id) => {
     if (!window.confirm("Xóa khách hàng?")) return;
@@ -93,7 +78,7 @@ const Customers = () => {
     try {
       await deleteProfileApi(id);
       setMessage({ type: "success", text: "Xóa khách hàng thành công!" });
-      fetchData();
+      setCustomers((prev) => prev.filter((customer) => customer.id !== id));
     } catch (e) {
       console.error(e);
       setMessage({ type: "error", text: "Xóa thất bại!" });
@@ -104,8 +89,8 @@ const Customers = () => {
   const formatMoney = (n) => (n || 0).toLocaleString("vi-VN") + " đ";
 
   const paginatedCustomers = filtered.slice(
-    page * PAGE_SIZE,
-    page * PAGE_SIZE + PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+    currentPage * PAGE_SIZE + PAGE_SIZE,
   );
 
   const renderStatus = (c) =>
@@ -139,14 +124,17 @@ const Customers = () => {
             <input
               placeholder="Tìm kiếm khách hàng..."
               value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              onChange={(e) => {
+                setKeyword(e.target.value);
+                setPage(0);
+              }}
             />
           </div>
         </div>
 
         {/* TABLE */}
-        <div className={styles.table}>
-          <div className={styles.thead}>
+        <div className={`${styles.table} ${styles.customerTable}`}>
+          <div className={styles.customerHead}>
             <span>Khách hàng</span>
             <span>Số điện thoại</span>
             <span>Số đơn</span>
@@ -157,8 +145,8 @@ const Customers = () => {
           </div>
 
           {paginatedCustomers.map((c) => (
-            <div key={c.id} className={styles.row}>
-              <div>
+            <div key={c.id} className={styles.customerRow}>
+              <div className={styles.customerInfo}>
                 <b>{c.name}</b>
                 <p>{c.email}</p>
               </div>
@@ -176,7 +164,7 @@ const Customers = () => {
 
               <span>{renderStatus(c)}</span>
 
-              <div className={styles.actions}>
+              <div className={styles.customerActions}>
                 {/* VIEW */}
                 <button
                   className={styles.viewBtn}
@@ -207,17 +195,20 @@ const Customers = () => {
 
         {/* PAGINATION */}
         <div className={styles.pagination}>
-          <button disabled={page === 0} onClick={() => setPage(page - 1)}>
+          <button
+            disabled={currentPage === 0}
+            onClick={() => setPage(currentPage - 1)}
+          >
             <LeftOutlined />
           </button>
 
           <span>
-            Trang {page + 1} / {totalPages}
+            Trang {currentPage + 1} / {totalPages}
           </span>
 
           <button
-            disabled={page === totalPages - 1}
-            onClick={() => setPage(page + 1)}
+            disabled={currentPage === totalPages - 1}
+            onClick={() => setPage(currentPage + 1)}
           >
             <RightOutlined />
           </button>

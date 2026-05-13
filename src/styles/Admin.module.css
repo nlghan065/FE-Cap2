@@ -945,6 +945,69 @@ tr:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
+.customerTable {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.customerHead,
+.customerRow {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 2fr)
+    minmax(140px, 1.1fr)
+    minmax(80px, 0.7fr)
+    minmax(150px, 1.15fr)
+    minmax(130px, 1fr)
+    minmax(110px, 0.9fr)
+    minmax(120px, 0.9fr);
+  gap: 12px;
+  min-width: 1080px;
+}
+
+.customerHead {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #0f766e, #134e4a);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  align-items: center;
+}
+
+.customerRow {
+  padding: 18px 20px;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f5;
+  transition: 0.2s;
+}
+
+.customerRow:last-child {
+  border-bottom: none;
+}
+
+.customerRow:hover {
+  background: #f0fdfa;
+}
+
+.customerInfo b {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+
+.customerInfo p {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.customerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 /* HEADER */
 .thead {
   display: grid;
@@ -1578,7 +1641,7 @@ tr:hover {
 }
 
 .orderThead {
-  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  background: linear-gradient(135deg, #0f766e, #134e4a);
   color: white;
   font-weight: 600;
   font-size: 13px;
@@ -1939,7 +2002,7 @@ tr:hover {
 }
 
 .reviewAdminThead {
-  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  background: linear-gradient(135deg, #0f766e, #134e4a);
   color: white;
   font-size: 13px;
   font-weight: 700;

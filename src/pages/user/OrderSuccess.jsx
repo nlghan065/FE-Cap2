@@ -124,7 +124,10 @@ function OrderSuccess() {
             Xem đơn hàng
           </button>
 
-          <button className={styles.secondaryBtn} onClick={() => navigate("/")}>
+          <button
+            className={styles.secondaryBtn}
+            onClick={() => navigate("/home")}
+          >
             Về trang chủ
           </button>
         </div>

@@ -11,7 +11,7 @@ function AdminHeader() {
   const navigate = useNavigate();
 
   const handleGoToUserView = () => {
-    navigate("/");
+    navigate("/home");
   };
 
   const handleLogout = () => {
