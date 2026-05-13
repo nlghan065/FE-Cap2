@@ -1,7 +1,12 @@
 .page {
-  width: calc(100% + 40px);
-  min-height: calc(100vh - 80px);
-  margin: -20px;
+  width: 100%;
+  min-width: 0;
+  height: var(--viewer-available-height, auto);
+  min-height: 0;
+  max-height: var(--viewer-available-height, none);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
   background: #f4f1ea;
   color: #1f2a2a;
 }
@@ -81,13 +86,15 @@
 .viewerShell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
-  height: calc(100vh - 168px);
-  min-height: 620px;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .canvasPanel {
   position: relative;
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
   background:
     linear-gradient(
@@ -100,6 +107,8 @@
 
 .canvasPanel canvas {
   display: block;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .canvasPanel:fullscreen {
@@ -132,8 +141,27 @@
   gap: 8px;
 }
 
+.sceneStatsMeta {
+  display: grid !important;
+  gap: 2px;
+}
+
+.sceneStatsLabel {
+  color: #6b7874;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .sceneStats strong {
+  display: block;
   color: #0f766e;
+}
+
+.sceneStatsHint {
+  color: #6b7874;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .sceneLabel {
@@ -170,6 +198,7 @@
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+  min-height: 0;
   overflow-y: auto;
   padding: 18px;
   border-left: 1px solid rgba(54, 67, 63, 0.13);
@@ -322,9 +351,11 @@
 
 .emptyPage {
   display: grid;
-  min-height: calc(100vh - 120px);
+  height: var(--viewer-available-height, auto);
+  min-height: 0;
   place-items: center;
   padding: 30px;
+  overflow: hidden;
   background: #f4f1ea;
 }
 
@@ -363,12 +394,12 @@
 @media (max-width: 1100px) {
   .viewerShell {
     grid-template-columns: 1fr;
-    height: auto;
+    grid-template-rows: clamp(360px, 56dvh, 620px) minmax(0, 1fr);
+    height: 100%;
   }
 
   .canvasPanel {
-    height: 64vh;
-    min-height: 480px;
+    height: auto;
   }
 
   .sidePanel {
@@ -378,11 +409,6 @@
 }
 
 @media (max-width: 760px) {
-  .page {
-    width: calc(100% + 24px);
-    margin: -12px;
-  }
-
   .toolbar {
     align-items: flex-start;
     flex-direction: column;
@@ -391,6 +417,7 @@
 
   .toolbarActions {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .cartButton {
@@ -402,8 +429,11 @@
   }
 
   .canvasPanel {
-    height: 58vh;
-    min-height: 420px;
+    min-height: 0;
+  }
+
+  .viewerShell {
+    grid-template-rows: clamp(300px, 50dvh, 460px) minmax(0, 1fr);
   }
 
   .sceneStats {

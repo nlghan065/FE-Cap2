@@ -2,9 +2,9 @@ import axios from "axios";
 
 import apiClient from "./apiClient";
 
-const AI_RECOMMEND_ENDPOINT = "https://capstone02.onrender.com/api/design-requests";
+const AI_RECOMMEND_ENDPOINT = "/api/design-requests";
 const AI_LAYOUT_ENDPOINT =
-  "https://virtual-1-lf1s.onrender.com/api/ai/layout/generate-from-recommendation";
+  import.meta.env.VITE_AI_LAYOUT_URL || "/api/ai-layout/generate";
 const FALLBACK_LAYOUT_MODEL_URL =
   "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb";
 
@@ -18,6 +18,18 @@ const clamp01 = (value, fallback = 0.85) => {
   const normalized = parsed > 1 ? parsed / 100 : parsed;
 
   return Math.min(Math.max(normalized, 0), 1);
+};
+
+const normalizeDimensionValue = (value, minValue = 1) => {
+  const num = toNumber(value, minValue);
+  // Nếu > 20 (quá lớn cho phòng - assume là cm), convert sang m bằng chia 100
+  if (num > 20) {
+    console.log(
+      `[normalizeDimensionValue] Converting ${num}cm to ${num / 100}m`,
+    );
+    return num / 100;
+  }
+  return num;
 };
 
 const normalizeText = (value) =>
@@ -90,12 +102,15 @@ const normalizeLayoutRoomType = (roomType) => {
 };
 
 const getLayoutCategory = (product) => {
-  const source = normalizeText(`${product?.category || ""} ${product?.name || ""}`);
+  const source = normalizeText(
+    `${product?.category || ""} ${product?.name || ""}`,
+  );
 
   if (hasAnyKeyword(source, ["sofa", "couch", "sectional"])) return "Sofa";
   if (hasAnyKeyword(source, ["giuong", "bed", "nem"])) return "Bed";
   if (hasAnyKeyword(source, ["ban", "table", "desk"])) return "Table";
-  if (hasAnyKeyword(source, ["ghe", "chair", "bench", "ottoman"])) return "Chair";
+  if (hasAnyKeyword(source, ["ghe", "chair", "bench", "ottoman"]))
+    return "Chair";
   if (hasAnyKeyword(source, ["guong", "mirror"])) return "Mirror";
   if (hasAnyKeyword(source, ["tham", "rug", "carpet"])) return "Rug";
   if (hasAnyKeyword(source, ["den", "lamp", "light"])) return "Lamp";
@@ -131,7 +146,11 @@ const buildLayoutRoomPayload = ({ roomType, dimensions, style }) => ({
   style: style || "",
 });
 
-const buildLayoutProductPayload = (product, index, providedModelUrlById = {}) => {
+const buildLayoutProductPayload = (
+  product,
+  index,
+  providedModelUrlById = {},
+) => {
   const id = String(getProductId(product) || `ai-product-${index + 1}`);
   const dimensions = product?.dimensions || {};
   const modelUrl =
@@ -281,7 +300,8 @@ export async function postAiLayoutFromRecommendationApi({
   console.log("[AI Layout FE] POST", AI_LAYOUT_ENDPOINT);
   console.log("[AI Layout FE] request payload", body);
 
-  const response = await axios.post(AI_LAYOUT_ENDPOINT, body, {
+  const client = AI_LAYOUT_ENDPOINT.startsWith("/") ? apiClient : axios;
+  const response = await client.post(AI_LAYOUT_ENDPOINT, body, {
     headers: {
       "Content-Type": "application/json",
     },

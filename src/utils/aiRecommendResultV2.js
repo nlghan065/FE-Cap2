@@ -180,7 +180,11 @@ const unwrapLayoutPayload = (payload) => {
     return {};
   }
 
-  if (payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)) {
+  if (
+    payload.data &&
+    typeof payload.data === "object" &&
+    !Array.isArray(payload.data)
+  ) {
     return payload.data;
   }
 
@@ -287,7 +291,10 @@ const normalizeLayoutPosition = (item) => {
   if (Array.isArray(source)) {
     const x = toFiniteNumber(source[0]);
     const y = source.length >= 3 ? toFiniteNumber(source[1]) : 0;
-    const z = source.length >= 3 ? toFiniteNumber(source[2]) : toFiniteNumber(source[1]);
+    const z =
+      source.length >= 3
+        ? toFiniteNumber(source[2])
+        : toFiniteNumber(source[1]);
 
     if (x === null || z === null) {
       return null;
@@ -368,7 +375,10 @@ const normalizeLayoutRotation = (item) => {
     return 0;
   }
 
-  if (String(unit).toLowerCase().includes("deg") || Math.abs(value) > Math.PI * 2) {
+  if (
+    String(unit).toLowerCase().includes("deg") ||
+    Math.abs(value) > Math.PI * 2
+  ) {
     return (value * Math.PI) / 180;
   }
 
@@ -485,21 +495,37 @@ const translatePositionToRoomCenter = (position, roomAnalysis) => {
     return position;
   }
 
-  return [position[0] - roomWidth / 2, position[1], position[2] - roomLength / 2];
+  return [
+    position[0] - roomWidth / 2,
+    position[1],
+    position[2] - roomLength / 2,
+  ];
 };
 
 const normalizeAiLayoutResult = (layoutPayload, roomAnalysis) => {
   const source = unwrapLayoutPayload(layoutPayload);
   const rawItems = extractLayoutItems(source);
+
+  console.log("[normalizeAiLayoutResult] rawItems count:", rawItems.length);
+  if (rawItems.length > 0) {
+    console.log("[normalizeAiLayoutResult] rawItems[0]:", rawItems[0]);
+  }
+
   const items = rawItems
     .map((item, index) => {
       const position = normalizeLayoutPosition(item);
 
       if (!position) {
+        if (index < 3) {
+          console.warn(
+            `[normalizeAiLayoutResult] Item ${index} position is null. Item:`,
+            item,
+          );
+        }
         return null;
       }
 
-      return {
+      const normalized = {
         productId: String(getLayoutProductId(item) || ""),
         name: getLayoutProductName(item),
         position,
@@ -508,9 +534,28 @@ const normalizeAiLayoutResult = (layoutPayload, roomAnalysis) => {
         score: getLayoutScore(item),
         index,
       };
+
+      if (index < 3) {
+        console.log(
+          `[normalizeAiLayoutResult] Item ${index} normalized:`,
+          normalized,
+        );
+      }
+
+      return normalized;
     })
     .filter(Boolean);
-  const shouldTranslate = shouldTranslateCornerOrigin(items, source, roomAnalysis);
+
+  console.log(
+    "[normalizeAiLayoutResult] After filter items count:",
+    items.length,
+  );
+
+  const shouldTranslate = shouldTranslateCornerOrigin(
+    items,
+    source,
+    roomAnalysis,
+  );
   const normalizedItems = shouldTranslate
     ? items.map((item) => ({
         ...item,
@@ -606,11 +651,18 @@ export function mergeAiLayoutResult(aiResult, layoutPayload) {
   const layout = normalizeAiLayoutResult(layoutPayload, aiResult.roomAnalysis);
 
   if (!layout.items.length) {
+    console.warn(
+      "[mergeAiLayoutResult] No layout items found in normalized layout",
+      layout,
+    );
     return {
       ...aiResult,
       layout,
     };
   }
+
+  console.log("[mergeAiLayoutResult] layout.items count:", layout.items.length);
+  console.log("[mergeAiLayoutResult] layout.items sample:", layout.items[0]);
 
   const layoutById = new Map();
   const layoutByName = new Map();
@@ -629,16 +681,35 @@ export function mergeAiLayoutResult(aiResult, layoutPayload) {
     }
   });
 
+  console.log(
+    "[mergeAiLayoutResult] layoutById map size:",
+    layoutById.size,
+    "layoutByName map size:",
+    layoutByName.size,
+  );
+
   const products = (aiResult.products || []).map((product, index) => {
     const productId = String(getProductId(product) || "");
+    const productName = normalizeText(product?.name);
+
     const placement =
       layoutById.get(productId) ||
-      layoutByName.get(normalizeText(product?.name)) ||
+      layoutByName.get(productName) ||
       (!layoutHasIdentity ? layout.items[index] : null);
 
     if (!placement) {
+      if (index < 3) {
+        console.log(
+          `[mergeAiLayoutResult] Product ${index} (${product?.name}) - NO placement found. productId:"${productId}" productName:"${productName}"`,
+        );
+      }
       return product;
     }
+
+    console.log(
+      `[mergeAiLayoutResult] Product ${index} (${product?.name}) - PLACED position:`,
+      placement.position,
+    );
 
     return {
       ...product,
@@ -652,6 +723,11 @@ export function mergeAiLayoutResult(aiResult, layoutPayload) {
       },
     };
   });
+
+  const placedCount = products.filter((p) => p.layoutPlacement).length;
+  console.log(
+    `[mergeAiLayoutResult] Result: ${placedCount}/${products.length} products placed`,
+  );
 
   return {
     ...aiResult,
