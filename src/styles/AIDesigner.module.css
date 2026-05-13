@@ -357,6 +357,31 @@
   object-fit: cover;
 }
 
+.previewBackButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--ai-border);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--ai-text);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+
+.previewBackButton:hover {
+  transform: translateY(-2px);
+  border-color: rgba(15, 118, 110, 0.3);
+  box-shadow: 0 14px 28px rgba(15, 118, 110, 0.12);
+}
+
 .formPanel,
 .infoCard,
 .summaryHero,
@@ -502,6 +527,16 @@
   font-weight: 600;
 }
 
+.inputHint {
+  color: var(--ai-text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.inputHintError {
+  color: #b42318;
+}
+
 .inputField input {
   min-height: 48px;
   padding: 0 14px;
@@ -516,6 +551,11 @@
 .inputField input:focus {
   border-color: rgba(15, 118, 110, 0.6);
   box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
+}
+
+.inputField input[aria-invalid="true"] {
+  border-color: rgba(180, 35, 24, 0.55);
+  box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.08);
 }
 
 .inlineOptionGrid {

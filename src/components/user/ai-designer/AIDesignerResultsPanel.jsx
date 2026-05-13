@@ -135,7 +135,9 @@ function AIDesignerResultsPanel({
       <div className={styles.resultColumns}>
         <aside className={styles.resultSidebar} ref={resultSidebarRef}>
           {!!results.roomAnalysis?.reasoning && (
-            <div className={`${styles.resultInfoCard} ${styles.resultReviewCard}`}>
+            <div
+              className={`${styles.resultInfoCard} ${styles.resultReviewCard}`}
+            >
               <h3 className={styles.resultCardTitle}>
                 <span className={styles.resultCardIconGreen}>
                   <Sparkles size={16} />
@@ -147,6 +149,44 @@ function AIDesignerResultsPanel({
               </div>
             </div>
           )}
+
+          {!!results.reasoningDetails &&
+            Object.keys(results.reasoningDetails).length > 0 && (
+              <div className={styles.resultInfoCard}>
+                <h3 className={styles.resultCardTitle}>
+                  <span className={styles.resultCardIconGreen}>
+                    <Sparkles size={16} />
+                  </span>
+                  <span>Chi tiết đánh giá</span>
+                </h3>
+                <div className={styles.analysisGrid}>
+                  {results.reasoningDetails.styleJustification && (
+                    <div className={styles.analysisItem}>
+                      <span>Phong cách</span>
+                      <p>{results.reasoningDetails.styleJustification}</p>
+                    </div>
+                  )}
+                  {results.reasoningDetails.colorJustification && (
+                    <div className={styles.analysisItem}>
+                      <span>Màu sắc</span>
+                      <p>{results.reasoningDetails.colorJustification}</p>
+                    </div>
+                  )}
+                  {results.reasoningDetails.densityJustification && (
+                    <div className={styles.analysisItem}>
+                      <span>Mật độ nội thất</span>
+                      <p>{results.reasoningDetails.densityJustification}</p>
+                    </div>
+                  )}
+                  {results.reasoningDetails.userProfileNote && (
+                    <div className={styles.analysisItem}>
+                      <span>Cá nhân hóa</span>
+                      <p>{results.reasoningDetails.userProfileNote}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
           {!!results.imageUrl && (
             <div className={styles.resultInfoCard}>
@@ -206,7 +246,7 @@ function AIDesignerResultsPanel({
 
           {!hasProducts && (
             <div className={styles.resultInfoCard}>
-              <h3 className={styles.resultCardTitle}>Thông tin request</h3>
+              <h3 className={styles.resultCardTitle}>Thông tin </h3>
               <div className={styles.analysisGrid}>
                 <div className={styles.analysisItem}>
                   <span>Request ID</span>

@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Send, Star } from "lucide-react";
 import { getOrderByIdApi } from "../../api/orderApi";
 import { createReviewApi } from "../../api/reviewApi";
+import { trackBehaviorApi } from "../../api/behaviorApi";
 import styles from "../../styles/OrderDetail.module.css";
 import logoImage from "../../assets/logo.png";
 import {
@@ -109,6 +110,14 @@ export default function OrderDetailPage() {
         orderCode: order.orderCode,
         rating,
         comment,
+      });
+
+      await trackBehaviorApi({
+        productId,
+        eventType: "RATING",
+        rating,
+        rankingScore: null,
+        designRequestId: null,
       });
 
       markOrderItemReviewed(order, item);

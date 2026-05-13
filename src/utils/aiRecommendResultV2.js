@@ -9,6 +9,7 @@ const DEFAULT_ROOM_ANALYSIS = {
   length: "",
   height: "",
   reasoning: "Chua co du lieu",
+  reasoningDetails: null,
   area: "Chua co du lieu",
   ceiling: "Chua co du lieu",
   windows: "Chua co du lieu",
@@ -120,6 +121,29 @@ const normalizeDimensions = (dimensions) => {
   };
 };
 
+const formatReasoningText = (reasoning) => {
+  if (!reasoning) {
+    return DEFAULT_ROOM_ANALYSIS.reasoning;
+  }
+
+  if (typeof reasoning === "string") {
+    return reasoning;
+  }
+
+  if (typeof reasoning === "object") {
+    return [
+      reasoning.styleJustification,
+      reasoning.colorJustification,
+      reasoning.densityJustification,
+      reasoning.userProfileNote,
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  return String(reasoning);
+};
+
 const formatAiProductDimensions = (dimensions) => {
   const normalized = normalizeDimensions(dimensions);
 
@@ -150,7 +174,11 @@ const normalizeRoomAnalysis = (payload) => ({
   width: payload?.dimensions?.width ?? DEFAULT_ROOM_ANALYSIS.width,
   length: payload?.dimensions?.length ?? DEFAULT_ROOM_ANALYSIS.length,
   height: payload?.dimensions?.height ?? DEFAULT_ROOM_ANALYSIS.height,
-  reasoning: payload?.reasoning || DEFAULT_ROOM_ANALYSIS.reasoning,
+  reasoning: formatReasoningText(payload?.reasoning),
+  reasoningDetails:
+    payload?.reasoning && typeof payload.reasoning === "object"
+      ? payload.reasoning
+      : null,
   area: buildAreaText(payload?.dimensions),
   ceiling: payload?.dimensions?.height
     ? `${payload.dimensions.height} m`
@@ -162,7 +190,7 @@ const normalizeRoomAnalysis = (payload) => ({
 
 const normalizeRecommendations = (payload, products) => {
   if (payload?.reasoning) {
-    return [String(payload.reasoning)];
+    return [formatReasoningText(payload.reasoning)];
   }
 
   if (products.length > 0) {
@@ -739,6 +767,7 @@ export function mergeAiLayoutResult(aiResult, layoutPayload) {
 export function normalizeAiRecommendResult(payload) {
   const products = normalizeProducts(payload || {});
   const totalPrice = products.reduce((sum, item) => sum + (item.price || 0), 0);
+  const topLevelReasoning = formatReasoningText(payload?.reasoning);
 
   return {
     id:
@@ -752,7 +781,11 @@ export function normalizeAiRecommendResult(payload) {
     furnitureDensity: payload?.furnitureDensity || "",
     gender: payload?.gender || "",
     imageUrl: payload?.imageUrl || "",
-    reasoning: payload?.reasoning || "",
+    reasoning: topLevelReasoning,
+    reasoningDetails:
+      payload?.reasoning && typeof payload.reasoning === "object"
+        ? payload.reasoning
+        : null,
     createdAt: payload?.createdAt || null,
     products,
     totalPrice,

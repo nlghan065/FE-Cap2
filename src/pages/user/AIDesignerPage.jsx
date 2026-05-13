@@ -15,12 +15,57 @@ import styles from "../../styles/AIDesigner.module.css";
 import { normalizeAiRecommendResult } from "../../utils/aiRecommendResultV2";
 
 const STORAGE_KEY = "aiDesignerData";
+const DIMENSION_LIMITS = {
+  width: { min: 2, max: 10 },
+  length: { min: 2, max: 12 },
+  height: { min: 2, max: 4 },
+};
+const AGE_LIMITS = { min: 1, max: 120 };
 
 const getAuthToken = () =>
   localStorage.getItem("token") || sessionStorage.getItem("token");
 
 const getCurrentUserId = () =>
   localStorage.getItem("userId") || sessionStorage.getItem("userId");
+
+const normalizeNumericInput = (value, { allowDecimal = true } = {}) => {
+  const normalized = String(value ?? "").replace(",", ".");
+
+  if (!normalized.trim()) {
+    return "";
+  }
+
+  const pattern = allowDecimal ? /^\d*\.?\d*$/ : /^\d*$/;
+  if (!pattern.test(normalized)) {
+    return null;
+  }
+
+  return normalized;
+};
+
+const clampNumericInput = (
+  value,
+  { min, max, allowDecimal = true, decimals = 1 },
+) => {
+  const normalized = normalizeNumericInput(value, { allowDecimal });
+
+  if (normalized === null || normalized === "") {
+    return normalized === null ? "" : normalized;
+  }
+
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed)) {
+    return "";
+  }
+
+  const clamped = Math.min(max, Math.max(min, parsed));
+
+  if (!allowDecimal) {
+    return String(Math.round(clamped));
+  }
+
+  return String(Number(clamped.toFixed(decimals)));
+};
 
 const calculateAge = (dateValue) => {
   if (!dateValue) return "";
@@ -278,7 +323,29 @@ function AIDesignerPage() {
       !String(formData.dimensions.length).trim() ||
       !String(formData.dimensions.height).trim()
     ) {
-      toast.error("Hãy nhập đầy đủ thông tin request.");
+      toast.error("Hãy nhập đầy đủ thông tin.");
+      return;
+    }
+
+    const w = Number(formData.dimensions.width);
+    const l = Number(formData.dimensions.length);
+    const h = Number(formData.dimensions.height);
+
+    if (w < 2 || w > 10) {
+      toast.error("Width phải từ 2–10m");
+      return;
+    }
+    if (l < 2 || l > 12) {
+      toast.error("Length phải từ 2–12m");
+      return;
+    }
+    if (h < 2 || h > 4) {
+      toast.error("Height phải từ 2–4m");
+      return;
+    }
+    const age = Number(formData.age);
+    if (age < AGE_LIMITS.min || age > AGE_LIMITS.max) {
+      toast.error("Độ tuổi phải từ 1–120");
       return;
     }
 
@@ -302,7 +369,8 @@ function AIDesignerPage() {
         ...(response || {}),
         roomType: response?.roomType || formData.roomType,
         style: response?.style || formData.style,
-        furnitureDensity: response?.furnitureDensity || formData.furnitureDensity,
+        furnitureDensity:
+          response?.furnitureDensity || formData.furnitureDensity,
         gender: response?.gender || formData.gender,
         dimensions: response?.dimensions || formData.dimensions,
       });
@@ -333,6 +401,23 @@ function AIDesignerPage() {
   };
 
   const handleChange = (field, value) => {
+    if (field === "age") {
+      const normalized = normalizeNumericInput(value, { allowDecimal: false });
+      if (normalized === null) return;
+
+      setFormData((prev) => {
+        const newFormData = { ...prev, [field]: normalized };
+        saveToStorage({
+          step,
+          uploadedImage,
+          aiResults,
+          formData: newFormData,
+        });
+        return newFormData;
+      });
+      return;
+    }
+
     setFormData((prev) => {
       const newFormData = { ...prev, [field]: value };
       saveToStorage({
@@ -346,12 +431,15 @@ function AIDesignerPage() {
   };
 
   const handleDimensionChange = (field, value) => {
+    const normalized = normalizeNumericInput(value, { allowDecimal: true });
+    if (normalized === null) return;
+
     setFormData((prev) => {
       const newFormData = {
         ...prev,
         dimensions: {
           ...prev.dimensions,
-          [field]: value,
+          [field]: normalized,
         },
       };
       saveToStorage({
@@ -360,6 +448,59 @@ function AIDesignerPage() {
         aiResults,
         formData: newFormData,
       });
+      return newFormData;
+    });
+  };
+
+  const handleDimensionBlur = (field) => {
+    const limits = DIMENSION_LIMITS[field];
+    if (!limits) return;
+
+    setFormData((prev) => {
+      const currentValue = prev.dimensions[field];
+      const clampedValue = clampNumericInput(currentValue, {
+        ...limits,
+        allowDecimal: true,
+        decimals: 1,
+      });
+
+      const newFormData = {
+        ...prev,
+        dimensions: {
+          ...prev.dimensions,
+          [field]: clampedValue,
+        },
+      };
+
+      saveToStorage({
+        step,
+        uploadedImage,
+        aiResults,
+        formData: newFormData,
+      });
+
+      return newFormData;
+    });
+  };
+
+  const handleAgeBlur = () => {
+    setFormData((prev) => {
+      const clampedAge = clampNumericInput(prev.age, {
+        ...AGE_LIMITS,
+        allowDecimal: false,
+      });
+      const newFormData = {
+        ...prev,
+        age: clampedAge,
+      };
+
+      saveToStorage({
+        step,
+        uploadedImage,
+        aiResults,
+        formData: newFormData,
+      });
+
       return newFormData;
     });
   };
@@ -383,6 +524,20 @@ function AIDesignerPage() {
       age: userDemographics.age,
     });
     clearStorage();
+  };
+
+  const handleBackToUpload = () => {
+    setStep(1);
+    setUploadedImage(null);
+    setUploadedFile(null);
+    setAiResults(null);
+    setIsProcessing(false);
+    saveToStorage({
+      step: 1,
+      uploadedImage: null,
+      aiResults: null,
+      formData,
+    });
   };
 
   const handleView3D = () => {
@@ -448,6 +603,9 @@ function AIDesignerPage() {
             formData={formData}
             onChange={handleChange}
             onDimensionChange={handleDimensionChange}
+            onDimensionBlur={handleDimensionBlur}
+            onFieldBlur={handleAgeBlur}
+            onBackToUpload={handleBackToUpload}
             onGenerate={handleGenerateDesign}
             uploadedImage={uploadedImage}
             loading={isProcessing}
