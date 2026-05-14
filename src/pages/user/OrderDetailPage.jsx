@@ -17,6 +17,7 @@ import {
   markOrderItemReviewed,
 } from "../../utils/reviewStatus";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 const REVIEWABLE_STATUSES = new Set(["DELIVERED", "COMPLETED"]);
 
@@ -63,7 +64,7 @@ export default function OrderDetailPage() {
       setError(
         isAdminPreview
           ? "Admin đang ở chế độ xem user nên không có dữ liệu đơn hàng này."
-          : "Không thể tải chi tiết đơn hàng.",
+          : getErrorMessage(error, "Không thể tải chi tiết đơn hàng."),
       );
     }
   };
@@ -125,10 +126,12 @@ export default function OrderDetailPage() {
       updateReviewForm(reviewKey, { comment: "" });
       toast.success("Đã gửi đánh giá");
     } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        "Không thể gửi đánh giá. Có thể sản phẩm đã được đánh giá trước đó.";
-      toast.error(message);
+      toast.error(
+        getErrorMessage(
+          error,
+          "Không thể gửi đánh giá. Có thể sản phẩm đã được đánh giá trước đó.",
+        ),
+      );
     } finally {
       setReviewingId(null);
     }

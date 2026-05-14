@@ -2,7 +2,7 @@ import { Check, Settings, Upload, Wand2 } from "lucide-react";
 import styles from "../../../styles/AIDesigner.module.css";
 
 const STEPS = [
-  { id: 1, title: "Upload ảnh", icon: Upload },
+  { id: 1, title: "Tải ảnh", icon: Upload },
   { id: 2, title: "Cấu hình", icon: Settings },
   { id: 3, title: "AI xử lý", icon: Wand2 },
   { id: 4, title: "Kết quả", icon: Check },

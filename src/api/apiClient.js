@@ -1,4 +1,5 @@
 import axios from "axios";
+import { normalizeErrorResponse } from "../utils/errorMessage";
 
 // ================= BASE CLIENT =================
 const apiClient = axios.create({
@@ -28,6 +29,7 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    normalizeErrorResponse(error);
     console.error("API ERROR:", error.response?.data || error);
 
     if (error.response?.status === 401) {

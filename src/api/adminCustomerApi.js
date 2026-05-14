@@ -1,4 +1,5 @@
 import axios from "axios";
+import { normalizeErrorResponse } from "../utils/errorMessage";
 
 // ================= BASE CLIENT =================
 const createClient = () => {
@@ -17,6 +18,14 @@ const createClient = () => {
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   });
+
+  instance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      normalizeErrorResponse(error);
+      return Promise.reject(error);
+    },
+  );
 
   return instance;
 };
@@ -44,7 +53,7 @@ export const getProfilesApi = async (page = 0, size = 10) => {
 
 // 👁️ DETAIL
 export const getProfileByIdApi = async (id) => {
-  if (!id) throw new Error("Invalid ID");
+  if (!id) throw new Error("ID không hợp lệ.");
 
   const res = await api.get(`/profiles/${id}`);
   return res.data?.data;
@@ -181,12 +190,12 @@ export const getCustomersFullApi = async (page = 0, size = 10) => {
     console.log("====== STATUS ======");
     console.log(e.response?.status);
 
-    setError(e.response?.data?.message || "Cập nhật thất bại");
+    throw e;
   }
 };
 
 export const getUserByIdApi = async (id) => {
-  if (!id) throw new Error("Invalid user ID");
+  if (!id) throw new Error("ID người dùng không hợp lệ.");
 
   const res = await api.get(`/users/${id}`);
   return res.data?.data;

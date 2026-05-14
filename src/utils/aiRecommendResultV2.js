@@ -1,20 +1,20 @@
 const DEFAULT_PALETTE = [
-  { name: "Nen chinh", color: "#f3efe6", percentage: 58 },
-  { name: "Trung tinh", color: "#837b73", percentage: 27 },
-  { name: "Nhan", color: "#cf5c36", percentage: 15 },
+  { name: "Nền chính", color: "#f3efe6", percentage: 58 },
+  { name: "Trung tính", color: "#837b73", percentage: 27 },
+  { name: "Nhấn", color: "#cf5c36", percentage: 15 },
 ];
 
 const DEFAULT_ROOM_ANALYSIS = {
   width: "",
   length: "",
   height: "",
-  reasoning: "Chua co du lieu",
+  reasoning: "Chưa có dữ liệu",
   reasoningDetails: null,
-  area: "Chua co du lieu",
-  ceiling: "Chua co du lieu",
-  windows: "Chua co du lieu",
-  naturalLight: "Chua co du lieu",
-  floorType: "Chua co du lieu",
+  area: "Chưa có dữ liệu",
+  ceiling: "Chưa có dữ liệu",
+  windows: "Chưa có dữ liệu",
+  naturalLight: "Chưa có dữ liệu",
+  floorType: "Chưa có dữ liệu",
 };
 
 const toNumber = (value) => {
@@ -177,7 +177,7 @@ const formatAiProductDimensions = (dimensions) => {
   const normalized = normalizeDimensions(dimensions);
 
   if (!normalized) {
-    return "Chua co du lieu";
+    return "Chưa có dữ liệu";
   }
 
   return `${normalized.width} x ${normalized.depth} x ${normalized.height} cm`;
@@ -229,7 +229,7 @@ const normalizeRecommendations = (payload, products) => {
       .slice(0, 4);
   }
 
-  return ["AI da tra ket qua nhung chua co phan giai thich chi tiet."];
+  return ["AI đã trả kết quả nhưng chưa có phần giải thích chi tiết."];
 };
 
 const unwrapLayoutPayload = (payload) => {
@@ -674,12 +674,12 @@ const normalizeProducts = (payload) => {
         item?.title ||
         item?.product_title ||
         item?.product?.name ||
-        `San pham goi y ${index + 1}`,
+        `Sản phẩm gợi ý ${index + 1}`,
       category:
         item?.category ||
         item?.productCategory ||
         item?.product?.category ||
-        "Noi that",
+        "Nội thất",
       styles: Array.isArray(item?.styles) ? item.styles : [],
       colors: Array.isArray(item?.colors) ? item.colors : [],
       price:
@@ -711,13 +711,13 @@ const normalizeProducts = (payload) => {
         item?.recommendationReason ||
         item?.explanation ||
         payload?.reasoning ||
-        "Phu hop voi bo cuc va phong cach khong gian.",
+        "Phù hợp với bố cục và phong cách không gian.",
       materials:
         item?.materials ||
         item?.materialsText ||
         item?.material ||
         item?.product?.material ||
-        "Chua co du lieu",
+        "Chưa có dữ liệu",
       dimensions,
       dimensionsText: formatAiProductDimensions(dimensions),
     };
@@ -883,8 +883,8 @@ export function normalizeAiRecommendResult(payload) {
       message:
         payload?.message ||
         (products.length > 0
-          ? "AI da tra ve phuong an thiet ke."
-          : "Yeu cau thiet ke da duoc tao va dang cho AI xu ly."),
+          ? "AI đã trả về phương án thiết kế."
+          : "Yêu cầu thiết kế đã được tạo và đang chờ AI xử lý."),
       createdAt: payload?.createdAt || null,
     },
   };

@@ -272,17 +272,6 @@ function ReviewsAdmin() {
       )}
 
       <div className={styles.reviewAdminContainer}>
-        <div className={styles.reviewAdminHeader}>
-          <div>
-            <span className={styles.reviewAdminKicker}>
-              <MessageSquare size={16} />
-              Bình luận người dùng
-            </span>
-            <h2>Tổng hợp đánh giá sản phẩm</h2>
-            <p>{totalElements} bình luận trong hệ thống</p>
-          </div>
-        </div>
-
         <div className={styles.reviewAdminToolbar}>
           <div className={styles.orderSearchBox}>
             <Search size={16} />
@@ -312,7 +301,11 @@ function ReviewsAdmin() {
             <option value="1">1 sao</option>
           </select>
 
-          <button className={styles.resetBtn} type="button" onClick={resetFilters}>
+          <button
+            className={styles.resetBtn}
+            type="button"
+            onClick={resetFilters}
+          >
             Xóa lọc
           </button>
         </div>
@@ -411,7 +404,9 @@ function ReviewsAdmin() {
           </span>
           <button
             disabled={page >= totalPages - 1}
-            onClick={() => setPage((prev) => Math.min(totalPages - 1, prev + 1))}
+            onClick={() =>
+              setPage((prev) => Math.min(totalPages - 1, prev + 1))
+            }
           >
             →
           </button>

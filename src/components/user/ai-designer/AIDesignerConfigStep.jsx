@@ -148,7 +148,7 @@ function AIDesignerConfigStep({
         </div>
 
         <div className={styles.previewCard}>
-          <img src={uploadedImage} alt="Uploaded room" />
+          <img src={uploadedImage} alt="Ảnh phòng đã tải lên" />
         </div>
 
         <button
@@ -174,7 +174,7 @@ function AIDesignerConfigStep({
 
           <div className={styles.inputGrid}>
             <label className={styles.inputField}>
-              <span>Room type</span>
+              <span>Loại phòng</span>
               <select
                 value={formData.roomType}
                 onChange={(event) => onChange("roomType", event.target.value)}
@@ -189,7 +189,7 @@ function AIDesignerConfigStep({
             </label>
 
             <label className={styles.inputField}>
-              <span>Style</span>
+              <span>Phong cách</span>
               <select
                 value={formData.style}
                 onChange={(event) => onChange("style", event.target.value)}
@@ -204,7 +204,7 @@ function AIDesignerConfigStep({
             </label>
 
             <label className={styles.inputField}>
-              <span>Furniture density</span>
+              <span>Mật độ nội thất</span>
               <select
                 value={formData.furnitureDensity}
                 onChange={(event) =>
@@ -221,7 +221,7 @@ function AIDesignerConfigStep({
             </label>
 
             <label className={styles.inputField}>
-              <span>Gender</span>
+              <span>Giới tính</span>
               <select
                 value={formData.gender}
                 onChange={(event) => onChange("gender", event.target.value)}

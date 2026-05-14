@@ -8,6 +8,7 @@ import {
   saveProductAdminApi,
   getProductsAdminApi,
 } from "../../api/productAdminApi";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 const ProductEdit = () => {
   const { id } = useParams();
@@ -98,7 +99,7 @@ const ProductEdit = () => {
       navigate("/admin/products");
     } catch (e) {
       console.error(e);
-      setError(e?.response?.data?.message || "Cập nhật thất bại");
+      setError(getErrorMessage(e, "Cập nhật thất bại."));
     } finally {
       setSaving(false);
     }

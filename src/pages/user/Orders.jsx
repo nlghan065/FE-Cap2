@@ -22,6 +22,7 @@ import {
   hydrateOrderItemsWithImages,
 } from "../../utils/orderItemImage";
 import { getOrderReviewStats } from "../../utils/reviewStatus";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 const PAGE_SIZE = 5;
 const REVIEWABLE_STATUSES = new Set(["DELIVERED", "COMPLETED"]);
@@ -92,7 +93,7 @@ export default function OrdersPage() {
       window.location.href = res.paymentUrl;
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Không thể thanh toán!");
+      toast.error(getErrorMessage(error, "Không thể thanh toán."));
     }
   };
 
@@ -118,10 +119,7 @@ export default function OrdersPage() {
     } catch (error) {
       console.error("Cancel error:", error);
 
-      const msg =
-        error?.response?.data?.message || error.message || "Hủy đơn thất bại";
-
-      toast.error(msg);
+      toast.error(getErrorMessage(error, "Hủy đơn thất bại."));
     } finally {
       setIsCancelling(false);
     }

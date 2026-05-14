@@ -1,4 +1,5 @@
 import axios from "axios";
+import { normalizeErrorResponse } from "../utils/errorMessage";
 
 const apiClient = axios.create({
   baseURL: "https://capstone02.onrender.com", // gọi thẳng BE
@@ -17,6 +18,14 @@ apiClient.interceptors.request.use((config) => {
 
   return config;
 });
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    normalizeErrorResponse(error);
+    return Promise.reject(error);
+  },
+);
 /* ================= REGISTER ================= */
 
 export const registerApi = async (data) => {

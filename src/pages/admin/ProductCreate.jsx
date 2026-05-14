@@ -7,6 +7,7 @@ import {
   saveProductAdminApi,
   getProductsAdminApi,
 } from "../../api/productAdminApi";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 const ProductCreate = () => {
   const navigate = useNavigate();
@@ -43,14 +44,6 @@ const ProductCreate = () => {
   const handleChangeNested = (field, key, value) => {
     setForm((prev) => ({ ...prev, [field]: { ...prev[field], [key]: value } }));
   };
-
-  const products = [
-    { name: "Áo thun", price: 150000 },
-    { name: "Giày thể thao", price: 850000 },
-    { name: "Mũ bóng chày", price: 120000 },
-    { name: "Balo du lịch", price: 450000 },
-    { name: "Đồng hồ", price: 1200000 },
-  ];
 
   const handleSubmit = async () => {
     try {
@@ -97,7 +90,7 @@ const ProductCreate = () => {
       navigate("/admin/products");
     } catch (e) {
       console.error(e);
-      setError(e?.response?.data?.message || "Tạo thất bại");
+      setError(getErrorMessage(e, "Tạo thất bại."));
     } finally {
       setSaving(false);
     }
