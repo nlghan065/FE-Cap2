@@ -4,6 +4,7 @@ import styles from "../../styles/Auth.module.css";
 import { Link, useNavigate } from "react-router-dom";
 import loginBg from "../../assets/login-bg.jpg";
 import { useState, useEffect } from "react";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 const { Title, Text } = Typography;
 
@@ -57,8 +58,8 @@ function ForgotPassword() {
       setTimeout(() => {
         document.getElementById("otp-0")?.focus();
       }, 100);
-    } catch {
-      message.error("Không gửi được OTP");
+    } catch (error) {
+      message.error(getErrorMessage(error, "Không gửi được OTP."));
     } finally {
       setLoading(false);
     }
@@ -159,8 +160,8 @@ function ForgotPassword() {
       setTimeout(() => {
         navigate("/login");
       }, 1200);
-    } catch {
-      message.error("Không thể đổi mật khẩu");
+    } catch (error) {
+      message.error(getErrorMessage(error, "Không thể đổi mật khẩu."));
     } finally {
       setLoading(false);
     }

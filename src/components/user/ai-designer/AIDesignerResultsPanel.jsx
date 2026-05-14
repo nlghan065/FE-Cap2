@@ -7,6 +7,13 @@ import {
   Wand2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import {
+  getAiDensityLabel,
+  getAiGenderLabel,
+  getAiRequestStatusLabel,
+  getAiRoomTypeLabel,
+  getAiStyleLabel,
+} from "../../../data/aiDesignerData";
 import styles from "../../../styles/AIDesigner.module.css";
 
 function AIDesignerResultsPanel({
@@ -21,6 +28,14 @@ function AIDesignerResultsPanel({
     Array.isArray(results.products) && results.products.length > 0;
 
   const requestStatus = results.requestMeta?.status || "PENDING";
+  const requestStatusLabel = getAiRequestStatusLabel(requestStatus);
+  const roomTypeLabel = getAiRoomTypeLabel(results.roomType, "Chưa có");
+  const styleLabel = getAiStyleLabel(results.style, "Chưa có");
+  const densityLabel = getAiDensityLabel(
+    results.furnitureDensity,
+    "Chưa có",
+  );
+  const genderLabel = getAiGenderLabel(results.gender, "Chưa có");
   const averagePrice = hasProducts
     ? Math.round(
         results.totalPrice / Math.max(results.products.length, 1) / 1000000,
@@ -75,7 +90,7 @@ function AIDesignerResultsPanel({
           <div className={styles.resultHeroMain}>
             <div className={styles.summaryBadge}>
               <Sparkles size={16} />
-              <span>{hasProducts ? "AI Completed" : "Request Created"}</span>
+              <span>{hasProducts ? "AI hoàn tất" : "Yêu cầu đã được tạo"}</span>
             </div>
 
             <h2 className={styles.resultHeroTitle}>
@@ -86,9 +101,9 @@ function AIDesignerResultsPanel({
 
             <p className={styles.resultHeroText}>
               {hasProducts
-                ? `AI đã phân tích và chọn ${results.products.length} sản phẩm phù hợp cho không gian ${results.roomType || "bạn đã chọn"}.`
+                ? `AI đã phân tích và chọn ${results.products.length} sản phẩm phù hợp cho không gian ${roomTypeLabel || "bạn đã chọn"}.`
                 : results.requestMeta?.message ||
-                  "Backend đã nhận request, nhưng chưa trả danh sách sản phẩm ngay."}
+                  "Hệ thống đã nhận yêu cầu, nhưng chưa trả danh sách sản phẩm ngay."}
             </p>
 
             <div className={styles.resultHeroStats}>
@@ -122,10 +137,10 @@ function AIDesignerResultsPanel({
           <div className={styles.resultHeroPriceCard}>
             <Sparkles size={16} />
             <span>
-              {hasProducts ? "Tổng giá trị dự kiến" : "Trạng thái request"}
+              {hasProducts ? "Tổng giá trị dự kiến" : "Trạng thái yêu cầu"}
             </span>
             <strong>
-              {hasProducts ? formatPrice(results.totalPrice) : requestStatus}
+              {hasProducts ? formatPrice(results.totalPrice) : requestStatusLabel}
             </strong>
             {hasProducts && <small>~{averagePrice}M / sản phẩm</small>}
           </div>
@@ -193,7 +208,7 @@ function AIDesignerResultsPanel({
               <h3 className={styles.resultCardTitle}>Ảnh thiết kế</h3>
               <img
                 src={results.imageUrl}
-                alt="AI design result"
+                alt="Kết quả thiết kế AI"
                 className={styles.resultPreviewImage}
               />
             </div>
@@ -226,35 +241,35 @@ function AIDesignerResultsPanel({
             <h3 className={styles.resultCardTitle}>Thông số phòng</h3>
             <div className={styles.analysisGrid}>
               <div className={styles.analysisItem}>
-                <span>Room type</span>
-                <strong>{results.roomType || "Chưa có"}</strong>
+                <span>Loại phòng</span>
+                <strong>{roomTypeLabel}</strong>
               </div>
               <div className={styles.analysisItem}>
-                <span>Style</span>
-                <strong>{results.style || "Chưa có"}</strong>
+                <span>Phong cách</span>
+                <strong>{styleLabel}</strong>
               </div>
               <div className={styles.analysisItem}>
-                <span>Density</span>
-                <strong>{results.furnitureDensity || "Chưa có"}</strong>
+                <span>Mật độ nội thất</span>
+                <strong>{densityLabel}</strong>
               </div>
               <div className={styles.analysisItem}>
-                <span>Gender</span>
-                <strong>{results.gender || "Chưa có"}</strong>
+                <span>Giới tính</span>
+                <strong>{genderLabel}</strong>
               </div>
             </div>
           </div>
 
           {!hasProducts && (
             <div className={styles.resultInfoCard}>
-              <h3 className={styles.resultCardTitle}>Thông tin </h3>
+              <h3 className={styles.resultCardTitle}>Thông tin</h3>
               <div className={styles.analysisGrid}>
                 <div className={styles.analysisItem}>
-                  <span>Request ID</span>
+                  <span>Mã yêu cầu</span>
                   <strong>{results.requestMeta?.id || "Chưa có"}</strong>
                 </div>
                 <div className={styles.analysisItem}>
-                  <span>Status</span>
-                  <strong>{requestStatus}</strong>
+                  <span>Trạng thái</span>
+                  <strong>{requestStatusLabel}</strong>
                 </div>
               </div>
             </div>
@@ -269,8 +284,7 @@ function AIDesignerResultsPanel({
             <h3 className={styles.resultCardTitle}>
               <ShoppingCart size={18} />
               <span>
-                Danh sách sản phẩm{" "}
-                {hasProducts ? `(${results.products.length})` : ""}
+                Danh sách sản phẩm {hasProducts ? `(${results.products.length})` : ""}
               </span>
             </h3>
           </div>
@@ -285,7 +299,7 @@ function AIDesignerResultsPanel({
                       alt={product.name}
                     />
                     <span className={styles.productScore}>
-                      {product.aiScore || 0}% fit
+                      {product.aiScore || 0}% phù hợp
                     </span>
                     <span className={styles.resultCategoryPill}>
                       {product.category}
@@ -313,7 +327,12 @@ function AIDesignerResultsPanel({
                       </small>
 
                       {product.styles?.length > 0 && (
-                        <small>Style: {product.styles.join(", ")}</small>
+                        <small>
+                          Phong cách:{" "}
+                          {product.styles
+                            .map((style) => getAiStyleLabel(style))
+                            .join(", ")}
+                        </small>
                       )}
 
                       {product.colors?.length > 0 && (
@@ -344,7 +363,7 @@ function AIDesignerResultsPanel({
               <article className={styles.resultInfoCard}>
                 <h3>AI chưa trả sản phẩm ngay</h3>
                 <p>
-                  Request đã được tạo thành công. Khi backend xử lý xong và trả
+                  Yêu cầu đã được tạo thành công. Khi hệ thống xử lý xong và trả
                   về danh sách sản phẩm, phần này sẽ hiển thị các gợi ý nội
                   thất.
                 </p>

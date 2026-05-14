@@ -9,6 +9,7 @@ import {
 import styles from "../../styles/Admin.module.css";
 import { Select } from "antd";
 import { getCitiesApi, getWardsApi } from "../../api/authApi";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 const CustomerEdit = () => {
   const { id } = useParams();
@@ -60,7 +61,7 @@ const CustomerEdit = () => {
       setCustomer(data);
     } catch (err) {
       console.error(err);
-      setError("Không tải được dữ liệu");
+      setError(getErrorMessage(err, "Không tải được dữ liệu."));
     } finally {
       setLoading(false);
     }
@@ -108,7 +109,7 @@ const CustomerEdit = () => {
       navigate(`/admin/customers/${customer.id}`);
     } catch (e) {
       console.error("ERROR:", e.response?.data || e);
-      setError(e.response?.data?.message || "Cập nhật thất bại");
+      setError(getErrorMessage(e, "Cập nhật thất bại."));
     } finally {
       setSaving(false);
     }

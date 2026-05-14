@@ -14,8 +14,15 @@ import AIDesignerProcessingStep from "../../components/user/ai-designer/AIDesign
 import AIDesignerProgress from "../../components/user/ai-designer/AIDesignerProgress";
 import AIDesignerResultsPanel from "../../components/user/ai-designer/AIDesignerResultsPanel";
 import AIDesignerUploadStep from "../../components/user/ai-designer/AIDesignerUploadStep";
+import {
+  getAiDensityLabel,
+  getAiRequestStatusLabel,
+  getAiRoomTypeLabel,
+  getAiStyleLabel,
+} from "../../data/aiDesignerData";
 import styles from "../../styles/AIDesigner.module.css";
 import { normalizeAiRecommendResult } from "../../utils/aiRecommendResultV2";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 const STORAGE_KEY = "aiDesignerData";
 const DIMENSION_LIMITS = {
@@ -24,13 +31,6 @@ const DIMENSION_LIMITS = {
   height: { min: 2, max: 4 },
 };
 const AGE_LIMITS = { min: 1, max: 120 };
-const REQUEST_STATUS_LABELS = {
-  COMPLETED: "Hoàn tất",
-  PENDING: "Đang chờ xử lý",
-  PROCESSING: "Đang xử lý",
-  FAILED: "Thất bại",
-};
-
 const getAuthToken = () =>
   localStorage.getItem("token") || sessionStorage.getItem("token");
 
@@ -146,8 +146,8 @@ const getDemographicsFromProfile = (profile) => ({
 });
 
 const getHistoryStatusLabel = (status, hasProducts) => {
-  if (!status && hasProducts) return REQUEST_STATUS_LABELS.COMPLETED;
-  return REQUEST_STATUS_LABELS[status] || status || "Đã tạo yêu cầu";
+  if (!status && hasProducts) return getAiRequestStatusLabel('COMPLETED');
+  return getAiRequestStatusLabel(status);
 };
 
 function AIDesignerPage() {
@@ -221,6 +221,9 @@ function AIDesignerPage() {
 
   const mapHistoryItem = useCallback((payload, index) => {
     const normalized = normalizeAiRecommendResult(payload || {});
+    const roomTypeLabel = getAiRoomTypeLabel(normalized.roomType);
+    const styleLabel = getAiStyleLabel(normalized.style);
+    const densityLabel = getAiDensityLabel(normalized.furnitureDensity);
     const previewImage =
       normalized.imageUrl ||
       normalized.products.find((item) => item.imageUrl || item.image)?.imageUrl ||
@@ -229,11 +232,11 @@ function AIDesignerPage() {
     const status =
       payload?.status || normalized.requestMeta?.status || "PENDING";
     const title =
-      normalized.roomType || normalized.style
-        ? [normalized.roomType, normalized.style].filter(Boolean).join(" • ")
+      roomTypeLabel || styleLabel
+        ? [roomTypeLabel, styleLabel].filter(Boolean).join(" • ")
         : `Yêu cầu thiết kế ${index + 1}`;
     const subtitleParts = [
-      normalized.furnitureDensity || "",
+      densityLabel || "",
       normalized.products.length
         ? `${normalized.products.length} sản phẩm`
         : "Chưa có sản phẩm",
@@ -478,11 +481,7 @@ function AIDesignerPage() {
       setStep(4);
     } catch (error) {
       console.error("AI recommend error:", error);
-      toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Không gọi được AI recommend.",
-      );
+      toast.error(getErrorMessage(error, "Không gọi được AI recommend."));
       setStep(2);
     } finally {
       setIsProcessing(false);

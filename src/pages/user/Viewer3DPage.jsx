@@ -1,5 +1,6 @@
 import {
   Suspense,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -24,6 +25,7 @@ import {
   Loader2,
   Maximize2,
   RotateCcw,
+  RotateCw,
   ShoppingCart,
   Sparkles,
 } from "lucide-react";
@@ -34,6 +36,7 @@ import { Plane, Vector3 } from "three";
 import { postAiLayoutFromRecommendationApi } from "../../api/aiRecommendApi";
 import { addToCartApi } from "../../api/cartApi";
 import { mergeAiLayoutResult } from "../../utils/aiRecommendResultV2";
+import { getErrorMessage } from "../../utils/errorMessage";
 import { resolveImageUrl } from "../../utils/imageUrl";
 import styles from "../../styles/Viewer3D.module.css";
 
@@ -43,6 +46,7 @@ const DEFAULT_CAMERA_POSITION = [5.3, 3.7, 6.4];
 const DEFAULT_CAMERA_TARGET = [0, 0.55, 0];
 const DEFAULT_ROOM_DIMENSIONS = { width: 4.8, length: 5.8, height: 3 };
 const DRAG_ROOM_PADDING = 0.08;
+const ITEM_ROTATION_STEP = Math.PI / 12;
 const TV_STAND_KEYS = [
   "tv stand",
   "tv cabinet",
@@ -785,6 +789,9 @@ const clampItemPositionToRoom = (
     clamp(position[2], Math.min(minZ, maxZ), Math.max(minZ, maxZ)),
   ];
 };
+
+const normalizeRotationAngle = (value) =>
+  Math.atan2(Math.sin(value || 0), Math.cos(value || 0));
 
 const extractPlanarSizeFromText = (item) => {
   const source = normalizeText(
@@ -1739,6 +1746,7 @@ function FurnitureModel({
   selected,
   onDragStateChange,
   onMoveItem,
+  onRotateItem,
   onSelect,
   roomDimensions,
 }) {
@@ -1748,6 +1756,8 @@ function FurnitureModel({
   const dragIntersection = useMemo(() => new Vector3(), []);
   const dragOffsetRef = useRef(new Vector3());
   const draggedRef = useRef(false);
+  const interactionModeRef = useRef(null);
+  const rotatePointerXRef = useRef(0);
   const active = selected || hovered;
   const dimensions = useMemo(() => getItemDimensions(item), [item]);
   const highlightRadius = Math.max(
@@ -1782,7 +1792,7 @@ function FurnitureModel({
     if (!groupRef.current) return;
 
     const targetY =
-      active && !draggedRef.current
+      active && !interactionModeRef.current
         ? Math.sin(state.clock.elapsedTime * 2.4) * 0.018
         : 0;
     groupRef.current.position.y +=
@@ -1799,19 +1809,31 @@ function FurnitureModel({
         onSelect(item);
       }}
       onPointerDown={(event) => {
-        if (event.button !== undefined && event.button !== 0) return;
+        const pointerButton = event.button ?? event.nativeEvent?.button ?? 0;
+
+        if (pointerButton !== 0 && pointerButton !== 2) return;
 
         event.stopPropagation();
         onSelect(item);
 
+        if (pointerButton === 2) {
+          draggedRef.current = true;
+          interactionModeRef.current = "rotate";
+          rotatePointerXRef.current = event.clientX;
+          onDragStateChange?.(item.id);
+          event.target.setPointerCapture?.(event.pointerId);
+          return;
+        }
+
         if (!event.ray.intersectPlane(dragPlane, dragIntersection)) return;
 
+        draggedRef.current = true;
+        interactionModeRef.current = "move";
         dragOffsetRef.current.set(
           dragIntersection.x - item.position[0],
           0,
           dragIntersection.z - item.position[2],
         );
-        draggedRef.current = true;
         onDragStateChange?.(item.id);
         event.target.setPointerCapture?.(event.pointerId);
       }}
@@ -1819,6 +1841,16 @@ function FurnitureModel({
         if (!draggedRef.current) return;
 
         event.stopPropagation();
+
+        if (interactionModeRef.current === "rotate") {
+          const pointerDeltaX = event.clientX - rotatePointerXRef.current;
+
+          if (pointerDeltaX === 0) return;
+
+          rotatePointerXRef.current = event.clientX;
+          onRotateItem?.(item.id, pointerDeltaX * 0.01);
+          return;
+        }
 
         if (!event.ray.intersectPlane(dragPlane, dragIntersection)) return;
 
@@ -1849,6 +1881,7 @@ function FurnitureModel({
 
         event.stopPropagation();
         draggedRef.current = false;
+        interactionModeRef.current = null;
         onDragStateChange?.(null);
         event.target.releasePointerCapture?.(event.pointerId);
       }}
@@ -1856,6 +1889,7 @@ function FurnitureModel({
         if (!draggedRef.current) return;
 
         draggedRef.current = false;
+        interactionModeRef.current = null;
         onDragStateChange?.(null);
         event.target.releasePointerCapture?.(event.pointerId);
       }}
@@ -4133,6 +4167,7 @@ function Scene({
   items,
   onDragStateChange,
   onMoveItem,
+  onRotateItem,
   resetToken,
   roomDimensions,
   selectedId,
@@ -4200,6 +4235,7 @@ function Scene({
           key={item.id}
           onDragStateChange={onDragStateChange}
           onMoveItem={onMoveItem}
+          onRotateItem={onRotateItem}
           onSelect={onSelect}
           roomDimensions={roomDimensions}
           selected={String(selectedId) === String(item.id)}
@@ -4449,7 +4485,7 @@ function Viewer3DPage() {
 
       return {
         ...item,
-        position: manualPlacement.position,
+        position: manualPlacement.position || item.position,
         rotation: manualPlacement.rotation ?? item.rotation,
       };
     });
@@ -4572,6 +4608,44 @@ function Viewer3DPage() {
     setSelectedId(itemId);
   };
 
+  const handleRotateItem = useCallback(
+    (itemId, rotationDelta) => {
+      const sceneItem = sceneItems.find(
+        (item) => String(item.id) === String(itemId),
+      );
+
+      if (!sceneItem) return;
+
+      setManualPositions((current) => {
+        const existingPlacement = current[itemId] || {};
+        const nextRotation = normalizeRotationAngle(
+          (existingPlacement.rotation ?? sceneItem.rotation ?? 0) +
+            rotationDelta,
+        );
+        const nextPosition = clampItemPositionToRoom(
+          existingPlacement.position || sceneItem.position,
+          getItemDimensions(sceneItem),
+          aiResults?.roomAnalysis,
+          {
+            ...sceneItem,
+            rotation: nextRotation,
+          },
+        );
+
+        return {
+          ...current,
+          [itemId]: {
+            ...existingPlacement,
+            position: nextPosition,
+            rotation: nextRotation,
+          },
+        };
+      });
+      setSelectedId(itemId);
+    },
+    [aiResults?.roomAnalysis, sceneItems],
+  );
+
   const handleDragStateChange = (itemId) => {
     setDraggingId(itemId);
   };
@@ -4584,6 +4658,39 @@ function Viewer3DPage() {
     setDraggingId(null);
     setManualPositions({});
   };
+
+  useEffect(() => {
+    if (!selectedSceneItem || draggingId) return undefined;
+
+    const handleKeyDown = (event) => {
+      const tagName = event.target?.tagName?.toLowerCase();
+
+      if (
+        tagName === "input" ||
+        tagName === "textarea" ||
+        tagName === "select" ||
+        event.target?.isContentEditable
+      ) {
+        return;
+      }
+
+      if (event.key.toLowerCase() === "q") {
+        event.preventDefault();
+        handleRotateItem(selectedSceneItem.id, -ITEM_ROTATION_STEP);
+      }
+
+      if (event.key.toLowerCase() === "e") {
+        event.preventDefault();
+        handleRotateItem(selectedSceneItem.id, ITEM_ROTATION_STEP);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [draggingId, handleRotateItem, selectedSceneItem]);
 
   const handleToggleFullscreen = async () => {
     try {
@@ -4625,9 +4732,7 @@ function Viewer3DPage() {
       navigate("/cart");
     } catch (error) {
       console.error("Add AI products to cart error:", error);
-      toast.error(
-        error?.response?.data?.message || "Không thêm được vào giỏ hàng.",
-      );
+      toast.error(getErrorMessage(error, "Không thêm được vào giỏ hàng."));
     } finally {
       setAddingCart(false);
     }
@@ -4731,7 +4836,11 @@ function Viewer3DPage() {
       </header>
 
       <main className={styles.viewerShell}>
-        <section className={styles.canvasPanel} ref={canvasPanelRef}>
+        <section
+          className={styles.canvasPanel}
+          onContextMenu={(event) => event.preventDefault()}
+          ref={canvasPanelRef}
+        >
           <Canvas shadows dpr={[1, 1.7]}>
             <Suspense fallback={null}>
               <Scene
@@ -4740,6 +4849,7 @@ function Viewer3DPage() {
                 items={sceneItems}
                 onDragStateChange={handleDragStateChange}
                 onMoveItem={handleMoveItem}
+                onRotateItem={handleRotateItem}
                 onSelect={handleSelect}
                 resetToken={resetToken}
                 roomDimensions={aiResults?.roomAnalysis}
@@ -4831,6 +4941,36 @@ function Viewer3DPage() {
                 </div>
               </dl>
               <div className={styles.detailActions}>
+                {selectedSceneItem && (
+                  <div className={styles.rotationActions}>
+                    <button
+                      className={styles.secondaryButton}
+                      type="button"
+                      onClick={() =>
+                        handleRotateItem(
+                          selectedSceneItem.id,
+                          -ITEM_ROTATION_STEP,
+                        )
+                      }
+                    >
+                      <RotateCcw size={16} />
+                      Xoay trái
+                    </button>
+                    <button
+                      className={styles.secondaryButton}
+                      type="button"
+                      onClick={() =>
+                        handleRotateItem(
+                          selectedSceneItem.id,
+                          ITEM_ROTATION_STEP,
+                        )
+                      }
+                    >
+                      <RotateCw size={16} />
+                      Xoay phải
+                    </button>
+                  </div>
+                )}
                 {selectedItemNeedsManualPlacement && (
                   <button
                     type="button"

@@ -13,6 +13,7 @@ import {
   Truck,
   ShieldCheck,
 } from "lucide-react";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 function Payment() {
   const navigate = useNavigate();
@@ -127,11 +128,7 @@ function Payment() {
       }
     } catch (err) {
       console.error(err);
-      const message =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Đặt hàng thất bại";
-      toast.error(message);
+      toast.error(getErrorMessage(err, "Đặt hàng thất bại."));
     } finally {
       setLoading(false);
     }

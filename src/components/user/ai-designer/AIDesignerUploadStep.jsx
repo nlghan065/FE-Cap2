@@ -14,9 +14,9 @@ function AIDesignerUploadStep({
     <div className={styles.stepContainer}>
       <div className={styles.stepHeading}>
         <span>01</span>
-        <h2>Upload ảnh căn phòng</h2>
+        <h2>Tải ảnh căn phòng</h2>
         <p>
-          Tải ảnh thật từ máy để backend AI phân tích và trả về gợi ý nội thất.
+          Tải ảnh thật từ máy để hệ thống AI phân tích và trả về gợi ý nội thất.
         </p>
       </div>
 

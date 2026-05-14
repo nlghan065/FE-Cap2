@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import styles from "../../styles/Cart.module.css";
 import { getCartApi } from "../../api/cartApi";
 import { getProfileApi } from "../../api/profileApi";
@@ -12,10 +12,10 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { getCitiesApi, getWardsApi } from "../../api/authApi";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 function CartStep2() {
   const navigate = useNavigate();
-  const location = useLocation();
   const role = localStorage.getItem("role") || sessionStorage.getItem("role");
   const isAdminPreview = role === "ADMIN";
 
@@ -66,13 +66,7 @@ function CartStep2() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ================= LOAD =================
-  useEffect(() => {
-    fetchProfile();
-    fetchCart();
-  }, []);
-
-  const fetchProfile = async () => {
+  async function fetchProfile() {
     try {
       const data = await getProfileApi();
 
@@ -91,9 +85,9 @@ function CartStep2() {
     } catch (err) {
       console.error(err);
     }
-  };
+  }
 
-  const fetchCart = async () => {
+  async function fetchCart() {
     try {
       const data = await getCartApi();
       setCart(data.items || []);
@@ -102,13 +96,19 @@ function CartStep2() {
       console.error(err);
 
       if (!isAdminPreview) {
-        alert("Không thể tải giỏ hàng");
+        alert(getErrorMessage(err, "Không thể tải giỏ hàng."));
       }
 
       setCart([]);
       setShipping(0);
     }
-  };
+  }
+
+  // ================= LOAD =================
+  useEffect(() => {
+    fetchProfile();
+    fetchCart();
+  }, []);
 
   // ================= CITY =================
   useEffect(() => {
@@ -139,7 +139,7 @@ function CartStep2() {
         wardId: found.id,
       }));
     }
-  }, [wards]);
+  }, [form.ward, wards]);
 
   // ================= HANDLER =================
   const handleChange = (field, value) => {
@@ -172,15 +172,12 @@ function CartStep2() {
     } catch (err) {
       console.error("Update profile error:", err);
       console.log("Response data:", err.response?.data);
-      alert(err.response?.data?.message || "Cập nhật thất bại");
+      alert(getErrorMessage(err, "Cập nhật thất bại."));
     }
   };
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const total = subtotal + shipping;
-
-  const currentStep =
-    location.pathname === "/cart" ? 1 : location.pathname === "/cart2" ? 2 : 3;
 
   // ================= UI =================
   return (

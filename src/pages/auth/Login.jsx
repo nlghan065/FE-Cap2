@@ -9,6 +9,7 @@ import { loginApi } from "../../api/authApi";
 import { Link, useNavigate } from "react-router-dom";
 
 import styles from "../../styles/Auth.module.css";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 const { Title, Text } = Typography;
 
@@ -62,7 +63,9 @@ function Login() {
       }
     } catch (error) {
       console.error("LOGIN ERROR:", error);
-      message.error("Email hoặc mật khẩu không đúng");
+      message.error(
+        getErrorMessage(error, "Email hoặc mật khẩu không đúng."),
+      );
     }
   };
 

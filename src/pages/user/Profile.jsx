@@ -12,6 +12,7 @@ import { getProfileApi } from "../../api/profileApi";
 import { updateProfileApi } from "../../api/adminCustomerApi";
 import { getCitiesApi, getWardsApi } from "../../api/authApi";
 import styles from "../../styles/Profile.module.css";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -61,7 +62,12 @@ function Profile() {
         setProfile(data);
       } catch (err) {
         console.error("Load profile error:", err);
-        setError("Không tải được thông tin hồ sơ. Vui lòng thử lại sau.");
+        setError(
+          getErrorMessage(
+            err,
+            "Không tải được thông tin hồ sơ. Vui lòng thử lại sau.",
+          ),
+        );
       } finally {
         setLoading(false);
       }
@@ -189,10 +195,7 @@ function Profile() {
       setEditing(false);
     } catch (err) {
       console.error("Update profile error:", err);
-      setError(
-        err?.response?.data?.message ||
-          "Cập nhật thất bại. Vui lòng kiểm tra lại.",
-      );
+      setError(getErrorMessage(err, "Cập nhật thất bại. Vui lòng kiểm tra lại."));
     } finally {
       setSaving(false);
     }

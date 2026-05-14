@@ -11,6 +11,7 @@ import dayjs from "dayjs";
 import { registerApi, getCitiesApi, getWardsApi } from "../../api/authApi";
 
 import styles from "../../styles/Auth.module.css";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 const { Title, Text } = Typography;
 
@@ -135,7 +136,7 @@ function Register() {
         navigate("/login");
       }, 1200);
     } catch (err) {
-      message.error(err?.response?.data?.message || "Lỗi server");
+      message.error(getErrorMessage(err, "Lỗi máy chủ. Vui lòng thử lại."));
     } finally {
       setLoading(false);
     }
