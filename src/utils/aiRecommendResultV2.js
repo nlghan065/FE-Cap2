@@ -718,8 +718,17 @@ const normalizeProducts = (payload) => {
         ) || 0,
       image: getProductImageUrl(item),
       imageUrl: getProductImageUrl(item),
-      aiScore:
-        toNumber(item?.aiScore || item?.score || item?.matchScore || 85) || 85,
+      aiScore: (() => {
+        const rawScore =
+          item?.ranking_score ??
+          item?.rankingScore ??
+          item?.aiScore ??
+          item?.score ??
+          item?.matchScore;
+        return rawScore != null
+          ? Math.round(toNumber(rawScore) * (rawScore <= 1 ? 100 : 1))
+          : 85;
+      })(),
       rankingScore:
         toFiniteNumber(
           item?.ranking_score ||

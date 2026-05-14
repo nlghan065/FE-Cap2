@@ -14,6 +14,7 @@ import { getProfileApi } from "../../api/profileApi";
 import { getCartApi } from "../../api/cartApi";
 import { getUserByIdApi } from "../../api/authApi";
 import { getWishlistApi, normalizeWishlistItems } from "../../api/wishlistApi";
+import logo from "../../assets/logo.png";
 import styles from "../../styles/LayoutUser.module.css";
 
 function UserHeader() {
@@ -226,7 +227,7 @@ function UserHeader() {
         className={styles.left}
         onClick={() => navigate(token ? "/home" : "/")}
       >
-        <img src="/src/assets/logo.png" className={styles.logo} />
+        <img src={logo} className={styles.logo} />
         <div>
           <h2 className={styles.brand}>VirtuSpace</h2>
           <p className={styles.subtitle}>Thiết kế không gian thông minh</p>

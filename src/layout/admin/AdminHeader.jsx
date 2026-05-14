@@ -3,7 +3,7 @@ import { User, Settings, LogOut, Store } from "lucide-react";
 import styles from "../../styles/Admin.module.css";
 import { useNavigate } from "react-router-dom";
 import { getUserByIdApi } from "../../api/authApi";
-
+import logo from "../../assets/logo.png";
 function AdminHeader() {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -47,7 +47,7 @@ function AdminHeader() {
   return (
     <header className={styles.adminHeader}>
       <div className={styles.headerLeft}>
-        <img src="/src/assets/logo.png" className={styles.logo} />
+        <img src={logo} className={styles.logo} />
 
         <div className={styles.titleBox}>
           <h1>VirtuSpace</h1>

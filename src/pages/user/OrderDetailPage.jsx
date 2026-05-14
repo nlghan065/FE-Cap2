@@ -167,9 +167,7 @@ export default function OrderDetailPage() {
             <button
               key={star}
               type="button"
-              className={
-                Number(form.rating) >= star ? styles.starActive : ""
-              }
+              className={Number(form.rating) >= star ? styles.starActive : ""}
               onClick={() => updateReviewForm(reviewKey, { rating: star })}
               aria-label={`${star} sao`}
             >
