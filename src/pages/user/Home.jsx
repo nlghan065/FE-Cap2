@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -36,6 +36,7 @@ const PANEL_KEYS = {
   WISHLIST: "wishlist",
 };
 
+const AI_DESIGNER_STORAGE_KEY = "aiDesignerData";
 const ACTIVE_PROJECT_STATUSES = new Set(["PENDING", "PROCESSING"]);
 const SHIPPING_STATUSES = new Set(["CONFIRMED", "SHIPPING"]);
 
@@ -136,6 +137,51 @@ const getOrderStatusMeta = (status) =>
     tone: "pending",
   };
 
+const getProjectDimensionLabel = (roomAnalysis) => {
+  const width = roomAnalysis?.width;
+  const length = roomAnalysis?.length;
+  const height = roomAnalysis?.height;
+
+  if (width && length && height) {
+    return `${width} x ${length} x ${height} m`;
+  }
+
+  if (width && length) {
+    return `${width} x ${length} m`;
+  }
+
+  if (height) {
+    return `Cao ${height} m`;
+  }
+
+  return "Chưa có";
+};
+
+const buildAiDesignerFormData = (result) => ({
+  roomType: result?.roomType || "",
+  dimensions: {
+    width:
+      result?.roomAnalysis?.width !== undefined &&
+      result?.roomAnalysis?.width !== null
+        ? String(result.roomAnalysis.width)
+        : "",
+    length:
+      result?.roomAnalysis?.length !== undefined &&
+      result?.roomAnalysis?.length !== null
+        ? String(result.roomAnalysis.length)
+        : "",
+    height:
+      result?.roomAnalysis?.height !== undefined &&
+      result?.roomAnalysis?.height !== null
+        ? String(result.roomAnalysis.height)
+        : "",
+  },
+  style: result?.style || "",
+  furnitureDensity: result?.furnitureDensity || "",
+  gender: result?.gender || "",
+  age: result?.age ? String(result.age) : "",
+});
+
 const mapWishlistItem = (item) => {
   const product = getWishlistProduct(item);
   const productId = getWishlistProductId(item);
@@ -160,14 +206,12 @@ const mapWishlistItem = (item) => {
 
 const mapDesignRequest = (payload, index) => {
   const normalized = normalizeAiRecommendResult(payload || {});
-  const status =
-    payload?.status || normalized.requestMeta?.status || "PENDING";
+  const status = payload?.status || normalized.requestMeta?.status || "PENDING";
   const statusMeta = getProjectStatusMeta(status);
-  const previewCandidate =
-    normalized.imageUrl ||
-    normalized.products.find((item) => item.imageUrl || item.image)?.imageUrl ||
-    normalized.products.find((item) => item.imageUrl || item.image)?.image ||
-    "";
+  const productImages = normalized.products
+    .map((item) => resolveImageUrl(item.imageUrl || item.image))
+    .filter(Boolean);
+  const previewCandidate = normalized.imageUrl || productImages[0] || "";
   const title = [
     getRoomTypeLabel(normalized.roomType),
     normalized.style ? prettifyLabel(normalized.style) : "",
@@ -186,12 +230,18 @@ const mapDesignRequest = (payload, index) => {
     status,
     statusLabel: statusMeta.label,
     statusTone: statusMeta.tone,
+    requestId: normalized.requestMeta?.id || normalized.id || "",
     roomType: getRoomTypeLabel(normalized.roomType),
     style: normalized.style ? prettifyLabel(normalized.style) : "",
+    productCount: normalized.products.length,
+    totalPrice: normalized.totalPrice || 0,
+    dimensionLabel: getProjectDimensionLabel(normalized.roomAnalysis),
+    productImages,
     reasoning:
       normalized.reasoning ||
       normalized.requestMeta?.message ||
       "Yêu cầu đang chờ hệ thống xử lý.",
+    result: normalized,
   };
 };
 
@@ -230,7 +280,9 @@ const getOrderProgress = (order) => {
     {
       label: "Hoàn tất",
       description:
-        currentStep >= 3 ? "Đơn hàng đã giao thành công" : "Hoàn tất sau khi giao",
+        currentStep >= 3
+          ? "Đơn hàng đã giao thành công"
+          : "Hoàn tất sau khi giao",
     },
   ];
 
@@ -241,6 +293,69 @@ const getOrderProgress = (order) => {
       state = "completed";
     } else if (index === currentStep) {
       state = order?.status === "CANCELLED" ? "cancelled" : "active";
+    }
+
+    return {
+      ...step,
+      state,
+    };
+  });
+};
+
+const getProjectProgress = (project) => {
+  const status = project?.status || "PENDING";
+  const currentStepByStatus = {
+    PENDING: 1,
+    PROCESSING: 2,
+    COMPLETED: 3,
+    FAILED: 2,
+  };
+  const currentStep = currentStepByStatus[status] ?? 1;
+  const hasProducts = Number(project?.productCount || 0) > 0;
+  const isFailed = status === "FAILED";
+
+  const steps = [
+    {
+      label: "Đã tạo yêu cầu",
+      description: project?.createdAt
+        ? formatDateTime(project.createdAt)
+        : "Hệ thống đã ghi nhận yêu cầu AI",
+    },
+    {
+      label: "AI tiếp nhận",
+      description: isFailed
+        ? "Yêu cầu đã được tiếp nhận nhưng chưa xử lý trọn vẹn"
+        : currentStep >= 1
+          ? "AI Designer đã nhận thông tin không gian và phong cách"
+          : "Đang chờ hệ thống tiếp nhận",
+    },
+    {
+      label: "Đang phân tích",
+      description: isFailed
+        ? "AI chưa thể hoàn tất bước phân tích cho dự án này"
+        : currentStep >= 2
+          ? "AI đã phân tích không gian và đối chiếu sản phẩm phù hợp"
+          : "Sẽ bắt đầu khi yêu cầu được đưa vào xử lý",
+    },
+    {
+      label: "Hoàn tất",
+      description: isFailed
+        ? "Mở lại AI Designer để kiểm tra hoặc gửi lại yêu cầu"
+        : hasProducts
+          ? `${project.productCount} sản phẩm AI đã sẵn sàng để xem chi tiết`
+          : "Hiển thị khi AI trả kết quả hoàn chỉnh",
+    },
+  ];
+
+  return steps.map((step, index) => {
+    let state = "upcoming";
+
+    if (isFailed && index === 2) {
+      state = "failed";
+    } else if (index < currentStep) {
+      state = "completed";
+    } else if (index === currentStep) {
+      state = "active";
     }
 
     return {
@@ -261,7 +376,11 @@ function EmptyPanelState({ icon, title, description, actionLabel, onAction }) {
       <h3>{title}</h3>
       <p>{description}</p>
       {actionLabel && onAction && (
-        <button type="button" className={styles.panelPrimaryBtn} onClick={onAction}>
+        <button
+          type="button"
+          className={styles.panelPrimaryBtn}
+          onClick={onAction}
+        >
           {actionLabel}
           <ChevronRight size={16} />
         </button>
@@ -270,7 +389,14 @@ function EmptyPanelState({ icon, title, description, actionLabel, onAction }) {
   );
 }
 
-function ProjectsPanel({ loading, error, items, onOpenDesigner }) {
+function ProjectsPanel({
+  loading,
+  error,
+  items,
+  selectedProject,
+  onOpenDesigner,
+  onViewProject,
+}) {
   if (loading) {
     return (
       <div className={styles.panelLoading}>
@@ -304,43 +430,132 @@ function ProjectsPanel({ loading, error, items, onOpenDesigner }) {
     );
   }
 
+  const currentProject = selectedProject || items[0];
+  const progress = getProjectProgress(currentProject);
+  const productImages = (currentProject.productImages || []).slice(0, 3);
+
   return (
     <div className={styles.panelStack}>
       <div className={styles.panelScroll}>
-        {items.map((project) => (
-          <article key={project.id} className={styles.panelProjectCard}>
-            <div className={styles.panelProjectVisual}>
-              <span
-                className={`${styles.projectStatus} ${styles[project.statusTone]}`}
-              >
-                {project.statusLabel}
-              </span>
-
-              {project.previewImage ? (
-                <img
-                  src={project.previewImage}
-                  alt={project.title}
-                  className={styles.panelProjectImage}
-                />
-              ) : (
-                <div className={styles.panelProjectFallback}>
-                  <Sparkles size={18} />
-                  <span>{project.roomType}</span>
-                </div>
-              )}
+        <article className={styles.orderCard}>
+          <div className={styles.orderTop}>
+            <div>
+              <strong className={styles.orderCode}>
+                {currentProject.title}
+              </strong>
+              <p className={styles.orderDate}>
+                {currentProject.requestId
+                  ? `${currentProject.requestId} • `
+                  : ""}
+                {formatDateTime(currentProject.createdAt)}
+              </p>
             </div>
 
-            <div className={styles.panelProjectBody}>
-              <div>
-                <h3>{project.title}</h3>
-                <p>
-                  {formatRelativeTime(project.createdAt)} • {project.subtitle}
-                </p>
+            <span
+              className={`${styles.projectStatus} ${styles[currentProject.statusTone]}`}
+            >
+              {currentProject.statusLabel}
+            </span>
+          </div>
+
+          <div className={styles.panelProjectVisual}>
+            {currentProject.previewImage ? (
+              <img
+                src={currentProject.previewImage}
+                alt={currentProject.title}
+                className={styles.panelProjectImage}
+                loading="lazy"
+              />
+            ) : (
+              <div className={styles.panelProjectFallback}>
+                <Sparkles size={18} />
+                <span>{currentProject.roomType}</span>
               </div>
-              <span className={styles.panelProjectReason}>{project.reasoning}</span>
+            )}
+          </div>
+
+          {!!currentProject.reasoning && (
+            <div className={styles.projectInsight}>
+              <strong>Đánh giá AI</strong>
+              <p>{currentProject.reasoning}</p>
             </div>
-          </article>
-        ))}
+          )}
+
+          {productImages.length > 0 && (
+            <div className={styles.projectThumbSection}>
+              <span className={styles.projectSectionLabel}>
+                Sản phẩm AI gợi ý
+              </span>
+              <div className={styles.orderThumbRow}>
+                {productImages.map((image, index) => (
+                  <img
+                    key={`${currentProject.id}-product-${index + 1}`}
+                    src={image}
+                    alt={`${currentProject.title} - sản phẩm ${index + 1}`}
+                    className={styles.orderThumb}
+                    loading="lazy"
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = logoImage;
+                    }}
+                  />
+                ))}
+
+                {currentProject.productCount > productImages.length && (
+                  <span className={styles.orderThumbMore}>
+                    +{currentProject.productCount - productImages.length}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className={styles.orderMetaGrid}>
+            <div>
+              <span>Không gian</span>
+              <strong>{currentProject.roomType}</strong>
+            </div>
+            <div>
+              <span>Kích thước</span>
+              <strong>{currentProject.dimensionLabel}</strong>
+            </div>
+            <div>
+              <span>Sản phẩm AI</span>
+              <strong>{currentProject.productCount || 0} sản phẩm</strong>
+            </div>
+            <div>
+              <span>Tổng dự kiến</span>
+              <strong>
+                {currentProject.totalPrice > 0
+                  ? formatPrice(currentProject.totalPrice)
+                  : "Đang chờ AI"}
+              </strong>
+            </div>
+          </div>
+
+          <div className={styles.orderProgress}>
+            {progress.map((step) => (
+              <div key={step.label} className={styles.progressItem}>
+                <span
+                  className={`${styles.progressDot} ${styles[step.state]}`}
+                />
+                <div>
+                  <strong>{step.label}</strong>
+                  <p>{step.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className={styles.panelSecondaryBtn}
+            onClick={() => onViewProject(currentProject)}
+          >
+            Xem chi tiết dự án
+            <ArrowRight size={16} />
+          </button>
+        </article>
       </div>
 
       <button
@@ -398,14 +613,23 @@ function OrdersPanel({ loading, error, items, onViewOrder, onViewAllOrders }) {
           const orderId = order?.id || order?._id || order?.orderId;
 
           return (
-            <article key={orderId || order.orderCode} className={styles.orderCard}>
+            <article
+              key={orderId || order.orderCode}
+              className={styles.orderCard}
+            >
               <div className={styles.orderTop}>
                 <div>
-                  <strong className={styles.orderCode}>{order.orderCode}</strong>
-                  <p className={styles.orderDate}>{formatDateTime(order.createdAt)}</p>
+                  <strong className={styles.orderCode}>
+                    {order.orderCode}
+                  </strong>
+                  <p className={styles.orderDate}>
+                    {formatDateTime(order.createdAt)}
+                  </p>
                 </div>
 
-                <span className={`${styles.orderBadge} ${styles[statusMeta.tone]}`}>
+                <span
+                  className={`${styles.orderBadge} ${styles[statusMeta.tone]}`}
+                >
                   {statusMeta.label}
                 </span>
               </div>
@@ -439,7 +663,9 @@ function OrdersPanel({ loading, error, items, onViewOrder, onViewAllOrders }) {
                 </div>
                 <div>
                   <span>Thanh toán</span>
-                  <strong>{order.paymentMethodDisplay || order.paymentMethod || "COD"}</strong>
+                  <strong>
+                    {order.paymentMethodDisplay || order.paymentMethod || "COD"}
+                  </strong>
                 </div>
               </div>
 
@@ -483,7 +709,13 @@ function OrdersPanel({ loading, error, items, onViewOrder, onViewAllOrders }) {
   );
 }
 
-function WishlistPanel({ loading, error, items, onViewProduct, onViewWishlist }) {
+function WishlistPanel({
+  loading,
+  error,
+  items,
+  onViewProduct,
+  onViewWishlist,
+}) {
   const totalValue = items.reduce(
     (sum, item) => sum + (Number(item.price) || 0),
     0,
@@ -594,9 +826,11 @@ function WishlistPanel({ loading, error, items, onViewProduct, onViewWishlist })
 
 function Home() {
   const navigate = useNavigate();
+  const sidePanelRef = useRef(null);
   const [firstName, setFirstName] = useState("bạn");
   const [isLoading, setIsLoading] = useState(true);
   const [activePanel, setActivePanel] = useState(null);
+  const [selectedProjectId, setSelectedProjectId] = useState("");
   const [designRequests, setDesignRequests] = useState([]);
   const [shippingOrders, setShippingOrders] = useState([]);
   const [wishlistItems, setWishlistItems] = useState([]);
@@ -669,7 +903,9 @@ function Home() {
           if (!isMounted) return;
 
           setShippingOrders(
-            hydratedOrders.filter((order) => SHIPPING_STATUSES.has(order.status)),
+            hydratedOrders.filter((order) =>
+              SHIPPING_STATUSES.has(order.status),
+            ),
           );
         } catch (error) {
           console.error("Hydrate home orders error:", error);
@@ -689,8 +925,7 @@ function Home() {
         setWishlistItems(mappedWishlistItems);
       } else {
         console.error("Load wishlist error:", wishlistResult.reason);
-        nextErrors.wishlist =
-          "Không thể lấy dữ liệu yêu thích từ hệ thống.";
+        nextErrors.wishlist = "Không thể lấy dữ liệu yêu thích từ hệ thống.";
         setWishlistItems([]);
       }
 
@@ -705,10 +940,37 @@ function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!designRequests.length) {
+      setSelectedProjectId("");
+      return;
+    }
+
+    setSelectedProjectId((currentProjectId) =>
+      designRequests.some((project) => project.id === currentProjectId)
+        ? currentProjectId
+        : designRequests[0].id,
+    );
+  }, [designRequests]);
+
+  useEffect(() => {
+    if (!activePanel || !sidePanelRef.current) return;
+
+    sidePanelRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "nearest",
+    });
+  }, [activePanel, selectedProjectId]);
+
   const activeProjectsCount = designRequests.filter((project) =>
     ACTIVE_PROJECT_STATUSES.has(project.status),
   ).length;
   const recentProjects = designRequests.slice(0, 2);
+  const selectedProject =
+    designRequests.find((project) => project.id === selectedProjectId) ||
+    designRequests[0] ||
+    null;
 
   const stats = [
     {
@@ -741,7 +1003,7 @@ function Home() {
     [PANEL_KEYS.PROJECTS]: {
       icon: FolderKanban,
       title: "Dự án AI gần đây",
-      subtitle: `${designRequests.length} yêu cầu thiết kế từ API`,
+      subtitle: `${designRequests.length} yêu cầu thiết kế đã tạo bằng AI Designer`,
     },
     [PANEL_KEYS.ORDERS]: {
       icon: Truck,
@@ -751,7 +1013,7 @@ function Home() {
     [PANEL_KEYS.WISHLIST]: {
       icon: Heart,
       title: "Danh sách yêu thích",
-      subtitle: `${wishlistItems.length} sản phẩm đã lưu từ API`,
+      subtitle: `${wishlistItems.length} sản phẩm đã lưu từ trang sản phẩm`,
     },
   };
 
@@ -759,7 +1021,46 @@ function Home() {
     navigate("/ai-designer");
   };
 
-  const handleOpenPanel = (panelKey) => {
+  const handleViewProject = (project) => {
+    if (!project?.result) {
+      navigate("/ai-designer");
+      return;
+    }
+
+    try {
+      localStorage.setItem(
+        AI_DESIGNER_STORAGE_KEY,
+        JSON.stringify({
+          step: 4,
+          uploadedImage:
+            project.previewImage || project.result.imageUrl || null,
+          aiResults: project.result,
+          formData: buildAiDesignerFormData(project.result),
+        }),
+      );
+    } catch (error) {
+      console.error("Persist AI project detail error:", error);
+    }
+
+    navigate("/ai-designer");
+  };
+
+  const handleOpenProjectPanel = (projectId) => {
+    const nextProject =
+      designRequests.find((project) => project.id === projectId) ||
+      designRequests[0] ||
+      null;
+
+    setSelectedProjectId(nextProject?.id || "");
+    setActivePanel(PANEL_KEYS.PROJECTS);
+  };
+
+  const handleOpenPanel = (panelKey, options = {}) => {
+    if (panelKey === PANEL_KEYS.PROJECTS) {
+      handleOpenProjectPanel(options.projectId || selectedProjectId);
+      return;
+    }
+
     setActivePanel(panelKey);
   };
 
@@ -771,6 +1072,8 @@ function Home() {
           error={errors.projects}
           items={designRequests}
           onOpenDesigner={handleCreateProject}
+          onViewProject={handleViewProject}
+          selectedProject={selectedProject}
         />
       );
     }
@@ -798,7 +1101,8 @@ function Home() {
     );
   };
 
-  const activePanelMeta = panelMeta[activePanel] || panelMeta[PANEL_KEYS.WISHLIST];
+  const activePanelMeta =
+    panelMeta[activePanel] || panelMeta[PANEL_KEYS.WISHLIST];
   const ActivePanelIcon = activePanelMeta.icon;
 
   return (
@@ -865,7 +1169,7 @@ function Home() {
               <div>
                 <h2>Dự án gần đây</h2>
                 <p>
-                  Lấy trực tiếp từ lịch sử AI Designer, không dùng dữ liệu mẫu.
+                  Xem lại các yêu cầu thiết kế AI bạn đã tạo gần đây hoặc mở lại
                 </p>
               </div>
 
@@ -886,11 +1190,22 @@ function Home() {
                     <Loader2 size={22} className={styles.spinner} />
                   </div>
                   <h3>Đang tải dự án gần đây</h3>
-                  <p>Danh sách này đang được lấy trực tiếp từ API AI Designer.</p>
+                  <p>
+                    Hệ thống đang lấy dữ liệu dự án AI từ lịch sử AI Designer
+                    của bạn. Vui lòng chờ trong giây lát.
+                  </p>
                 </article>
               ) : recentProjects.length > 0 ? (
                 recentProjects.map((project) => (
-                  <article key={project.id} className={styles.projectCard}>
+                  <article
+                    key={project.id}
+                    className={`${styles.projectCard} ${
+                      activePanel === PANEL_KEYS.PROJECTS &&
+                      selectedProject?.id === project.id
+                        ? styles.projectCardActive
+                        : ""
+                    }`}
+                  >
                     <div className={styles.projectVisual}>
                       <span
                         className={`${styles.projectStatus} ${styles[project.statusTone]}`}
@@ -917,14 +1232,24 @@ function Home() {
                       <div>
                         <h3>{project.title}</h3>
                         <p>
-                          {formatRelativeTime(project.createdAt)} • {project.subtitle}
+                          {formatRelativeTime(project.createdAt)} •{" "}
+                          {project.subtitle}
                         </p>
                       </div>
 
                       <button
                         type="button"
-                        className={styles.projectAction}
-                        onClick={() => handleOpenPanel(PANEL_KEYS.PROJECTS)}
+                        className={`${styles.projectAction} ${
+                          activePanel === PANEL_KEYS.PROJECTS &&
+                          selectedProject?.id === project.id
+                            ? styles.projectActionActive
+                            : ""
+                        }`}
+                        onClick={() => handleOpenProjectPanel(project.id)}
+                        aria-pressed={
+                          activePanel === PANEL_KEYS.PROJECTS &&
+                          selectedProject?.id === project.id
+                        }
                       >
                         Chi tiết
                         <ArrowRight size={15} />
@@ -935,7 +1260,11 @@ function Home() {
               ) : (
                 <article className={styles.projectEmptyCard}>
                   <div className={styles.emptyPanelIcon}>
-                    {errors.projects ? <X size={22} /> : <FolderKanban size={22} />}
+                    {errors.projects ? (
+                      <X size={22} />
+                    ) : (
+                      <FolderKanban size={22} />
+                    )}
                   </div>
                   <h3>
                     {errors.projects
@@ -959,7 +1288,9 @@ function Home() {
                   <Plus size={22} />
                 </div>
                 <strong>Bắt đầu dự án mới</strong>
-                <span>Upload ảnh phòng hoặc cấu hình không gian 3D bằng AI.</span>
+                <span>
+                  Upload ảnh phòng hoặc cấu hình không gian 3D bằng AI.
+                </span>
                 <div className={styles.createHint}>
                   <Sparkles size={16} />
                   Khởi tạo với AI Designer
@@ -970,7 +1301,7 @@ function Home() {
         </div>
 
         {activePanel && (
-          <aside className={styles.sidePanel}>
+          <aside className={styles.sidePanel} ref={sidePanelRef}>
             <div className={styles.sidePanelHeader}>
               <div>
                 <p className={styles.panelKicker}>

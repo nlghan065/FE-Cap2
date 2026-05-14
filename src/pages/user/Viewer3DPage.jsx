@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Plane, Vector3 } from "three";
+import { Color, Plane, Vector3 } from "three";
 
 import { postAiLayoutFromRecommendationApi } from "../../api/aiRecommendApi";
 import { addToCartApi } from "../../api/cartApi";
@@ -45,6 +45,7 @@ const LAYOUT_REQUEST_VERSION = "layout-model-url-v5";
 const DEFAULT_CAMERA_POSITION = [5.3, 3.7, 6.4];
 const DEFAULT_CAMERA_TARGET = [0, 0.55, 0];
 const DEFAULT_ROOM_DIMENSIONS = { width: 4.8, length: 5.8, height: 3 };
+const DEFAULT_ROOM_PALETTE = ["#f5f5dc", "#d2b48c", "#ffffff"];
 const DRAG_ROOM_PADDING = 0.08;
 const ITEM_ROTATION_STEP = Math.PI / 12;
 const TV_STAND_KEYS = [
@@ -134,7 +135,6 @@ const TEXTILE_KEYS = [
 const COMPONENT_KEYS = [
   "tay vin cho",
   "chan go",
-  "dau giuong",
   "vach ben",
   "thanh inox",
   "mam ke",
@@ -142,6 +142,56 @@ const COMPONENT_KEYS = [
   "phan gia",
   "bo dieu chinh",
   "gia de do",
+];
+const NIGHTSTAND_KEYS = [
+  "tu dau giuong",
+  "tab dau giuong",
+  "ban dau giuong",
+  "nightstand",
+  "night stand",
+  "night table",
+  "bedside table",
+  "bedside cabinet",
+  "bedside drawer",
+];
+const HEADBOARD_KEYS = [
+  "headboard",
+  "bed headboard",
+  "head board",
+  "tua dau giuong",
+  "op dau giuong",
+];
+const TABLE_LAMP_KEYS = [
+  "table lamp",
+  "desk lamp",
+  "bedside lamp",
+  "nightstand lamp",
+  "den ban",
+  "den ngu",
+  "den dau giuong",
+];
+const FLOOR_LAMP_KEYS = [
+  "floor lamp",
+  "standing lamp",
+  "den cay",
+  "den san",
+];
+const TABLE_PLANT_KEYS = [
+  "chau hoa",
+  "chau cay",
+  "planter",
+  "flower pot",
+  "plant pot",
+  "succulent",
+  "mini plant",
+];
+const FLOOR_PLANT_KEYS = [
+  "floor plant",
+  "tree",
+  "palm",
+  "cay lon",
+  "cay dung",
+  "cay san",
 ];
 const RUG_KEYS = ["tham", "rug", "carpet", "runner"];
 const MIRROR_KEYS = ["guong", "mirror"];
@@ -262,7 +312,11 @@ const CATEGORY_TYPE_RULES = [
     type: "decor",
     color: "#c6c0b5",
   },
-  { categories: ["hoa & cay"], type: "plant", color: "#3f7751" },
+  {
+    categories: ["hoa & cay", "chau hoa", "chau cay"],
+    type: "plant",
+    color: "#3f7751",
+  },
 ];
 
 const CATEGORY_TYPES = [
@@ -388,7 +442,16 @@ const CATEGORY_TYPES = [
     color: "#2f333c",
   },
   {
-    keys: ["plant", "cay"],
+    keys: [
+      "plant",
+      "cay",
+      "hoa",
+      "chau hoa",
+      "chau cay",
+      "planter",
+      "flower pot",
+      "plant pot",
+    ],
     type: "plant",
     color: "#3f7751",
   },
@@ -417,7 +480,18 @@ const TYPE_DEFAULT_DIMENSIONS = {
   plant: { width: 0.42, height: 0.8, depth: 0.42 },
 };
 
+const LAMP_VARIANT_DEFAULT_DIMENSIONS = {
+  floor: { width: 0.34, height: 1.6, depth: 0.34 },
+  table: { width: 0.24, height: 0.46, depth: 0.24 },
+};
+
+const PLANT_VARIANT_DEFAULT_DIMENSIONS = {
+  floor: { width: 0.42, height: 0.8, depth: 0.42 },
+  table: { width: 0.22, height: 0.34, depth: 0.22 },
+};
+
 const STORAGE_VARIANT_DEFAULT_DIMENSIONS = {
+  nightstand: { width: 0.56, height: 0.62, depth: 0.42 },
   tvStand: { width: 1.75, height: 0.62, depth: 0.46 },
   shelfTall: { width: 0.96, height: 1.95, depth: 0.38 },
   shelfWide: { width: 1.72, height: 0.96, depth: 0.36 },
@@ -531,7 +605,38 @@ const TYPE_DIMENSION_LIMITS = {
   },
 };
 
+const LAMP_VARIANT_DIMENSION_LIMITS = {
+  floor: {
+    width: [0.24, 0.55],
+    height: [1.15, 1.95],
+    depth: [0.24, 0.55],
+  },
+  table: {
+    width: [0.16, 0.38],
+    height: [0.26, 0.78],
+    depth: [0.16, 0.38],
+  },
+};
+
+const PLANT_VARIANT_DIMENSION_LIMITS = {
+  floor: {
+    width: [0.3, 0.75],
+    height: [0.55, 1.15],
+    depth: [0.3, 0.75],
+  },
+  table: {
+    width: [0.14, 0.42],
+    height: [0.2, 0.62],
+    depth: [0.14, 0.42],
+  },
+};
+
 const STORAGE_VARIANT_DIMENSION_LIMITS = {
+  nightstand: {
+    width: [0.38, 0.82],
+    height: [0.42, 0.86],
+    depth: [0.28, 0.58],
+  },
   tvStand: {
     width: [1.3, 2.2],
     height: [0.45, 0.82],
@@ -573,6 +678,24 @@ const STORAGE_VARIANT_DIMENSION_LIMITS = {
     depth: [0.38, 0.7],
   },
 };
+
+const SURFACE_STORAGE_VARIANTS = [
+  "nightstand",
+  "tvStand",
+  "shelfWide",
+  "displayShelf",
+  "rollingShelf",
+  "wireRack",
+  "glassCabinet",
+  "shelfTall",
+];
+
+const ACCESSORY_SURFACE_TYPES = ["tray", "vase", "storageBox", "textile"];
+
+const isSurfaceAccessoryItem = (item) =>
+  ACCESSORY_SURFACE_TYPES.includes(item?.type) ||
+  (item?.type === "lamp" && item?.lampVariant === "table") ||
+  (item?.type === "plant" && item?.plantVariant === "table");
 
 const TYPE_LAYOUTS = {
   textile: [
@@ -649,6 +772,11 @@ const TYPE_LAYOUTS = {
     { position: [-2.15, 0, -1.4], rotation: Math.PI / 2 },
     { position: [2.2, 0, 1.8], rotation: -Math.PI / 2 },
   ],
+  nightstand: [
+    { position: [1.65, 0, -1.45], rotation: -0.2 },
+    { position: [-1.65, 0, -1.45], rotation: 0.2 },
+    { position: [1.8, 0, 1.35], rotation: -Math.PI / 2 },
+  ],
   tvStand: [
     { position: [0, 0, -2.05], rotation: 0 },
     { position: [1.85, 0, -1.8], rotation: -0.15 },
@@ -681,6 +809,10 @@ const TYPE_LAYOUTS = {
   lamp: [
     { position: [2.1, 0, 1.8], rotation: 0 },
     { position: [-2.1, 0, 1.8], rotation: 0 },
+  ],
+  tableLamp: [
+    { position: [1.45, 0, -1.15], rotation: -0.1 },
+    { position: [-1.45, 0, -1.15], rotation: 0.1 },
   ],
   plant: [
     { position: [1.55, 0, 1.6], rotation: 0 },
@@ -730,6 +862,76 @@ const saveAiViewerState = (state) => {
 };
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const createColorValue = (value, fallback = "#ffffff") => {
+  try {
+    return new Color(value || fallback);
+  } catch {
+    return new Color(fallback);
+  }
+};
+
+const colorToHex = (value) => `#${createColorValue(value).getHexString()}`;
+
+const mixColors = (from, to, ratio) =>
+  `#${createColorValue(from)
+    .lerp(createColorValue(to), clamp(ratio, 0, 1))
+    .getHexString()}`;
+
+const getColorLuminance = (value) => {
+  const color = createColorValue(value);
+  return color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+};
+
+const getRoomSurfacePalette = (palette) => {
+  const sourceColors = Array.from(
+    new Set(
+      (Array.isArray(palette) ? palette : [])
+        .map((item) => item?.color)
+        .filter(Boolean)
+        .map((item) => colorToHex(item)),
+    ),
+  );
+  const normalizedColors = sourceColors.length
+    ? sourceColors
+    : DEFAULT_ROOM_PALETTE;
+  const sortedByLightness = [...normalizedColors].sort(
+    (a, b) => getColorLuminance(a) - getColorLuminance(b),
+  );
+  const darkest = sortedByLightness[0];
+  const lightest = sortedByLightness[sortedByLightness.length - 1];
+  const mid =
+    sortedByLightness[Math.floor((sortedByLightness.length - 1) / 2)] ||
+    normalizedColors[1] ||
+    lightest;
+  const dominant = normalizedColors[0] || lightest;
+  const support = normalizedColors[1] || mid || darkest;
+  const accent = normalizedColors[2] || lightest;
+  const wallBase = mixColors(dominant, accent, 0.38);
+  const floorBase = mixColors(support, darkest, 0.34);
+  const floorAlt = mixColors(floorBase, accent, 0.14);
+  const floorLine = mixColors(floorBase, "#ffffff", 0.22);
+  const backWall = mixColors(wallBase, accent, 0.1);
+  const sideWall = mixColors(wallBase, support, 0.08);
+  const ceiling = mixColors(accent, "#ffffff", 0.5);
+  const trim = mixColors(darkest, "#ffffff", 0.46);
+
+  return {
+    floor: floorBase,
+    floorAlt,
+    floorLine,
+    backWall,
+    sideWall,
+    ceiling,
+    trim,
+    gridCell: mixColors(floorBase, "#ffffff", 0.18),
+    gridSection: mixColors(darkest, "#8f7f6d", 0.34),
+    skyLight: mixColors(ceiling, "#edf4ff", 0.28),
+    groundLight: mixColors(floorBase, "#826f57", 0.3),
+    ambientLight: mixColors(wallBase, "#ffffff", 0.25),
+    sunlight: mixColors(accent, "#fff4d8", 0.35),
+  };
+};
 
 const parseDimension = (value) => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -818,7 +1020,7 @@ const normalizeText = (value) =>
   String(value || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[đĐ]/g, "d")
+    .replace(/[\u0111\u0110]/g, "d")
     .toLowerCase();
 
 const escapeRegExp = (value) =>
@@ -841,6 +1043,61 @@ const getProductId = (product) =>
 
 const sourceTextOf = (product) =>
   normalizeText(`${product?.category || ""} ${product?.name || ""}`);
+
+const isNightstandSource = (source) =>
+  NIGHTSTAND_KEYS.some((keyword) => matchesKeyword(source, keyword));
+
+const getLampVariant = (product) => {
+  const source = sourceTextOf(product);
+  const rawHeight = parseDimension(product?.dimensions?.height);
+  const rawWidth = parseDimension(
+    product?.dimensions?.width ?? product?.dimensions?.length,
+  );
+
+  if (FLOOR_LAMP_KEYS.some((keyword) => matchesKeyword(source, keyword))) {
+    return "floor";
+  }
+
+  if (TABLE_LAMP_KEYS.some((keyword) => matchesKeyword(source, keyword))) {
+    return "table";
+  }
+
+  if (
+    rawHeight > 0 &&
+    rawHeight <= 90 &&
+    (!rawWidth || rawWidth <= 45)
+  ) {
+    return "table";
+  }
+
+  return "floor";
+};
+
+const getPlantVariant = (product) => {
+  const source = sourceTextOf(product);
+  const rawHeight = parseDimension(product?.dimensions?.height);
+  const rawWidth = parseDimension(
+    product?.dimensions?.width ?? product?.dimensions?.length,
+  );
+
+  if (FLOOR_PLANT_KEYS.some((keyword) => matchesKeyword(source, keyword))) {
+    return "floor";
+  }
+
+  if (TABLE_PLANT_KEYS.some((keyword) => matchesKeyword(source, keyword))) {
+    return "table";
+  }
+
+  if (
+    rawHeight > 0 &&
+    rawHeight <= 80 &&
+    (!rawWidth || rawWidth <= 50)
+  ) {
+    return "table";
+  }
+
+  return "floor";
+};
 
 const categoryTextOf = (product) => normalizeText(product?.category || "");
 
@@ -869,6 +1126,10 @@ const getItemType = (product) => {
     item.categories.some((value) => category.includes(normalizeText(value))),
   );
 
+  if (isNightstandSource(source)) {
+    return { type: "storage", color: "#a75e33" };
+  }
+
   if (categoryMatch) {
     return categoryMatch;
   }
@@ -896,6 +1157,15 @@ const getStorageVariant = (product) => {
   const rawDepth = parseDimension(
     product?.dimensions?.depth ?? product?.dimensions?.length,
   );
+
+  if (
+    isNightstandSource(source) ||
+    ["tu dau giuong", "tab dau giuong", "ban dau giuong"].some((keyword) =>
+      category.includes(keyword),
+    )
+  ) {
+    return "nightstand";
+  }
 
   if (
     category.includes("xe day") ||
@@ -1081,7 +1351,7 @@ const getComponentVariant = (item) => {
     return "frame";
   }
 
-  if (matchesKeyword(source, "dau giuong")) {
+  if (HEADBOARD_KEYS.some((keyword) => matchesKeyword(source, keyword))) {
     return "headboard";
   }
 
@@ -1225,12 +1495,24 @@ const getItemDimensions = (item) => {
     item.type === "storage"
       ? STORAGE_VARIANT_DEFAULT_DIMENSIONS[item.storageVariant || "wardrobe"] ||
         STORAGE_VARIANT_DEFAULT_DIMENSIONS.wardrobe
-      : TYPE_DEFAULT_DIMENSIONS[item.type] || TYPE_DEFAULT_DIMENSIONS.chair;
+      : item.type === "lamp"
+        ? LAMP_VARIANT_DEFAULT_DIMENSIONS[item.lampVariant || "floor"] ||
+          LAMP_VARIANT_DEFAULT_DIMENSIONS.floor
+        : item.type === "plant"
+          ? PLANT_VARIANT_DEFAULT_DIMENSIONS[item.plantVariant || "floor"] ||
+            PLANT_VARIANT_DEFAULT_DIMENSIONS.floor
+        : TYPE_DEFAULT_DIMENSIONS[item.type] || TYPE_DEFAULT_DIMENSIONS.chair;
   const limits =
     item.type === "storage"
       ? STORAGE_VARIANT_DIMENSION_LIMITS[item.storageVariant || "wardrobe"] ||
         STORAGE_VARIANT_DIMENSION_LIMITS.wardrobe
-      : TYPE_DIMENSION_LIMITS[item.type] || TYPE_DIMENSION_LIMITS.chair;
+      : item.type === "lamp"
+        ? LAMP_VARIANT_DIMENSION_LIMITS[item.lampVariant || "floor"] ||
+          LAMP_VARIANT_DIMENSION_LIMITS.floor
+        : item.type === "plant"
+          ? PLANT_VARIANT_DIMENSION_LIMITS[item.plantVariant || "floor"] ||
+            PLANT_VARIANT_DIMENSION_LIMITS.floor
+        : TYPE_DIMENSION_LIMITS[item.type] || TYPE_DIMENSION_LIMITS.chair;
   const raw = getRawDimensionSet(item);
 
   return {
@@ -1429,11 +1711,37 @@ const getAiLayoutPlacement = (product) => {
   };
 };
 
-const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
-  const itemDimensions = getItemDimensions(item);
+const getSurfaceAnchorItems = (items, excludedId = null) =>
+  items.filter(
+    (item) =>
+      String(item.id) !== String(excludedId) &&
+      (["table", "sofa", "bench", "bed"].includes(item.type) ||
+        (item.type === "storage" &&
+          SURFACE_STORAGE_VARIANTS.includes(item.storageVariant))),
+  );
+
+const getEligibleAnchorsForAccessory = (item, anchors) => {
   const textileVariant =
     item.type === "textile" ? getTextileVariant(item) : null;
-  const eligibleAnchors = anchors.filter((anchor) => {
+  const isTableLamp = item.type === "lamp" && item.lampVariant === "table";
+  const isTablePlant = item.type === "plant" && item.plantVariant === "table";
+
+  return anchors.filter((anchor) => {
+    if (isTableLamp || isTablePlant) {
+      if (anchor.type === "table") return true;
+      if (anchor.type !== "storage") return false;
+
+      return [
+        "nightstand",
+        "tvStand",
+        "shelfWide",
+        "displayShelf",
+        "rollingShelf",
+        "wireRack",
+        "glassCabinet",
+      ].includes(anchor.storageVariant);
+    }
+
     if (item.type === "textile") {
       if (textileVariant === "curtain") return false;
 
@@ -1442,6 +1750,7 @@ const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
       if (anchor.type !== "storage") return false;
 
       return [
+        "nightstand",
         "tvStand",
         "shelfWide",
         "displayShelf",
@@ -1454,15 +1763,7 @@ const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
       if (anchor.type === "table") return true;
       if (anchor.type !== "storage") return false;
 
-      return [
-        "tvStand",
-        "shelfWide",
-        "displayShelf",
-        "rollingShelf",
-        "wireRack",
-        "glassCabinet",
-        "shelfTall",
-      ].includes(anchor.storageVariant);
+      return SURFACE_STORAGE_VARIANTS.includes(anchor.storageVariant);
     }
 
     if (anchor.type === "table") return true;
@@ -1470,8 +1771,16 @@ const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
 
     const allowedVariants =
       item.type === "tray"
-        ? ["tvStand", "shelfWide", "displayShelf", "rollingShelf", "wireRack"]
+        ? [
+            "nightstand",
+            "tvStand",
+            "shelfWide",
+            "displayShelf",
+            "rollingShelf",
+            "wireRack",
+          ]
         : [
+            "nightstand",
             "tvStand",
             "shelfWide",
             "displayShelf",
@@ -1482,6 +1791,111 @@ const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
 
     return allowedVariants.includes(anchor.storageVariant);
   });
+};
+
+const getManualAccessorySurfaceY = (item, anchor) => {
+  const dimensions = getItemDimensions(anchor);
+  const surfaceGap = item.type === "textile" ? 0.014 : 0.02;
+  const storageGap = item.type === "textile" ? 0.018 : 0.03;
+  let positionY = anchor.position[1] || 0;
+
+  if (anchor.type === "table") {
+    return positionY + dimensions.height + surfaceGap;
+  }
+
+  if (anchor.type === "sofa") {
+    return positionY + dimensions.height * 0.48 + surfaceGap;
+  }
+
+  if (anchor.type === "bench") {
+    return positionY + dimensions.height * 0.78 + surfaceGap;
+  }
+
+  if (anchor.type === "bed") {
+    return positionY + 0.3 + surfaceGap;
+  }
+
+  switch (anchor.storageVariant) {
+    case "nightstand":
+    case "tvStand":
+      return positionY + dimensions.height + storageGap;
+    case "shelfWide":
+      return positionY + dimensions.height + storageGap;
+    case "displayShelf":
+      return positionY + dimensions.height * 0.8 + storageGap;
+    case "rollingShelf":
+      return positionY + dimensions.height * 0.8 + storageGap;
+    case "wireRack":
+      return positionY + dimensions.height * 0.82 + storageGap;
+    case "shelfTall":
+      return positionY + dimensions.height * 0.86 + storageGap;
+    case "glassCabinet":
+      return positionY + dimensions.height * 0.66 + storageGap;
+    default:
+      return positionY + dimensions.height + surfaceGap;
+  }
+};
+
+const getAccessorySurfaceSnapPlacement = (item, anchors, desiredPosition) => {
+  const eligibleAnchors = getEligibleAnchorsForAccessory(item, anchors);
+
+  if (!eligibleAnchors.length) return null;
+
+  const itemDimensions = getItemDimensions(item);
+  let bestMatch = null;
+
+  eligibleAnchors.forEach((anchor) => {
+    const dimensions = getItemDimensions(anchor);
+    const rotation = anchor.rotation || 0;
+    const dx = desiredPosition[0] - anchor.position[0];
+    const dz = desiredPosition[2] - anchor.position[2];
+    const localX = dx * Math.cos(rotation) + dz * Math.sin(rotation);
+    const localZ = -dx * Math.sin(rotation) + dz * Math.cos(rotation);
+    const maxX = Math.max(
+      0,
+      dimensions.width / 2 - itemDimensions.width / 2 - 0.04,
+    );
+    const maxZ = Math.max(
+      0,
+      dimensions.depth / 2 - itemDimensions.depth / 2 - 0.04,
+    );
+    const reachX = maxX + 0.22;
+    const reachZ = maxZ + 0.22;
+
+    if (Math.abs(localX) > reachX || Math.abs(localZ) > reachZ) {
+      return;
+    }
+
+    const clampedLocalX = clamp(localX, -maxX, maxX);
+    const clampedLocalZ = clamp(localZ, -maxZ, maxZ);
+    const worldX =
+      anchor.position[0] +
+      clampedLocalX * Math.cos(rotation) -
+      clampedLocalZ * Math.sin(rotation);
+    const worldZ =
+      anchor.position[2] +
+      clampedLocalX * Math.sin(rotation) +
+      clampedLocalZ * Math.cos(rotation);
+    const distanceScore =
+      Math.abs(localX - clampedLocalX) + Math.abs(localZ - clampedLocalZ);
+
+    if (!bestMatch || distanceScore < bestMatch.distanceScore) {
+      bestMatch = {
+        distanceScore,
+        position: [
+          worldX,
+          getManualAccessorySurfaceY(item, anchor),
+          worldZ,
+        ],
+      };
+    }
+  });
+
+  return bestMatch?.position || null;
+};
+
+const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
+  const eligibleAnchors = getEligibleAnchorsForAccessory(item, anchors);
 
   if (!eligibleAnchors.length) return null;
 
@@ -1495,6 +1909,18 @@ const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
           [0.16, -0.08],
           [-0.16, 0.08],
         ]
+      : item.type === "lamp" && item.lampVariant === "table"
+        ? [
+            [0, 0],
+            [0.12, -0.08],
+            [-0.12, 0.08],
+          ]
+        : item.type === "plant" && item.plantVariant === "table"
+          ? [
+              [0, 0],
+              [0.1, -0.06],
+              [-0.1, 0.06],
+            ]
       : item.type === "storageBox"
         ? [
             [-0.18, 0.1],
@@ -1520,17 +1946,18 @@ const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
   let positionY = anchor.position[1] || 0;
 
   if (anchor.type === "table") {
-    positionY += dimensions.height + itemDimensions.height / 2 + 0.02;
+    positionY += dimensions.height + 0.02;
   } else if (anchor.type === "sofa") {
-    positionY += dimensions.height * 0.48 + itemDimensions.height / 2 + 0.02;
+    positionY += dimensions.height * 0.48 + 0.02;
   } else if (anchor.type === "bench") {
-    positionY += dimensions.height * 0.78 + itemDimensions.height / 2 + 0.02;
+    positionY += dimensions.height * 0.78 + 0.02;
   } else if (anchor.type === "bed") {
-    positionY += 0.3 + itemDimensions.height / 2;
+    positionY += 0.32;
   } else {
     switch (anchor.storageVariant) {
+      case "nightstand":
       case "tvStand":
-        positionY += dimensions.height + itemDimensions.height / 2 + 0.03;
+        positionY += dimensions.height + 0.03;
         break;
       case "shelfWide":
         positionY +=
@@ -1540,42 +1967,33 @@ const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
                 ? 0.23
                 : 0.77
               : 1) +
-          itemDimensions.height / 2 +
           0.03;
         break;
       case "displayShelf":
         positionY +=
-          dimensions.height * [0.14, 0.46, 0.8][accessoryIndex % 3] +
-          itemDimensions.height / 2 +
-          0.03;
+          dimensions.height * [0.14, 0.46, 0.8][accessoryIndex % 3] + 0.03;
         break;
       case "rollingShelf":
         positionY +=
-          dimensions.height * [0.16, 0.48, 0.8][accessoryIndex % 3] +
-          itemDimensions.height / 2 +
-          0.03;
+          dimensions.height * [0.16, 0.48, 0.8][accessoryIndex % 3] + 0.03;
         break;
       case "wireRack":
         positionY +=
           dimensions.height * [0.16, 0.38, 0.6, 0.82][accessoryIndex % 4] +
-          itemDimensions.height / 2 +
           0.03;
         break;
       case "shelfTall":
         positionY +=
           dimensions.height *
             [0.06, 0.26, 0.46, 0.66, 0.86][accessoryIndex % 5] +
-          itemDimensions.height / 2 +
           0.03;
         break;
       case "glassCabinet":
         positionY +=
-          dimensions.height * [0.18, 0.42, 0.66][accessoryIndex % 3] +
-          itemDimensions.height / 2 +
-          0.03;
+          dimensions.height * [0.18, 0.42, 0.66][accessoryIndex % 3] + 0.03;
         break;
       default:
-        positionY += dimensions.height + itemDimensions.height / 2 + 0.02;
+        positionY += dimensions.height + 0.02;
         break;
     }
   }
@@ -1593,6 +2011,28 @@ const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
     ],
     rotation: rotation + (item.type === "tray" ? 0.14 : 0.08),
   };
+};
+
+const getInitialManualPlacementForItem = (item, currentSceneItems, manualIndex) => {
+  const fallbackPlacement = getManualPreviewPlacement(manualIndex);
+
+  if (!isSurfaceAccessoryItem(item)) {
+    return fallbackPlacement;
+  }
+
+  const accessoryIndex = currentSceneItems.filter(
+    (sceneItem) =>
+      String(sceneItem.id) !== String(item.id) &&
+      sceneItem.type === item.type &&
+      isSurfaceAccessoryItem(sceneItem),
+  ).length;
+  const surfacePlacement = getSurfacePlacementForAccessory(
+    item,
+    getSurfaceAnchorItems(currentSceneItems, item.id),
+    accessoryIndex,
+  );
+
+  return surfacePlacement || fallbackPlacement;
 };
 
 const formatPrice = (price) =>
@@ -1615,26 +2055,70 @@ function ModelMaterial({ color, roughness = 0.5, metalness = 0 }) {
   );
 }
 
-function Room({ dimensions }) {
+function Room({ dimensions, palette }) {
   const width = Number(dimensions?.width) || 4.8;
   const length = Number(dimensions?.length) || 5.8;
   const height = Number(dimensions?.height) || 3;
+  const floorPlanks = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, index) => ({
+        z: -length / 2 + (length / 12) * (index + 0.5),
+        color: index % 2 === 0 ? palette.floor : palette.floorAlt,
+      })),
+    [length, palette.floor, palette.floorAlt],
+  );
 
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[width, length]} />
-        <meshStandardMaterial color="#eee7dc" roughness={0.84} />
+        <meshStandardMaterial color={palette.floor} roughness={0.86} />
       </mesh>
+
+      {floorPlanks.map((plank, index) => (
+        <mesh
+          key={`floor-plank-${index}`}
+          position={[0, 0.004 + index * 0.0001, plank.z]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[width, length / 12]} />
+          <meshStandardMaterial
+            color={plank.color}
+            opacity={0.82}
+            roughness={0.88}
+            transparent
+          />
+        </mesh>
+      ))}
 
       <mesh position={[0, height / 2, -length / 2]} receiveShadow>
         <boxGeometry args={[width, height, 0.08]} />
-        <meshStandardMaterial color="#fbfaf6" roughness={0.92} />
+        <meshStandardMaterial color={palette.backWall} roughness={0.94} />
       </mesh>
 
       <mesh position={[-width / 2, height / 2, 0]} receiveShadow>
         <boxGeometry args={[0.08, height, length]} />
-        <meshStandardMaterial color="#f5f2eb" roughness={0.92} />
+        <meshStandardMaterial color={palette.sideWall} roughness={0.94} />
+      </mesh>
+
+      <mesh
+        position={[0, height - 0.02, 0]}
+        rotation={[Math.PI / 2, 0, 0]}
+        receiveShadow
+      >
+        <planeGeometry args={[width, length]} />
+        <meshStandardMaterial color={palette.ceiling} roughness={0.95} />
+      </mesh>
+
+      <mesh position={[0, 0.05, -length / 2 + 0.03]} receiveShadow>
+        <boxGeometry args={[width, 0.1, 0.04]} />
+        <meshStandardMaterial color={palette.trim} roughness={0.82} />
+      </mesh>
+
+      <mesh position={[-width / 2 + 0.03, 0.05, 0]} receiveShadow>
+        <boxGeometry args={[0.04, 0.1, length]} />
+        <meshStandardMaterial color={palette.trim} roughness={0.82} />
       </mesh>
     </group>
   );
@@ -1773,6 +2257,7 @@ function FurnitureModel({
   const plantPotColor = "#8f5e3f";
   const storageVariant = item.storageVariant || "wardrobe";
   const boxVariant = item.boxVariant || "handledBin";
+  const lampVariant = item.lampVariant || "floor";
   const normalizedSource = sourceTextOf(item);
   const textileVariant =
     item.type === "textile" ? getTextileVariant(item) : "folded";
@@ -3250,7 +3735,96 @@ function FurnitureModel({
 
       {item.type === "storage" && (
         <>
-          {storageVariant === "tvStand" ? (
+          {storageVariant === "nightstand" ? (
+            <>
+              <mesh castShadow position={[0, 0.03, 0]}>
+                <boxGeometry
+                  args={[dimensions.width * 0.96, 0.06, dimensions.depth * 0.94]}
+                />
+                <ModelMaterial color={darkWoodColor} roughness={0.72} />
+              </mesh>
+              {[-0.32, 0.32].map((x, index) => (
+                <mesh
+                  castShadow
+                  key={`nightstand-leg-${index}`}
+                  position={[
+                    x * dimensions.width,
+                    0.15,
+                    -dimensions.depth * 0.26,
+                  ]}
+                  rotation={[0, 0, x < 0 ? 0.05 : -0.05]}
+                >
+                  <boxGeometry args={[0.04, 0.3, 0.04]} />
+                  <ModelMaterial color={woodColor} roughness={0.68} />
+                </mesh>
+              ))}
+              {[-0.32, 0.32].map((x, index) => (
+                <mesh
+                  castShadow
+                  key={`nightstand-leg-back-${index}`}
+                  position={[
+                    x * dimensions.width,
+                    0.15,
+                    dimensions.depth * 0.26,
+                  ]}
+                  rotation={[0, 0, x < 0 ? 0.05 : -0.05]}
+                >
+                  <boxGeometry args={[0.04, 0.3, 0.04]} />
+                  <ModelMaterial color={woodColor} roughness={0.68} />
+                </mesh>
+              ))}
+              <RoundedBox
+                castShadow
+                args={[dimensions.width, dimensions.height * 0.7, dimensions.depth]}
+                radius={0.04}
+                position={[0, dimensions.height * 0.35 + 0.12, 0]}
+              >
+                <ModelMaterial color={baseColor} roughness={0.5} />
+              </RoundedBox>
+              {[0.58, 0.28].map((ratio, index) => (
+                <group key={`nightstand-drawer-${index}`}>
+                  <mesh
+                    castShadow
+                    position={[
+                      0,
+                      dimensions.height * ratio,
+                      dimensions.depth / 2 + 0.015,
+                    ]}
+                  >
+                    <boxGeometry
+                      args={[
+                        dimensions.width * 0.9,
+                        dimensions.height * 0.22,
+                        0.03,
+                      ]}
+                    />
+                    <ModelMaterial color={baseColor} roughness={0.44} />
+                  </mesh>
+                  <mesh
+                    castShadow
+                    position={[
+                      0,
+                      dimensions.height * ratio,
+                      dimensions.depth / 2 + 0.038,
+                    ]}
+                  >
+                    <boxGeometry args={[dimensions.width * 0.18, 0.03, 0.02]} />
+                    <ModelMaterial
+                      color={metalColor}
+                      roughness={0.34}
+                      metalness={0.22}
+                    />
+                  </mesh>
+                </group>
+              ))}
+              <mesh castShadow position={[0, dimensions.height * 0.8 + 0.13, 0]}>
+                <boxGeometry
+                  args={[dimensions.width * 1.02, 0.05, dimensions.depth * 1.02]}
+                />
+                <ModelMaterial color={darkWoodColor} roughness={0.62} />
+              </mesh>
+            </>
+          ) : storageVariant === "tvStand" ? (
             <>
               <mesh castShadow position={[0, 0.05, 0]}>
                 <boxGeometry
@@ -4094,32 +4668,75 @@ function FurnitureModel({
 
       {item.type === "lamp" && (
         <>
-          <mesh castShadow position={[0, 0.03, 0]}>
-            <cylinderGeometry args={[0.14, 0.18, 0.06, 24]} />
-            <ModelMaterial
-              color={metalColor}
-              roughness={0.42}
-              metalness={0.24}
-            />
-          </mesh>
-          <mesh castShadow position={[0, dimensions.height * 0.42, 0]}>
-            <cylinderGeometry
-              args={[0.025, 0.03, dimensions.height * 0.84, 18]}
-            />
-            <ModelMaterial color="#30323a" roughness={0.28} metalness={0.24} />
-          </mesh>
-          <mesh castShadow position={[0, dimensions.height * 0.88, 0]}>
-            <coneGeometry
-              args={[dimensions.width * 0.52, dimensions.height * 0.26, 32]}
-            />
-            <ModelMaterial color={softAccent} roughness={0.5} />
-          </mesh>
-          <pointLight
-            color="#fff1c2"
-            distance={4.2}
-            intensity={active ? 1.25 : 0.78}
-            position={[0, dimensions.height * 0.84, 0]}
-          />
+          {lampVariant === "table" ? (
+            <>
+              <mesh castShadow position={[0, 0.025, 0]}>
+                <cylinderGeometry
+                  args={[dimensions.width * 0.24, dimensions.width * 0.3, 0.05, 24]}
+                />
+                <ModelMaterial
+                  color={metalColor}
+                  roughness={0.42}
+                  metalness={0.24}
+                />
+              </mesh>
+              <mesh castShadow position={[0, dimensions.height * 0.28, 0]}>
+                <cylinderGeometry
+                  args={[0.02, 0.024, dimensions.height * 0.46, 18]}
+                />
+                <ModelMaterial color="#30323a" roughness={0.28} metalness={0.24} />
+              </mesh>
+              <mesh castShadow position={[0, dimensions.height * 0.63, 0]}>
+                <sphereGeometry args={[dimensions.width * 0.11, 20, 20]} />
+                <ModelMaterial
+                  color={metalColor}
+                  roughness={0.3}
+                  metalness={0.22}
+                />
+              </mesh>
+              <mesh castShadow position={[0, dimensions.height * 0.77, 0]}>
+                <coneGeometry
+                  args={[dimensions.width * 0.44, dimensions.height * 0.32, 28]}
+                />
+                <ModelMaterial color={softAccent} roughness={0.5} />
+              </mesh>
+              <pointLight
+                color="#fff1c2"
+                distance={2.8}
+                intensity={active ? 1.05 : 0.62}
+                position={[0, dimensions.height * 0.7, 0]}
+              />
+            </>
+          ) : (
+            <>
+              <mesh castShadow position={[0, 0.03, 0]}>
+                <cylinderGeometry args={[0.14, 0.18, 0.06, 24]} />
+                <ModelMaterial
+                  color={metalColor}
+                  roughness={0.42}
+                  metalness={0.24}
+                />
+              </mesh>
+              <mesh castShadow position={[0, dimensions.height * 0.42, 0]}>
+                <cylinderGeometry
+                  args={[0.025, 0.03, dimensions.height * 0.84, 18]}
+                />
+                <ModelMaterial color="#30323a" roughness={0.28} metalness={0.24} />
+              </mesh>
+              <mesh castShadow position={[0, dimensions.height * 0.88, 0]}>
+                <coneGeometry
+                  args={[dimensions.width * 0.52, dimensions.height * 0.26, 32]}
+                />
+                <ModelMaterial color={softAccent} roughness={0.5} />
+              </mesh>
+              <pointLight
+                color="#fff1c2"
+                distance={4.2}
+                intensity={active ? 1.25 : 0.78}
+                position={[0, dimensions.height * 0.84, 0]}
+              />
+            </>
+          )}
         </>
       )}
 
@@ -4170,6 +4787,7 @@ function Scene({
   onRotateItem,
   resetToken,
   roomDimensions,
+  roomPalette,
   selectedId,
   onSelect,
 }) {
@@ -4197,13 +4815,14 @@ function Scene({
         target={DEFAULT_CAMERA_TARGET}
       />
       <hemisphereLight
-        skyColor="#edf4ff"
-        groundColor="#826f57"
+        skyColor={roomPalette.skyLight}
+        groundColor={roomPalette.groundLight}
         intensity={0.34}
       />
-      <ambientLight intensity={0.48} />
+      <ambientLight color={roomPalette.ambientLight} intensity={0.48} />
       <directionalLight
         castShadow
+        color={roomPalette.sunlight}
         intensity={1.3}
         position={[4.2, 6.2, 3.4]}
         shadow-mapSize-width={1024}
@@ -4218,15 +4837,15 @@ function Scene({
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
-      <Room dimensions={roomDimensions} />
+      <Room dimensions={roomDimensions} palette={roomPalette} />
       <Grid
         args={[8, 8]}
-        cellColor="#d5cec2"
+        cellColor={roomPalette.gridCell}
         cellSize={0.5}
         fadeDistance={9}
         fadeStrength={1}
         position={[0, 0.012, 0]}
-        sectionColor="#a39889"
+        sectionColor={roomPalette.gridSection}
         sectionSize={1}
       />
       {items.map((item) => (
@@ -4410,9 +5029,19 @@ function Viewer3DPage() {
       const meta = getItemType(product);
       const storageVariant =
         meta.type === "storage" ? getStorageVariant(product) : undefined;
+      const lampVariant =
+        meta.type === "lamp" ? getLampVariant(product) : undefined;
+      const plantVariant =
+        meta.type === "plant" ? getPlantVariant(product) : undefined;
       const boxVariant =
         meta.type === "storageBox" ? getStorageBoxVariant(product) : undefined;
-      const placementKey = storageVariant || meta.type;
+      const placementKey =
+        storageVariant ||
+        (meta.type === "lamp" && lampVariant === "table"
+          ? "tableLamp"
+          : meta.type === "plant" && plantVariant === "table"
+            ? "tablePlant"
+          : meta.type);
       const typeIndex = counts[placementKey] || 0;
       counts[placementKey] = typeIndex + 1;
 
@@ -4438,6 +5067,8 @@ function Viewer3DPage() {
         position: placement.position,
         rotation: aiPlacement?.rotation ?? placement.rotation,
         boxVariant,
+        lampVariant,
+        plantVariant,
         storageVariant,
         type: meta.type,
       };
@@ -4490,27 +5121,20 @@ function Viewer3DPage() {
       };
     });
 
-    const surfaceAnchors = baseItems.filter(
-      (item) =>
-        ["table", "sofa", "bench", "bed"].includes(item.type) ||
-        (item.type === "storage" &&
-          [
-            "tvStand",
-            "shelfWide",
-            "displayShelf",
-            "rollingShelf",
-            "wireRack",
-            "glassCabinet",
-            "shelfTall",
-          ].includes(item.storageVariant)),
-    );
-    const accessoryCounts = { tray: 0, vase: 0, storageBox: 0, textile: 0 };
+    const surfaceAnchors = getSurfaceAnchorItems(baseItems);
+    const accessoryCounts = {
+      tray: 0,
+      vase: 0,
+      storageBox: 0,
+      textile: 0,
+      lamp: 0,
+      plant: 0,
+    };
 
     return baseItems.map((item) => {
       if (
-        !["tray", "vase", "storageBox", "textile"].includes(item.type) ||
+        !isSurfaceAccessoryItem(item) ||
         item.hasAiPlacement ||
-        item.isManualPlaced ||
         manualPositions[item.id]
       ) {
         return item;
@@ -4556,6 +5180,10 @@ function Viewer3DPage() {
     (sum, item) => sum + (Number(item.price) || 0),
     0,
   );
+  const roomPalette = useMemo(
+    () => getRoomSurfacePalette(aiResults?.colorPalette),
+    [aiResults?.colorPalette],
+  );
 
   const selectedItemHasAiPlacement = Boolean(selectedItem?.hasAiPlacement);
   const selectedItemIsManualPlaced = Boolean(selectedSceneItem?.isManualPlaced);
@@ -4572,37 +5200,92 @@ function Viewer3DPage() {
 
     if (!productId) return;
 
-    if (product?.hasAiPlacement) {
+    const productItem =
+      productItems.find((item) => String(item.id) === productId) || product;
+
+    if (productItem?.hasAiPlacement) {
       setSelectedId(productId);
       return;
     }
 
+    const existingEntryIndex = manualSceneEntries.findIndex(
+      (entry) => String(entry.id) === productId,
+    );
+    const initialPlacement = getInitialManualPlacementForItem(
+      productItem,
+      sceneItems,
+      existingEntryIndex >= 0 ? existingEntryIndex : manualSceneEntries.length,
+    );
+
     setManualSceneEntries((current) => {
-      const existingEntry = current.find(
+      const entryIndex = current.findIndex(
         (entry) => String(entry.id) === productId,
       );
 
-      if (existingEntry) {
-        return current;
+      if (entryIndex >= 0) {
+        if (
+          !isSurfaceAccessoryItem(productItem) ||
+          manualPositions[productId]?.position
+        ) {
+          return current;
+        }
+
+        const next = [...current];
+        next[entryIndex] = {
+          ...next[entryIndex],
+          position: initialPlacement.position,
+          rotation: initialPlacement.rotation,
+        };
+
+        return next;
       }
 
       return [
         ...current,
         {
           id: productId,
-          ...getManualPreviewPlacement(current.length),
+          ...initialPlacement,
         },
       ];
     });
+
+    if (isSurfaceAccessoryItem(productItem) && !manualPositions[productId]) {
+      setManualPositions((current) => {
+        if (current[productId]) {
+          return current;
+        }
+
+        return {
+          ...current,
+          [productId]: {
+            position: initialPlacement.position,
+            rotation: initialPlacement.rotation,
+          },
+        };
+      });
+    }
+
     setSelectedId(productId);
   };
 
   const handleMoveItem = (itemId, nextPosition) => {
+    const sceneItem = sceneItems.find(
+      (item) => String(item.id) === String(itemId),
+    );
+    const accessorySurfacePosition =
+      sceneItem && isSurfaceAccessoryItem(sceneItem)
+        ? getAccessorySurfaceSnapPlacement(
+            sceneItem,
+            getSurfaceAnchorItems(sceneItems, itemId),
+            nextPosition,
+          )
+        : null;
+
     setManualPositions((current) => ({
       ...current,
       [itemId]: {
         ...(current[itemId] || {}),
-        position: nextPosition,
+        position: accessorySurfacePosition || nextPosition,
       },
     }));
     setSelectedId(itemId);
@@ -4853,6 +5536,7 @@ function Viewer3DPage() {
                 onSelect={handleSelect}
                 resetToken={resetToken}
                 roomDimensions={aiResults?.roomAnalysis}
+                roomPalette={roomPalette}
                 selectedId={selectedItem?.id}
               />
             </Suspense>
