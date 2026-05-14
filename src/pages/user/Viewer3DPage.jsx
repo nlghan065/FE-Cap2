@@ -170,12 +170,7 @@ const TABLE_LAMP_KEYS = [
   "den ngu",
   "den dau giuong",
 ];
-const FLOOR_LAMP_KEYS = [
-  "floor lamp",
-  "standing lamp",
-  "den cay",
-  "den san",
-];
+const FLOOR_LAMP_KEYS = ["floor lamp", "standing lamp", "den cay", "den san"];
 const TABLE_PLANT_KEYS = [
   "chau hoa",
   "chau cay",
@@ -249,6 +244,67 @@ const FLOOR_CHAIR_KEYS = [
   "zaisu",
   "tua lung cao",
 ];
+const OFFICE_CHAIR_KEYS = [
+  "office chair",
+  "desk chair",
+  "task chair",
+  "computer chair",
+  "gaming chair",
+  "ghe lam viec",
+  "ghe van phong",
+  "van phong",
+];
+const ARMCHAIR_STYLE_KEYS = [
+  "armchair",
+  "accent chair",
+  "lounge chair",
+  "club chair",
+  "reading chair",
+  "ghe thu gian",
+  "relax chair",
+];
+const DINING_CHAIR_KEYS = [
+  "dining chair",
+  "side chair",
+  "ghe an",
+  "ghe cafe",
+  "ghe ban an",
+];
+const STOOL_CHAIR_KEYS = [
+  "bar stool",
+  "counter stool",
+  "stool",
+  "ghe don",
+  "don tron",
+  "don cao",
+];
+const SWIVEL_CHAIR_KEYS = ["xoay", "swivel", "rotating", "spin chair"];
+const TABLE_OVAL_KEYS = [
+  "oval",
+  "ellipse",
+  "elliptic",
+  "ban oval",
+  "oval table",
+];
+const TABLE_ROUND_KEYS = ["round table", "ban tron", "tron"];
+const TABLE_COFFEE_KEYS = ["coffee table", "ban nuoc", "ban tra", "ban sofa"];
+const TABLE_SIDE_KEYS = ["side table", "end table", "ban ben", "ban phu"];
+const TABLE_DESK_KEYS = [
+  "desk",
+  "work desk",
+  "study desk",
+  "writing desk",
+  "computer desk",
+  "ban lam viec",
+  "ban hoc",
+];
+const TABLE_CONSOLE_KEYS = [
+  "console table",
+  "entry table",
+  "hall table",
+  "ban console",
+];
+const TABLE_DINING_KEYS = ["dining table", "ban an", "ban tiec"];
 const SHELF_CATEGORY_KEYS = ["ke phong khach", "ke sach"];
 const DISPLAY_CABINET_KEYS = ["trung bay", "display cabinet", "china cabinet"];
 const ROLLING_STORAGE_KEYS = [
@@ -485,6 +541,25 @@ const LAMP_VARIANT_DEFAULT_DIMENSIONS = {
   table: { width: 0.24, height: 0.46, depth: 0.24 },
 };
 
+const CHAIR_VARIANT_DEFAULT_DIMENSIONS = {
+  dining: { width: 0.66, height: 0.9, depth: 0.66 },
+  armchair: { width: 0.84, height: 0.88, depth: 0.8 },
+  swivel: { width: 0.78, height: 0.92, depth: 0.76 },
+  office: { width: 0.7, height: 1.02, depth: 0.72 },
+  stool: { width: 0.5, height: 0.68, depth: 0.5 },
+};
+
+const TABLE_VARIANT_DEFAULT_DIMENSIONS = {
+  rect: { width: 1.1, height: 0.48, depth: 0.68 },
+  coffee: { width: 1.15, height: 0.42, depth: 0.64 },
+  side: { width: 0.56, height: 0.58, depth: 0.56 },
+  desk: { width: 1.35, height: 0.76, depth: 0.64 },
+  console: { width: 1.28, height: 0.78, depth: 0.36 },
+  dining: { width: 1.56, height: 0.75, depth: 0.84 },
+  oval: { width: 1.28, height: 0.72, depth: 0.78 },
+  round: { width: 0.92, height: 0.72, depth: 0.92 },
+};
+
 const PLANT_VARIANT_DEFAULT_DIMENSIONS = {
   floor: { width: 0.42, height: 0.8, depth: 0.42 },
   table: { width: 0.22, height: 0.34, depth: 0.22 },
@@ -615,6 +690,77 @@ const LAMP_VARIANT_DIMENSION_LIMITS = {
     width: [0.16, 0.38],
     height: [0.26, 0.78],
     depth: [0.16, 0.38],
+  },
+};
+
+const CHAIR_VARIANT_DIMENSION_LIMITS = {
+  dining: {
+    width: [0.5, 0.8],
+    height: [0.78, 1.04],
+    depth: [0.5, 0.82],
+  },
+  armchair: {
+    width: [0.72, 1.06],
+    height: [0.74, 1.02],
+    depth: [0.7, 1],
+  },
+  swivel: {
+    width: [0.66, 0.96],
+    height: [0.78, 1.08],
+    depth: [0.66, 0.92],
+  },
+  office: {
+    width: [0.58, 0.84],
+    height: [0.88, 1.22],
+    depth: [0.56, 0.84],
+  },
+  stool: {
+    width: [0.38, 0.68],
+    height: [0.42, 1.05],
+    depth: [0.38, 0.68],
+  },
+};
+
+const TABLE_VARIANT_DIMENSION_LIMITS = {
+  rect: {
+    width: [0.55, 1.8],
+    height: [0.38, 0.82],
+    depth: [0.45, 1.2],
+  },
+  coffee: {
+    width: [0.72, 1.8],
+    height: [0.3, 0.56],
+    depth: [0.45, 1.1],
+  },
+  side: {
+    width: [0.35, 0.8],
+    height: [0.42, 0.78],
+    depth: [0.35, 0.8],
+  },
+  desk: {
+    width: [0.9, 2],
+    height: [0.68, 0.84],
+    depth: [0.5, 0.9],
+  },
+  console: {
+    width: [0.8, 2.2],
+    height: [0.68, 0.94],
+    depth: [0.24, 0.5],
+  },
+  dining: {
+    width: [1.1, 2.4],
+    height: [0.68, 0.82],
+    depth: [0.7, 1.2],
+  },
+  oval: {
+    width: [0.82, 2.1],
+    height: [0.52, 0.82],
+    depth: [0.56, 1.3],
+  },
+  round: {
+    width: [0.55, 1.5],
+    height: [0.55, 0.82],
+    depth: [0.55, 1.5],
   },
 };
 
@@ -949,17 +1095,29 @@ const toMeters = (value, fallback) => {
   return value > 10 ? value / 100 : value;
 };
 
+const getRoomMetricValue = (dimensions, keys) =>
+  keys
+    .map((key) => parseDimension(dimensions?.[key]))
+    .find((value) => value > 0) || 0;
+
 const getRoomMetrics = (dimensions) => ({
   width: toMeters(
-    parseDimension(dimensions?.width),
+    getRoomMetricValue(dimensions, ["width", "widthM", "width_m"]),
     DEFAULT_ROOM_DIMENSIONS.width,
   ),
   length: toMeters(
-    parseDimension(dimensions?.length ?? dimensions?.depth),
+    getRoomMetricValue(dimensions, [
+      "length",
+      "lengthM",
+      "length_m",
+      "depth",
+      "depthM",
+      "depth_m",
+    ]),
     DEFAULT_ROOM_DIMENSIONS.length,
   ),
   height: toMeters(
-    parseDimension(dimensions?.height),
+    getRoomMetricValue(dimensions, ["height", "heightM", "height_m"]),
     DEFAULT_ROOM_DIMENSIONS.height,
   ),
 });
@@ -1062,15 +1220,152 @@ const getLampVariant = (product) => {
     return "table";
   }
 
-  if (
-    rawHeight > 0 &&
-    rawHeight <= 90 &&
-    (!rawWidth || rawWidth <= 45)
-  ) {
+  if (rawHeight > 0 && rawHeight <= 90 && (!rawWidth || rawWidth <= 45)) {
     return "table";
   }
 
   return "floor";
+};
+
+const getChairVariant = (product) => {
+  const source = sourceTextOf(product);
+  const category = categoryTextOf(product);
+  const rawHeight = parseDimension(product?.dimensions?.height);
+  const rawWidth = parseDimension(
+    product?.dimensions?.width ?? product?.dimensions?.length,
+  );
+  const rawDepth = parseDimension(
+    product?.dimensions?.depth ?? product?.dimensions?.length,
+  );
+  const isSwivel = SWIVEL_CHAIR_KEYS.some((keyword) =>
+    matchesKeyword(source, keyword),
+  );
+  const isArmchairStyle =
+    category.includes("armchair") ||
+    category.includes("ghe thu gian") ||
+    ARMCHAIR_STYLE_KEYS.some((keyword) => matchesKeyword(source, keyword));
+
+  if (
+    category.includes("ghe lam viec") ||
+    OFFICE_CHAIR_KEYS.some((keyword) => matchesKeyword(source, keyword))
+  ) {
+    return "office";
+  }
+
+  if (isSwivel && (isArmchairStyle || rawWidth >= 72 || rawDepth >= 72)) {
+    return "swivel";
+  }
+
+  if (isArmchairStyle) {
+    return "armchair";
+  }
+
+  if (
+    category.includes("ghe an") ||
+    DINING_CHAIR_KEYS.some((keyword) => matchesKeyword(source, keyword))
+  ) {
+    return "dining";
+  }
+
+  if (
+    category.includes("don") ||
+    STOOL_CHAIR_KEYS.some((keyword) => matchesKeyword(source, keyword))
+  ) {
+    return "stool";
+  }
+
+  if (isSwivel) {
+    return "office";
+  }
+
+  if (rawWidth >= 78 || rawDepth >= 78) {
+    return "armchair";
+  }
+
+  if (rawHeight > 0 && rawHeight <= 72 && rawWidth <= 62 && rawDepth <= 62) {
+    return "stool";
+  }
+
+  return "dining";
+};
+
+const getTableVariant = (product) => {
+  const source = sourceTextOf(product);
+  const category = categoryTextOf(product);
+  const rawHeight = parseDimension(product?.dimensions?.height);
+  const rawWidth = parseDimension(
+    product?.dimensions?.width ?? product?.dimensions?.length,
+  );
+  const rawDepth = parseDimension(
+    product?.dimensions?.depth ?? product?.dimensions?.length,
+  );
+  const isOval = TABLE_OVAL_KEYS.some((keyword) =>
+    matchesKeyword(source, keyword),
+  );
+  const isRound = TABLE_ROUND_KEYS.some((keyword) =>
+    matchesKeyword(source, keyword),
+  );
+
+  if (
+    category.includes("ban console") ||
+    TABLE_CONSOLE_KEYS.some((keyword) => matchesKeyword(source, keyword))
+  ) {
+    return "console";
+  }
+
+  if (
+    category.includes("ban lam viec") ||
+    TABLE_DESK_KEYS.some((keyword) => matchesKeyword(source, keyword))
+  ) {
+    return "desk";
+  }
+
+  if (
+    category.includes("ban ben") ||
+    TABLE_SIDE_KEYS.some((keyword) => matchesKeyword(source, keyword))
+  ) {
+    return isRound ? "round" : "side";
+  }
+
+  if (
+    category.includes("ban nuoc") ||
+    TABLE_COFFEE_KEYS.some((keyword) => matchesKeyword(source, keyword))
+  ) {
+    return isOval ? "oval" : isRound ? "round" : "coffee";
+  }
+
+  if (
+    category.includes("ban an") ||
+    TABLE_DINING_KEYS.some((keyword) => matchesKeyword(source, keyword))
+  ) {
+    return isOval ? "oval" : isRound ? "round" : "dining";
+  }
+
+  if (isOval) {
+    return "oval";
+  }
+
+  if (isRound) {
+    return "round";
+  }
+
+  if (rawHeight > 0 && rawHeight <= 56) {
+    return rawWidth <= 70 && rawDepth <= 70 ? "side" : "coffee";
+  }
+
+  if (rawDepth > 0 && rawDepth <= 45 && rawWidth >= 95) {
+    return "console";
+  }
+
+  if (rawWidth >= 120 && rawDepth >= 70) {
+    return "dining";
+  }
+
+  if (rawHeight >= 68 && rawDepth >= 50 && rawWidth >= 90) {
+    return "desk";
+  }
+
+  return "rect";
 };
 
 const getPlantVariant = (product) => {
@@ -1088,11 +1383,7 @@ const getPlantVariant = (product) => {
     return "table";
   }
 
-  if (
-    rawHeight > 0 &&
-    rawHeight <= 80 &&
-    (!rawWidth || rawWidth <= 50)
-  ) {
+  if (rawHeight > 0 && rawHeight <= 80 && (!rawWidth || rawWidth <= 50)) {
     return "table";
   }
 
@@ -1495,24 +1786,38 @@ const getItemDimensions = (item) => {
     item.type === "storage"
       ? STORAGE_VARIANT_DEFAULT_DIMENSIONS[item.storageVariant || "wardrobe"] ||
         STORAGE_VARIANT_DEFAULT_DIMENSIONS.wardrobe
-      : item.type === "lamp"
-        ? LAMP_VARIANT_DEFAULT_DIMENSIONS[item.lampVariant || "floor"] ||
-          LAMP_VARIANT_DEFAULT_DIMENSIONS.floor
-        : item.type === "plant"
-          ? PLANT_VARIANT_DEFAULT_DIMENSIONS[item.plantVariant || "floor"] ||
-            PLANT_VARIANT_DEFAULT_DIMENSIONS.floor
-        : TYPE_DEFAULT_DIMENSIONS[item.type] || TYPE_DEFAULT_DIMENSIONS.chair;
+      : item.type === "table"
+        ? TABLE_VARIANT_DEFAULT_DIMENSIONS[item.tableVariant || "rect"] ||
+          TABLE_VARIANT_DEFAULT_DIMENSIONS.rect
+        : item.type === "chair"
+          ? CHAIR_VARIANT_DEFAULT_DIMENSIONS[item.chairVariant || "dining"] ||
+            CHAIR_VARIANT_DEFAULT_DIMENSIONS.dining
+          : item.type === "lamp"
+            ? LAMP_VARIANT_DEFAULT_DIMENSIONS[item.lampVariant || "floor"] ||
+              LAMP_VARIANT_DEFAULT_DIMENSIONS.floor
+            : item.type === "plant"
+              ? PLANT_VARIANT_DEFAULT_DIMENSIONS[
+                  item.plantVariant || "floor"
+                ] || PLANT_VARIANT_DEFAULT_DIMENSIONS.floor
+              : TYPE_DEFAULT_DIMENSIONS[item.type] ||
+                TYPE_DEFAULT_DIMENSIONS.chair;
   const limits =
     item.type === "storage"
       ? STORAGE_VARIANT_DIMENSION_LIMITS[item.storageVariant || "wardrobe"] ||
         STORAGE_VARIANT_DIMENSION_LIMITS.wardrobe
-      : item.type === "lamp"
-        ? LAMP_VARIANT_DIMENSION_LIMITS[item.lampVariant || "floor"] ||
-          LAMP_VARIANT_DIMENSION_LIMITS.floor
-        : item.type === "plant"
-          ? PLANT_VARIANT_DIMENSION_LIMITS[item.plantVariant || "floor"] ||
-            PLANT_VARIANT_DIMENSION_LIMITS.floor
-        : TYPE_DIMENSION_LIMITS[item.type] || TYPE_DIMENSION_LIMITS.chair;
+      : item.type === "table"
+        ? TABLE_VARIANT_DIMENSION_LIMITS[item.tableVariant || "rect"] ||
+          TABLE_VARIANT_DIMENSION_LIMITS.rect
+        : item.type === "chair"
+          ? CHAIR_VARIANT_DIMENSION_LIMITS[item.chairVariant || "dining"] ||
+            CHAIR_VARIANT_DIMENSION_LIMITS.dining
+          : item.type === "lamp"
+            ? LAMP_VARIANT_DIMENSION_LIMITS[item.lampVariant || "floor"] ||
+              LAMP_VARIANT_DIMENSION_LIMITS.floor
+            : item.type === "plant"
+              ? PLANT_VARIANT_DIMENSION_LIMITS[item.plantVariant || "floor"] ||
+                PLANT_VARIANT_DIMENSION_LIMITS.floor
+              : TYPE_DIMENSION_LIMITS[item.type] || TYPE_DIMENSION_LIMITS.chair;
   const raw = getRawDimensionSet(item);
 
   return {
@@ -1882,11 +2187,7 @@ const getAccessorySurfaceSnapPlacement = (item, anchors, desiredPosition) => {
     if (!bestMatch || distanceScore < bestMatch.distanceScore) {
       bestMatch = {
         distanceScore,
-        position: [
-          worldX,
-          getManualAccessorySurfaceY(item, anchor),
-          worldZ,
-        ],
+        position: [worldX, getManualAccessorySurfaceY(item, anchor), worldZ],
       };
     }
   });
@@ -1921,23 +2222,23 @@ const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
               [0.1, -0.06],
               [-0.1, 0.06],
             ]
-      : item.type === "storageBox"
-        ? [
-            [-0.18, 0.1],
-            [0.18, -0.08],
-            [0, -0.18],
-          ]
-        : item.type === "textile"
-          ? [
-              [0, 0],
-              [0.18, 0.08],
-              [-0.16, -0.1],
-            ]
-          : [
-              [0.2, 0.12],
-              [-0.18, -0.1],
-              [0, -0.18],
-            ];
+          : item.type === "storageBox"
+            ? [
+                [-0.18, 0.1],
+                [0.18, -0.08],
+                [0, -0.18],
+              ]
+            : item.type === "textile"
+              ? [
+                  [0, 0],
+                  [0.18, 0.08],
+                  [-0.16, -0.1],
+                ]
+              : [
+                  [0.2, 0.12],
+                  [-0.18, -0.1],
+                  [0, -0.18],
+                ];
   const [offsetXFactor, offsetZFactor] =
     offsetPatterns[accessoryIndex % offsetPatterns.length];
 
@@ -2013,7 +2314,11 @@ const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
   };
 };
 
-const getInitialManualPlacementForItem = (item, currentSceneItems, manualIndex) => {
+const getInitialManualPlacementForItem = (
+  item,
+  currentSceneItems,
+  manualIndex,
+) => {
   const fallbackPlacement = getManualPreviewPlacement(manualIndex);
 
   if (!isSurfaceAccessoryItem(item)) {
@@ -2257,7 +2562,9 @@ function FurnitureModel({
   const plantPotColor = "#8f5e3f";
   const storageVariant = item.storageVariant || "wardrobe";
   const boxVariant = item.boxVariant || "handledBin";
+  const chairVariant = item.chairVariant || "dining";
   const lampVariant = item.lampVariant || "floor";
+  const tableVariant = item.tableVariant || "rect";
   const normalizedSource = sourceTextOf(item);
   const textileVariant =
     item.type === "textile" ? getTextileVariant(item) : "folded";
@@ -2823,51 +3130,357 @@ function FurnitureModel({
 
       {item.type === "chair" && (
         <>
-          <RoundedBox
-            castShadow
-            args={[dimensions.width * 0.9, 0.08, dimensions.depth * 0.86]}
-            radius={0.05}
-            position={[0, 0.44, 0]}
-          >
-            <ModelMaterial color={baseColor} roughness={0.48} />
-          </RoundedBox>
-          <RoundedBox
-            castShadow
-            args={[dimensions.width * 0.82, dimensions.height * 0.48, 0.1]}
-            radius={0.05}
-            position={[0, 0.76, -dimensions.depth * 0.32]}
-          >
-            <ModelMaterial color={baseColor} roughness={0.5} />
-          </RoundedBox>
-          {[-0.22, 0.22].map((x, index) => (
-            <mesh
-              castShadow
-              key={`chair-back-${index}`}
-              position={[x, 0.73, -dimensions.depth * 0.26]}
-            >
-              <boxGeometry args={[0.05, dimensions.height * 0.38, 0.04]} />
-              <ModelMaterial color={softAccent} roughness={0.38} />
-            </mesh>
-          ))}
-          {[
-            [-1, -1],
-            [1, -1],
-            [-1, 1],
-            [1, 1],
-          ].map(([x, z], index) => (
-            <mesh
-              castShadow
-              key={`chair-leg-${index}`}
-              position={[
-                x * (dimensions.width * 0.33),
-                0.22,
-                z * (dimensions.depth * 0.26),
-              ]}
-            >
-              <boxGeometry args={[0.05, 0.44, 0.05]} />
-              <ModelMaterial color={woodColor} roughness={0.7} />
-            </mesh>
-          ))}
+          {chairVariant === "armchair" ? (
+            <>
+              <RoundedBox
+                castShadow
+                args={[dimensions.width * 0.84, 0.18, dimensions.depth * 0.72]}
+                radius={0.08}
+                position={[0, 0.28, 0.04]}
+              >
+                <ModelMaterial color={baseColor} roughness={0.56} />
+              </RoundedBox>
+              <RoundedBox
+                castShadow
+                args={[dimensions.width * 0.8, dimensions.height * 0.46, 0.16]}
+                radius={0.08}
+                position={[
+                  0,
+                  dimensions.height * 0.58,
+                  -dimensions.depth * 0.24,
+                ]}
+              >
+                <ModelMaterial color={baseColor} roughness={0.58} />
+              </RoundedBox>
+              {[-1, 1].map((x, index) => (
+                <RoundedBox
+                  castShadow
+                  key={`chair-arm-${index}`}
+                  args={[
+                    0.12,
+                    dimensions.height * 0.28,
+                    dimensions.depth * 0.62,
+                  ]}
+                  radius={0.06}
+                  position={[x * (dimensions.width * 0.38), 0.38, 0.02]}
+                >
+                  <ModelMaterial color={baseColor} roughness={0.6} />
+                </RoundedBox>
+              ))}
+              <RoundedBox
+                castShadow
+                args={[dimensions.width * 0.62, 0.12, dimensions.depth * 0.48]}
+                radius={0.06}
+                position={[0, 0.36, 0.05]}
+              >
+                <ModelMaterial color={softAccent} roughness={0.78} />
+              </RoundedBox>
+              {[
+                [-1, -1],
+                [1, -1],
+                [-1, 1],
+                [1, 1],
+              ].map(([x, z], index) => (
+                <mesh
+                  castShadow
+                  key={`chair-armchair-leg-${index}`}
+                  position={[
+                    x * (dimensions.width * 0.28),
+                    0.1,
+                    z * (dimensions.depth * 0.22),
+                  ]}
+                >
+                  <cylinderGeometry args={[0.035, 0.045, 0.2, 18]} />
+                  <ModelMaterial color={darkWoodColor} roughness={0.72} />
+                </mesh>
+              ))}
+            </>
+          ) : chairVariant === "swivel" ? (
+            <>
+              <RoundedBox
+                castShadow
+                args={[dimensions.width * 0.78, 0.16, dimensions.depth * 0.66]}
+                radius={0.08}
+                position={[0, 0.34, 0.04]}
+              >
+                <ModelMaterial color={baseColor} roughness={0.54} />
+              </RoundedBox>
+              <RoundedBox
+                castShadow
+                args={[dimensions.width * 0.72, dimensions.height * 0.44, 0.14]}
+                radius={0.08}
+                position={[
+                  0,
+                  dimensions.height * 0.62,
+                  -dimensions.depth * 0.2,
+                ]}
+              >
+                <ModelMaterial color={baseColor} roughness={0.56} />
+              </RoundedBox>
+              {[-1, 1].map((x, index) => (
+                <RoundedBox
+                  castShadow
+                  key={`chair-swivel-arm-${index}`}
+                  args={[
+                    0.11,
+                    dimensions.height * 0.22,
+                    dimensions.depth * 0.52,
+                  ]}
+                  radius={0.06}
+                  position={[x * (dimensions.width * 0.33), 0.42, 0.04]}
+                >
+                  <ModelMaterial color={baseColor} roughness={0.58} />
+                </RoundedBox>
+              ))}
+              <RoundedBox
+                castShadow
+                args={[dimensions.width * 0.54, 0.11, dimensions.depth * 0.42]}
+                radius={0.06}
+                position={[0, 0.42, 0.04]}
+              >
+                <ModelMaterial color={softAccent} roughness={0.76} />
+              </RoundedBox>
+              <mesh castShadow position={[0, 0.21, 0]}>
+                <cylinderGeometry args={[0.03, 0.04, 0.36, 18]} />
+                <ModelMaterial
+                  color="#737a83"
+                  roughness={0.34}
+                  metalness={0.24}
+                />
+              </mesh>
+              <mesh castShadow position={[0, 0.04, 0]}>
+                <cylinderGeometry args={[0.05, 0.06, 0.08, 18]} />
+                <ModelMaterial
+                  color="#656c74"
+                  roughness={0.38}
+                  metalness={0.22}
+                />
+              </mesh>
+              {[0, 1, 2, 3].map((index) => {
+                const angle = (Math.PI * 2 * index) / 4 + Math.PI / 4;
+                const radial = dimensions.width * 0.26;
+
+                return (
+                  <group key={`chair-swivel-base-${index}`}>
+                    <mesh
+                      castShadow
+                      position={[
+                        Math.cos(angle) * radial * 0.45,
+                        0.045,
+                        Math.sin(angle) * radial * 0.45,
+                      ]}
+                      rotation={[0, -angle, 0]}
+                    >
+                      <boxGeometry args={[radial, 0.025, 0.04]} />
+                      <ModelMaterial
+                        color="#656c74"
+                        roughness={0.38}
+                        metalness={0.22}
+                      />
+                    </mesh>
+                    <mesh
+                      castShadow
+                      position={[
+                        Math.cos(angle) * radial,
+                        0.03,
+                        Math.sin(angle) * radial,
+                      ]}
+                    >
+                      <cylinderGeometry args={[0.022, 0.024, 0.04, 14]} />
+                      <ModelMaterial color="#3c4147" roughness={0.44} />
+                    </mesh>
+                  </group>
+                );
+              })}
+            </>
+          ) : chairVariant === "office" ? (
+            <>
+              <RoundedBox
+                castShadow
+                args={[dimensions.width * 0.84, 0.12, dimensions.depth * 0.8]}
+                radius={0.06}
+                position={[0, 0.48, 0.02]}
+              >
+                <ModelMaterial color={baseColor} roughness={0.48} />
+              </RoundedBox>
+              <RoundedBox
+                castShadow
+                args={[dimensions.width * 0.76, dimensions.height * 0.5, 0.12]}
+                radius={0.06}
+                position={[
+                  0,
+                  dimensions.height * 0.7,
+                  -dimensions.depth * 0.24,
+                ]}
+              >
+                <ModelMaterial color={baseColor} roughness={0.5} />
+              </RoundedBox>
+              {[-1, 1].map((x, index) => (
+                <group
+                  key={`chair-office-arm-${index}`}
+                  position={[x * (dimensions.width * 0.32), 0.5, 0.02]}
+                >
+                  <mesh castShadow rotation={[0, 0, x * -0.18]}>
+                    <cylinderGeometry args={[0.018, 0.02, 0.24, 14]} />
+                    <ModelMaterial
+                      color="#6c737c"
+                      roughness={0.34}
+                      metalness={0.28}
+                    />
+                  </mesh>
+                  <mesh castShadow position={[0, 0.12, 0]}>
+                    <boxGeometry args={[0.14, 0.03, 0.16]} />
+                    <ModelMaterial color="#3c4147" roughness={0.42} />
+                  </mesh>
+                </group>
+              ))}
+              <mesh castShadow position={[0, 0.24, 0]}>
+                <cylinderGeometry args={[0.03, 0.036, 0.48, 18]} />
+                <ModelMaterial
+                  color="#737a83"
+                  roughness={0.34}
+                  metalness={0.26}
+                />
+              </mesh>
+              <mesh castShadow position={[0, 0.05, 0]}>
+                <cylinderGeometry args={[0.05, 0.06, 0.1, 18]} />
+                <ModelMaterial
+                  color="#656c74"
+                  roughness={0.38}
+                  metalness={0.22}
+                />
+              </mesh>
+              {[0, 1, 2, 3, 4].map((index) => {
+                const angle = (Math.PI * 2 * index) / 5;
+                const radial = dimensions.width * 0.22;
+                return (
+                  <group key={`chair-office-base-${index}`}>
+                    <mesh
+                      castShadow
+                      position={[
+                        Math.cos(angle) * radial * 0.5,
+                        0.05,
+                        Math.sin(angle) * radial * 0.5,
+                      ]}
+                      rotation={[0, -angle, 0]}
+                    >
+                      <boxGeometry args={[radial, 0.025, 0.04]} />
+                      <ModelMaterial
+                        color="#656c74"
+                        roughness={0.38}
+                        metalness={0.22}
+                      />
+                    </mesh>
+                    <mesh
+                      castShadow
+                      position={[
+                        Math.cos(angle) * radial,
+                        0.03,
+                        Math.sin(angle) * radial,
+                      ]}
+                    >
+                      <cylinderGeometry args={[0.03, 0.028, 0.05, 14]} />
+                      <ModelMaterial color="#3c4147" roughness={0.44} />
+                    </mesh>
+                  </group>
+                );
+              })}
+            </>
+          ) : chairVariant === "stool" ? (
+            <>
+              <mesh castShadow position={[0, dimensions.height * 0.66, 0]}>
+                <cylinderGeometry
+                  args={[
+                    dimensions.width * 0.34,
+                    dimensions.width * 0.38,
+                    0.08,
+                    24,
+                  ]}
+                />
+                <ModelMaterial color={baseColor} roughness={0.52} />
+              </mesh>
+              {[
+                [-1, -1],
+                [1, -1],
+                [-1, 1],
+                [1, 1],
+              ].map(([x, z], index) => (
+                <mesh
+                  castShadow
+                  key={`chair-stool-leg-${index}`}
+                  position={[
+                    x * (dimensions.width * 0.2),
+                    dimensions.height * 0.3,
+                    z * (dimensions.depth * 0.2),
+                  ]}
+                  rotation={[z * 0.04, 0, x * -0.04]}
+                >
+                  <cylinderGeometry
+                    args={[0.025, 0.03, dimensions.height * 0.6, 16]}
+                  />
+                  <ModelMaterial color={woodColor} roughness={0.72} />
+                </mesh>
+              ))}
+              <mesh castShadow position={[0, dimensions.height * 0.36, 0]}>
+                <torusGeometry
+                  args={[dimensions.width * 0.22, 0.018, 12, 28]}
+                />
+                <ModelMaterial
+                  color={darkWoodColor}
+                  roughness={0.56}
+                  metalness={0.08}
+                />
+              </mesh>
+            </>
+          ) : (
+            <>
+              <RoundedBox
+                castShadow
+                args={[dimensions.width * 0.9, 0.08, dimensions.depth * 0.86]}
+                radius={0.05}
+                position={[0, 0.44, 0]}
+              >
+                <ModelMaterial color={baseColor} roughness={0.48} />
+              </RoundedBox>
+              <RoundedBox
+                castShadow
+                args={[dimensions.width * 0.82, dimensions.height * 0.48, 0.1]}
+                radius={0.05}
+                position={[0, 0.76, -dimensions.depth * 0.32]}
+              >
+                <ModelMaterial color={baseColor} roughness={0.5} />
+              </RoundedBox>
+              {[-0.22, 0.22].map((x, index) => (
+                <mesh
+                  castShadow
+                  key={`chair-back-${index}`}
+                  position={[x, 0.73, -dimensions.depth * 0.26]}
+                >
+                  <boxGeometry args={[0.05, dimensions.height * 0.38, 0.04]} />
+                  <ModelMaterial color={softAccent} roughness={0.38} />
+                </mesh>
+              ))}
+              {[
+                [-1, -1],
+                [1, -1],
+                [-1, 1],
+                [1, 1],
+              ].map(([x, z], index) => (
+                <mesh
+                  castShadow
+                  key={`chair-leg-${index}`}
+                  position={[
+                    x * (dimensions.width * 0.33),
+                    0.22,
+                    z * (dimensions.depth * 0.26),
+                  ]}
+                >
+                  <boxGeometry args={[0.05, 0.44, 0.05]} />
+                  <ModelMaterial color={woodColor} roughness={0.7} />
+                </mesh>
+              ))}
+            </>
+          )}
         </>
       )}
 
@@ -3104,38 +3717,413 @@ function FurnitureModel({
 
       {item.type === "table" && (
         <>
-          <mesh castShadow position={[0, dimensions.height - 0.035, 0]}>
-            <boxGeometry args={[dimensions.width, 0.07, dimensions.depth]} />
-            <ModelMaterial color={baseColor} roughness={0.4} />
-          </mesh>
-          {[
-            [-1, -1],
-            [1, -1],
-            [-1, 1],
-            [1, 1],
-          ].map(([x, z], index) => (
-            <mesh
-              castShadow
-              key={`table-leg-${index}`}
-              position={[
-                x * (dimensions.width / 2 - 0.09),
-                Math.max(dimensions.height / 2 - 0.04, 0.17),
-                z * (dimensions.depth / 2 - 0.09),
-              ]}
-            >
-              <boxGeometry
-                args={[0.08, Math.max(dimensions.height - 0.08, 0.28), 0.08]}
-              />
-              <ModelMaterial color={darkWoodColor} roughness={0.68} />
-            </mesh>
-          ))}
-          {dimensions.height < 0.56 && (
-            <mesh castShadow position={[0, 0.26, 0]}>
-              <boxGeometry
-                args={[dimensions.width * 0.72, 0.05, dimensions.depth * 0.54]}
-              />
-              <ModelMaterial color={softAccent} roughness={0.54} />
-            </mesh>
+          {tableVariant === "oval" ? (
+            <>
+              <mesh
+                castShadow
+                position={[0, dimensions.height - 0.035, 0]}
+                scale={[1, 1, dimensions.depth / dimensions.width]}
+              >
+                <cylinderGeometry
+                  args={[dimensions.width / 2, dimensions.width / 2, 0.07, 52]}
+                />
+                <ModelMaterial color={baseColor} roughness={0.4} />
+              </mesh>
+              <mesh
+                castShadow
+                position={[0, dimensions.height - 0.08, 0]}
+                scale={[1, 1, dimensions.depth / dimensions.width]}
+              >
+                <cylinderGeometry
+                  args={[
+                    dimensions.width * 0.36,
+                    dimensions.width * 0.4,
+                    0.04,
+                    44,
+                  ]}
+                />
+                <ModelMaterial color={softAccent} roughness={0.56} />
+              </mesh>
+              {(dimensions.width >= 1
+                ? [-dimensions.width * 0.18, dimensions.width * 0.18]
+                : [0]
+              ).map((x, index) => (
+                <group key={`table-oval-base-${index}`} position={[x, 0, 0]}>
+                  <mesh
+                    castShadow
+                    position={[
+                      0,
+                      Math.max(dimensions.height / 2 - 0.03, 0.16),
+                      0,
+                    ]}
+                  >
+                    <cylinderGeometry
+                      args={[
+                        0.05,
+                        0.07,
+                        Math.max(dimensions.height - 0.14, 0.24),
+                        22,
+                      ]}
+                    />
+                    <ModelMaterial color={darkWoodColor} roughness={0.68} />
+                  </mesh>
+                  <mesh castShadow position={[0, 0.05, 0]} scale={[1, 1, 0.76]}>
+                    <cylinderGeometry
+                      args={[
+                        dimensions.width * 0.1,
+                        dimensions.width * 0.14,
+                        0.05,
+                        28,
+                      ]}
+                    />
+                    <ModelMaterial color={darkWoodColor} roughness={0.66} />
+                  </mesh>
+                </group>
+              ))}
+            </>
+          ) : tableVariant === "desk" ? (
+            <>
+              <mesh castShadow position={[0, dimensions.height - 0.03, 0]}>
+                <boxGeometry
+                  args={[dimensions.width, 0.06, dimensions.depth]}
+                />
+                <ModelMaterial color={baseColor} roughness={0.42} />
+              </mesh>
+              <mesh
+                castShadow
+                position={[
+                  -dimensions.width * 0.25,
+                  Math.max(dimensions.height * 0.42, 0.22),
+                  0,
+                ]}
+              >
+                <boxGeometry
+                  args={[
+                    dimensions.width * 0.3,
+                    Math.max(dimensions.height - 0.08, 0.42),
+                    dimensions.depth * 0.78,
+                  ]}
+                />
+                <ModelMaterial color={darkWoodColor} roughness={0.66} />
+              </mesh>
+              {[0.18, -0.02].map((_, index) => (
+                <mesh
+                  castShadow
+                  key={`desk-drawer-${index}`}
+                  position={[
+                    -dimensions.width * 0.25,
+                    Math.max(dimensions.height * (0.62 - index * 0.14), 0.22),
+                    dimensions.depth * 0.4,
+                  ]}
+                >
+                  <boxGeometry args={[dimensions.width * 0.24, 0.05, 0.03]} />
+                  <ModelMaterial color={softAccent} roughness={0.48} />
+                </mesh>
+              ))}
+              <mesh
+                castShadow
+                position={[
+                  dimensions.width * 0.3,
+                  Math.max(dimensions.height * 0.42, 0.22),
+                  -dimensions.depth * 0.3,
+                ]}
+              >
+                <boxGeometry
+                  args={[0.08, Math.max(dimensions.height - 0.08, 0.42), 0.08]}
+                />
+                <ModelMaterial color={woodColor} roughness={0.68} />
+              </mesh>
+              <mesh
+                castShadow
+                position={[
+                  dimensions.width * 0.3,
+                  Math.max(dimensions.height * 0.42, 0.22),
+                  dimensions.depth * 0.3,
+                ]}
+              >
+                <boxGeometry
+                  args={[0.08, Math.max(dimensions.height - 0.08, 0.42), 0.08]}
+                />
+                <ModelMaterial color={woodColor} roughness={0.68} />
+              </mesh>
+              <mesh
+                castShadow
+                position={[
+                  0.02,
+                  Math.max(dimensions.height * 0.38, 0.24),
+                  -dimensions.depth * 0.38,
+                ]}
+              >
+                <boxGeometry args={[dimensions.width * 0.74, 0.12, 0.03]} />
+                <ModelMaterial color={darkWoodColor} roughness={0.6} />
+              </mesh>
+            </>
+          ) : tableVariant === "console" ? (
+            <>
+              <mesh castShadow position={[0, dimensions.height - 0.03, 0]}>
+                <boxGeometry
+                  args={[dimensions.width, 0.06, dimensions.depth]}
+                />
+                <ModelMaterial color={baseColor} roughness={0.42} />
+              </mesh>
+              {[
+                [-1, -1],
+                [1, -1],
+                [-1, 1],
+                [1, 1],
+              ].map(([x, z], index) => (
+                <mesh
+                  castShadow
+                  key={`console-leg-${index}`}
+                  position={[
+                    x * (dimensions.width / 2 - 0.06),
+                    Math.max(dimensions.height / 2 - 0.03, 0.2),
+                    z * (dimensions.depth / 2 - 0.05),
+                  ]}
+                >
+                  <boxGeometry
+                    args={[0.05, Math.max(dimensions.height - 0.08, 0.4), 0.05]}
+                  />
+                  <ModelMaterial color={darkWoodColor} roughness={0.68} />
+                </mesh>
+              ))}
+              {[-1, 1].map((x, index) => (
+                <mesh
+                  castShadow
+                  key={`console-cross-${index}`}
+                  position={[
+                    0,
+                    Math.max(dimensions.height * 0.36, 0.24),
+                    x * (dimensions.depth * 0.16),
+                  ]}
+                  rotation={[0, 0, x * 0.52]}
+                >
+                  <boxGeometry args={[dimensions.width * 0.82, 0.03, 0.03]} />
+                  <ModelMaterial color={softAccent} roughness={0.52} />
+                </mesh>
+              ))}
+              <mesh castShadow position={[0, 0.1, 0]}>
+                <boxGeometry
+                  args={[
+                    dimensions.width * 0.84,
+                    0.04,
+                    dimensions.depth * 0.36,
+                  ]}
+                />
+                <ModelMaterial color={darkWoodColor} roughness={0.62} />
+              </mesh>
+            </>
+          ) : tableVariant === "coffee" ? (
+            <>
+              <RoundedBox
+                castShadow
+                args={[dimensions.width, 0.09, dimensions.depth]}
+                radius={0.05}
+                position={[0, dimensions.height - 0.045, 0]}
+              >
+                <ModelMaterial color={baseColor} roughness={0.44} />
+              </RoundedBox>
+              <mesh
+                castShadow
+                position={[0, Math.max(dimensions.height * 0.28, 0.12), 0]}
+              >
+                <boxGeometry
+                  args={[
+                    dimensions.width * 0.34,
+                    Math.max(dimensions.height * 0.52, 0.18),
+                    dimensions.depth * 0.34,
+                  ]}
+                />
+                <ModelMaterial color={darkWoodColor} roughness={0.66} />
+              </mesh>
+              <mesh castShadow position={[0, 0.06, 0]}>
+                <boxGeometry
+                  args={[dimensions.width * 0.6, 0.05, dimensions.depth * 0.42]}
+                />
+                <ModelMaterial color={darkWoodColor} roughness={0.64} />
+              </mesh>
+            </>
+          ) : tableVariant === "side" ? (
+            <>
+              <RoundedBox
+                castShadow
+                args={[dimensions.width, 0.06, dimensions.depth]}
+                radius={0.06}
+                position={[0, dimensions.height - 0.03, 0]}
+              >
+                <ModelMaterial color={baseColor} roughness={0.44} />
+              </RoundedBox>
+              <mesh
+                castShadow
+                position={[0, Math.max(dimensions.height * 0.45, 0.18), 0]}
+              >
+                <cylinderGeometry
+                  args={[
+                    0.045,
+                    0.06,
+                    Math.max(dimensions.height - 0.12, 0.3),
+                    18,
+                  ]}
+                />
+                <ModelMaterial color={darkWoodColor} roughness={0.68} />
+              </mesh>
+              {[0, 1, 2].map((index) => {
+                const angle = (Math.PI * 2 * index) / 3 + Math.PI / 6;
+
+                return (
+                  <mesh
+                    castShadow
+                    key={`side-table-foot-${index}`}
+                    position={[
+                      Math.cos(angle) * dimensions.width * 0.18,
+                      0.06,
+                      Math.sin(angle) * dimensions.depth * 0.18,
+                    ]}
+                    rotation={[0, -angle, 0]}
+                  >
+                    <boxGeometry
+                      args={[dimensions.width * 0.24, 0.025, 0.04]}
+                    />
+                    <ModelMaterial color={darkWoodColor} roughness={0.66} />
+                  </mesh>
+                );
+              })}
+            </>
+          ) : tableVariant === "dining" ? (
+            <>
+              <mesh castShadow position={[0, dimensions.height - 0.035, 0]}>
+                <boxGeometry
+                  args={[dimensions.width, 0.07, dimensions.depth]}
+                />
+                <ModelMaterial color={baseColor} roughness={0.4} />
+              </mesh>
+              {[-1, 1].map((x, index) => (
+                <group
+                  key={`dining-trestle-${index}`}
+                  position={[x * dimensions.width * 0.26, 0, 0]}
+                >
+                  <mesh
+                    castShadow
+                    position={[
+                      0,
+                      Math.max(dimensions.height / 2 - 0.04, 0.18),
+                      0,
+                    ]}
+                  >
+                    <boxGeometry
+                      args={[
+                        0.1,
+                        Math.max(dimensions.height - 0.1, 0.34),
+                        dimensions.depth * 0.2,
+                      ]}
+                    />
+                    <ModelMaterial color={darkWoodColor} roughness={0.68} />
+                  </mesh>
+                  <mesh castShadow position={[0, 0.08, 0]}>
+                    <boxGeometry
+                      args={[
+                        dimensions.width * 0.16,
+                        0.05,
+                        dimensions.depth * 0.48,
+                      ]}
+                    />
+                    <ModelMaterial color={darkWoodColor} roughness={0.64} />
+                  </mesh>
+                </group>
+              ))}
+              <mesh
+                castShadow
+                position={[0, Math.max(dimensions.height * 0.34, 0.24), 0]}
+              >
+                <boxGeometry args={[dimensions.width * 0.44, 0.05, 0.06]} />
+                <ModelMaterial color={softAccent} roughness={0.56} />
+              </mesh>
+            </>
+          ) : tableVariant === "round" ? (
+            <>
+              <mesh castShadow position={[0, dimensions.height - 0.035, 0]}>
+                <cylinderGeometry
+                  args={[
+                    Math.min(dimensions.width, dimensions.depth) / 2,
+                    Math.min(dimensions.width, dimensions.depth) / 2,
+                    0.07,
+                    52,
+                  ]}
+                />
+                <ModelMaterial color={baseColor} roughness={0.4} />
+              </mesh>
+              <mesh
+                castShadow
+                position={[0, Math.max(dimensions.height / 2 - 0.02, 0.17), 0]}
+              >
+                <cylinderGeometry
+                  args={[
+                    0.06,
+                    0.08,
+                    Math.max(dimensions.height - 0.16, 0.26),
+                    22,
+                  ]}
+                />
+                <ModelMaterial color={darkWoodColor} roughness={0.68} />
+              </mesh>
+              <mesh castShadow position={[0, 0.05, 0]}>
+                <cylinderGeometry
+                  args={[
+                    dimensions.width * 0.18,
+                    dimensions.width * 0.24,
+                    0.05,
+                    34,
+                  ]}
+                />
+                <ModelMaterial color={darkWoodColor} roughness={0.66} />
+              </mesh>
+            </>
+          ) : (
+            <>
+              <mesh castShadow position={[0, dimensions.height - 0.035, 0]}>
+                <boxGeometry
+                  args={[dimensions.width, 0.07, dimensions.depth]}
+                />
+                <ModelMaterial color={baseColor} roughness={0.4} />
+              </mesh>
+              {[
+                [-1, -1],
+                [1, -1],
+                [-1, 1],
+                [1, 1],
+              ].map(([x, z], index) => (
+                <mesh
+                  castShadow
+                  key={`table-leg-${index}`}
+                  position={[
+                    x * (dimensions.width / 2 - 0.09),
+                    Math.max(dimensions.height / 2 - 0.04, 0.17),
+                    z * (dimensions.depth / 2 - 0.09),
+                  ]}
+                >
+                  <boxGeometry
+                    args={[
+                      0.08,
+                      Math.max(dimensions.height - 0.08, 0.28),
+                      0.08,
+                    ]}
+                  />
+                  <ModelMaterial color={darkWoodColor} roughness={0.68} />
+                </mesh>
+              ))}
+              {dimensions.height < 0.56 && (
+                <mesh castShadow position={[0, 0.26, 0]}>
+                  <boxGeometry
+                    args={[
+                      dimensions.width * 0.72,
+                      0.05,
+                      dimensions.depth * 0.54,
+                    ]}
+                  />
+                  <ModelMaterial color={softAccent} roughness={0.54} />
+                </mesh>
+              )}
+            </>
           )}
         </>
       )}
@@ -3739,7 +4727,11 @@ function FurnitureModel({
             <>
               <mesh castShadow position={[0, 0.03, 0]}>
                 <boxGeometry
-                  args={[dimensions.width * 0.96, 0.06, dimensions.depth * 0.94]}
+                  args={[
+                    dimensions.width * 0.96,
+                    0.06,
+                    dimensions.depth * 0.94,
+                  ]}
                 />
                 <ModelMaterial color={darkWoodColor} roughness={0.72} />
               </mesh>
@@ -3775,7 +4767,11 @@ function FurnitureModel({
               ))}
               <RoundedBox
                 castShadow
-                args={[dimensions.width, dimensions.height * 0.7, dimensions.depth]}
+                args={[
+                  dimensions.width,
+                  dimensions.height * 0.7,
+                  dimensions.depth,
+                ]}
                 radius={0.04}
                 position={[0, dimensions.height * 0.35 + 0.12, 0]}
               >
@@ -3817,9 +4813,16 @@ function FurnitureModel({
                   </mesh>
                 </group>
               ))}
-              <mesh castShadow position={[0, dimensions.height * 0.8 + 0.13, 0]}>
+              <mesh
+                castShadow
+                position={[0, dimensions.height * 0.8 + 0.13, 0]}
+              >
                 <boxGeometry
-                  args={[dimensions.width * 1.02, 0.05, dimensions.depth * 1.02]}
+                  args={[
+                    dimensions.width * 1.02,
+                    0.05,
+                    dimensions.depth * 1.02,
+                  ]}
                 />
                 <ModelMaterial color={darkWoodColor} roughness={0.62} />
               </mesh>
@@ -4672,7 +5675,12 @@ function FurnitureModel({
             <>
               <mesh castShadow position={[0, 0.025, 0]}>
                 <cylinderGeometry
-                  args={[dimensions.width * 0.24, dimensions.width * 0.3, 0.05, 24]}
+                  args={[
+                    dimensions.width * 0.24,
+                    dimensions.width * 0.3,
+                    0.05,
+                    24,
+                  ]}
                 />
                 <ModelMaterial
                   color={metalColor}
@@ -4684,7 +5692,11 @@ function FurnitureModel({
                 <cylinderGeometry
                   args={[0.02, 0.024, dimensions.height * 0.46, 18]}
                 />
-                <ModelMaterial color="#30323a" roughness={0.28} metalness={0.24} />
+                <ModelMaterial
+                  color="#30323a"
+                  roughness={0.28}
+                  metalness={0.24}
+                />
               </mesh>
               <mesh castShadow position={[0, dimensions.height * 0.63, 0]}>
                 <sphereGeometry args={[dimensions.width * 0.11, 20, 20]} />
@@ -4721,7 +5733,11 @@ function FurnitureModel({
                 <cylinderGeometry
                   args={[0.025, 0.03, dimensions.height * 0.84, 18]}
                 />
-                <ModelMaterial color="#30323a" roughness={0.28} metalness={0.24} />
+                <ModelMaterial
+                  color="#30323a"
+                  roughness={0.28}
+                  metalness={0.24}
+                />
               </mesh>
               <mesh castShadow position={[0, dimensions.height * 0.88, 0]}>
                 <coneGeometry
@@ -5029,6 +6045,10 @@ function Viewer3DPage() {
       const meta = getItemType(product);
       const storageVariant =
         meta.type === "storage" ? getStorageVariant(product) : undefined;
+      const tableVariant =
+        meta.type === "table" ? getTableVariant(product) : undefined;
+      const chairVariant =
+        meta.type === "chair" ? getChairVariant(product) : undefined;
       const lampVariant =
         meta.type === "lamp" ? getLampVariant(product) : undefined;
       const plantVariant =
@@ -5041,7 +6061,7 @@ function Viewer3DPage() {
           ? "tableLamp"
           : meta.type === "plant" && plantVariant === "table"
             ? "tablePlant"
-          : meta.type);
+            : meta.type);
       const typeIndex = counts[placementKey] || 0;
       counts[placementKey] = typeIndex + 1;
 
@@ -5067,19 +6087,18 @@ function Viewer3DPage() {
         position: placement.position,
         rotation: aiPlacement?.rotation ?? placement.rotation,
         boxVariant,
+        chairVariant,
         lampVariant,
         plantVariant,
         storageVariant,
+        tableVariant,
         type: meta.type,
       };
     });
   }, [products]);
 
   const manualSceneEntryById = useMemo(
-    () =>
-      new Map(
-        manualSceneEntries.map((entry) => [String(entry.id), entry]),
-      ),
+    () => new Map(manualSceneEntries.map((entry) => [String(entry.id), entry])),
     [manualSceneEntries],
   );
 
