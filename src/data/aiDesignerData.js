@@ -16,42 +16,42 @@ export const AI_ROOM_TYPES = [
 export const AI_STYLE_OPTIONS = [
   {
     id: "Modern",
-    name: "Hiện đại",
+    name: "Modern",
     desc: "Hiện đại, tiện nghi, đường nét sạch.",
   },
   {
     id: "Minimal",
-    name: "Tối giản",
+    name: "Minimal",
     desc: "Tối giản, nhẹ mắt, tập trung công năng.",
   },
   {
     id: "Scandinavian",
-    name: "Bắc Âu",
+    name: "Scandinavian",
     desc: "Ấm áp, sáng màu, gần gũi.",
   },
   {
     id: "Industrial",
-    name: "Công nghiệp",
+    name: "Industrial",
     desc: "Mạnh mẽ, vật liệu thô, cá tính.",
   },
   {
     id: "Classic",
-    name: "Cổ điển",
+    name: "Classic",
     desc: "Cân xứng, sang trọng, truyền thống.",
   },
   {
     id: "Japanese",
-    name: "Nhật Bản",
+    name: "Japanese",
     desc: "Tĩnh, gọn, ưu tiên thiên nhiên.",
   },
   {
     id: "Luxury",
-    name: "Sang trọng",
+    name: "Luxury",
     desc: "Đậm điểm nhấn, bề mặt cao cấp.",
   },
   {
     id: "Boho",
-    name: "Phóng khoáng",
+    name: "Boho",
     desc: "Tự do, nghệ thuật, giàu chất liệu.",
   },
 ];
