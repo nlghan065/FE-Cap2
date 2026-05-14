@@ -188,9 +188,16 @@ const buildAreaText = (dimensions) => {
     return DEFAULT_ROOM_ANALYSIS.area;
   }
 
-  const width = toNumber(dimensions.width);
-  const length = toNumber(dimensions.length);
-  const height = toNumber(dimensions.height);
+  const width = getFirstNumber(dimensions, ["width", "widthM", "width_m"]);
+  const length = getFirstNumber(dimensions, [
+    "length",
+    "lengthM",
+    "length_m",
+    "depth",
+    "depthM",
+    "depth_m",
+  ]);
+  const height = getFirstNumber(dimensions, ["height", "heightM", "height_m"]);
 
   if (!width || !length || !height) {
     return DEFAULT_ROOM_ANALYSIS.area;
@@ -199,23 +206,41 @@ const buildAreaText = (dimensions) => {
   return `${width} x ${length} x ${height} m`;
 };
 
-const normalizeRoomAnalysis = (payload) => ({
-  width: payload?.dimensions?.width ?? DEFAULT_ROOM_ANALYSIS.width,
-  length: payload?.dimensions?.length ?? DEFAULT_ROOM_ANALYSIS.length,
-  height: payload?.dimensions?.height ?? DEFAULT_ROOM_ANALYSIS.height,
-  reasoning: formatReasoningText(payload?.reasoning),
-  reasoningDetails:
-    payload?.reasoning && typeof payload.reasoning === "object"
-      ? payload.reasoning
-      : null,
-  area: buildAreaText(payload?.dimensions),
-  ceiling: payload?.dimensions?.height
-    ? `${payload.dimensions.height} m`
-    : DEFAULT_ROOM_ANALYSIS.ceiling,
-  windows: DEFAULT_ROOM_ANALYSIS.windows,
-  naturalLight: DEFAULT_ROOM_ANALYSIS.naturalLight,
-  floorType: DEFAULT_ROOM_ANALYSIS.floorType,
-});
+const normalizeRoomAnalysis = (payload) => {
+  const sourceDimensions =
+    payload?.dimensions || payload?.room || payload || {};
+  const width =
+    getFirstNumber(sourceDimensions, ["width", "widthM", "width_m"]) ??
+    DEFAULT_ROOM_ANALYSIS.width;
+  const length =
+    getFirstNumber(sourceDimensions, [
+      "length",
+      "lengthM",
+      "length_m",
+      "depth",
+      "depthM",
+      "depth_m",
+    ]) ?? DEFAULT_ROOM_ANALYSIS.length;
+  const height =
+    getFirstNumber(sourceDimensions, ["height", "heightM", "height_m"]) ??
+    DEFAULT_ROOM_ANALYSIS.height;
+
+  return {
+    width,
+    length,
+    height,
+    reasoning: formatReasoningText(payload?.reasoning),
+    reasoningDetails:
+      payload?.reasoning && typeof payload.reasoning === "object"
+        ? payload.reasoning
+        : null,
+    area: buildAreaText(sourceDimensions),
+    ceiling: height ? `${height} m` : DEFAULT_ROOM_ANALYSIS.ceiling,
+    windows: DEFAULT_ROOM_ANALYSIS.windows,
+    naturalLight: DEFAULT_ROOM_ANALYSIS.naturalLight,
+    floorType: DEFAULT_ROOM_ANALYSIS.floorType,
+  };
+};
 
 const normalizeRecommendations = (payload, products) => {
   if (payload?.reasoning) {
@@ -304,7 +329,8 @@ const getLayoutProductIdCandidates = (item) =>
     ),
   );
 
-const getLayoutProductId = (item) => getLayoutProductIdCandidates(item)[0] || "";
+const getLayoutProductId = (item) =>
+  getLayoutProductIdCandidates(item)[0] || "";
 
 const getLayoutProductName = (item) =>
   item?.name ||

@@ -24,6 +24,7 @@ const normalizeText = (value) =>
   String(value || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u0111\u0110]/g, "d")
     .toLowerCase();
 
 const escapeRegExp = (value) =>
@@ -41,6 +42,17 @@ const matchesKeyword = (source, keyword) => {
 
 const hasAnyKeyword = (source, keywords) =>
   keywords.some((keyword) => matchesKeyword(source, keyword));
+
+const NIGHTSTAND_LAYOUT_KEYS = [
+  "tu dau giuong",
+  "tab dau giuong",
+  "ban dau giuong",
+  "nightstand",
+  "night stand",
+  "night table",
+  "bedside table",
+  "bedside cabinet",
+];
 
 const getProductId = (product) =>
   product?.id ||
@@ -94,6 +106,7 @@ const getLayoutCategory = (product) => {
     `${product?.category || ""} ${product?.name || ""}`,
   );
 
+  if (hasAnyKeyword(source, NIGHTSTAND_LAYOUT_KEYS)) return "Storage";
   if (hasAnyKeyword(source, ["sofa", "couch", "sectional"])) return "Sofa";
   if (hasAnyKeyword(source, ["giuong", "bed", "nem"])) return "Bed";
   if (hasAnyKeyword(source, ["ban", "table", "desk"])) return "Table";
@@ -102,7 +115,20 @@ const getLayoutCategory = (product) => {
   if (hasAnyKeyword(source, ["guong", "mirror"])) return "Mirror";
   if (hasAnyKeyword(source, ["tham", "rug", "carpet"])) return "Rug";
   if (hasAnyKeyword(source, ["den", "lamp", "light"])) return "Lamp";
-  if (hasAnyKeyword(source, ["cay", "plant", "hoa"])) return "Plant";
+  if (
+    hasAnyKeyword(source, [
+      "cay",
+      "plant",
+      "hoa",
+      "chau hoa",
+      "chau cay",
+      "planter",
+      "flower pot",
+      "plant pot",
+    ])
+  ) {
+    return "Plant";
+  }
   if (
     hasAnyKeyword(source, [
       "ke",
