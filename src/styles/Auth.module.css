@@ -136,6 +136,28 @@ body,
   padding: 30px 40px;
 }
 
+.backToLanding {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #2c7a7b;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.backToLanding:hover {
+  color: #256d6f;
+  transform: translateX(-2px);
+}
+
 /* TITLE */
 
 .titleBox {

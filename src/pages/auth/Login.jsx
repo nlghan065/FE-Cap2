@@ -2,6 +2,7 @@ import { Button, Input, Typography, message } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import { ArrowLeft } from "lucide-react";
 
 import loginBg from "../../assets/login-bg.jpg";
 import { loginApi } from "../../api/authApi";
@@ -97,6 +98,14 @@ function Login() {
 
         {/* RIGHT */}
         <div className={styles.right}>
+          <button
+            type="button"
+            className={styles.backToLanding}
+            onClick={() => navigate("/")}
+          >
+            <ArrowLeft size={16} />
+            <span>Quay lại landing</span>
+          </button>
           <Title level={3} className={styles.title}>
             Chào mừng trở lại
           </Title>
