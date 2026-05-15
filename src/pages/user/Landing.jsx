@@ -224,10 +224,10 @@ function Home() {
                 <span>Thử với phòng của bạn</span>
               </Link>
 
-              <a href="#quy-trinh" className={styles.secondaryButton}>
+              <Link to="/ai-demo" className={styles.secondaryButton}>
                 <Eye size={18} />
                 <span>Xem demo</span>
-              </a>
+              </Link>
             </div>
 
             <div className={styles.trustRow}>
@@ -449,10 +449,10 @@ function Home() {
               <Wand2 size={18} />
               <span>Thử ngay</span>
             </Link>
-            <a href="#quy-trinh" className={styles.ghostButton}>
+            <Link to="/ai-demo" className={styles.secondaryButton}>
               <Eye size={18} />
               <span>Xem demo</span>
-            </a>
+            </Link>
           </div>
         </div>
       </section>

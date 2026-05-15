@@ -27,6 +27,8 @@ import ReviewsAdmin from "./pages/admin/ReviewsAdmin";
 import UserLayout from "./layout/user/UserLayout";
 import Home from "./pages/user/Home";
 import Landing from "./pages/user/Landing";
+import AIDemo from "./pages/user/AIDemo";
+import ViewerDemo from "./pages/user/3DDemo";
 import Products from "./pages/user/Products";
 import ProductDetail from "./pages/user/ProductDetail";
 import AIDesignerPage from "./pages/user/AIDesignerPage";
@@ -72,17 +74,19 @@ function App() {
         <Route element={<UserLayout />}>
           <Route index element={<Landing />} />
           <Route path="/landing" element={<Navigate to="/" replace />} />
+          <Route path="/ai-demo" element={<AIDemo />} />
+          <Route path="/viewer-demo" element={<ViewerDemo />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products/:id" element={<ProductDetail />} />
-          <Route path="/ai-designer" element={<AIDesignerPage />} />
-          <Route path="/ai-design" element={<AIDesignerPage />} />
-          <Route path="/viewer" element={<Viewer3DPage />} />
         </Route>
 
         {/* ================= PROTECTED USER ================= */}
         <Route element={<ProtectedRoute />}>
           <Route element={<UserLayout />}>
             <Route path="/home" element={<Home />} />
+            <Route path="/ai-designer" element={<AIDesignerPage />} />
+            <Route path="/ai-design" element={<AIDesignerPage />} />
+            <Route path="/viewer" element={<Viewer3DPage />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/cart2" element={<CartStep2 />} />
             <Route path="/payment" element={<CartStep3 />} />

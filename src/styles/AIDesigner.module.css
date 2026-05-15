@@ -17,32 +17,11 @@
   --ai-accent-soft-strong: #c2efe9;
   --ai-shadow: rgba(11, 83, 78, 0.16);
   --ai-shadow-soft: rgba(11, 83, 78, 0.09);
-  width: calc(100% + 40px);
-  min-height: 100vh;
-  margin: -20px;
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
   overflow: hidden;
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(20, 184, 166, 0.18),
-      transparent 26%
-    ),
-    radial-gradient(
-      circle at top right,
-      rgba(14, 116, 110, 0.16),
-      transparent 28%
-    ),
-    radial-gradient(
-      circle at bottom center,
-      rgba(103, 232, 249, 0.14),
-      transparent 28%
-    ),
-    linear-gradient(
-      180deg,
-      var(--ai-bg) 0%,
-      var(--ai-bg-soft) 42%,
-      var(--ai-bg-deep) 100%
-    );
+  background: transparent;
   color: var(--ai-text);
 }
 

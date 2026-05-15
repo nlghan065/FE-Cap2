@@ -15,6 +15,12 @@ const STATUS_MESSAGE_MAP = {
 
 const KNOWN_MESSAGE_MAP = [
   {
+    test:
+      /invalid_image|single furniture item|not an indoor room space|không phải là hình ảnh căn phòng|khong phai la hinh anh can phong/i,
+    value:
+      "Ảnh tải lên không phải là ảnh căn phòng. Vui lòng chọn ảnh chụp rõ toàn bộ không gian nội thất.",
+  },
+  {
     test: /network error/i,
     value: "Không thể kết nối tới máy chủ. Vui lòng thử lại.",
   },
@@ -49,6 +55,10 @@ const KNOWN_MESSAGE_MAP = [
 ];
 
 const REQUEST_FAILED_PATTERN = /^Request failed with status code \d+$/i;
+const FRIENDLY_API_ERROR_MAP = {
+  INVALID_IMAGE:
+    "Ảnh tải lên không phải là ảnh căn phòng. Vui lòng chọn ảnh chụp rõ toàn bộ không gian nội thất.",
+};
 
 const normalizeWhitespace = (value) =>
   String(value || "")
@@ -76,6 +86,80 @@ export const normalizeDisplayMessage = (value) => {
   return normalized;
 };
 
+const parseJsonCandidate = (value) => {
+  if (typeof value !== "string") return null;
+
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  const candidates = [normalized];
+  const firstBrace = normalized.indexOf("{");
+  const lastBrace = normalized.lastIndexOf("}");
+
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    candidates.push(normalized.slice(firstBrace, lastBrace + 1));
+  }
+
+  for (const candidate of candidates) {
+    try {
+      let parsed = JSON.parse(candidate);
+
+      while (typeof parsed === "string" && parsed.trim() !== candidate.trim()) {
+        parsed = JSON.parse(parsed);
+      }
+
+      if (parsed && typeof parsed === "object") {
+        return parsed;
+      }
+    } catch {
+      // Ignore invalid JSON and keep trying the next candidate.
+    }
+  }
+
+  return null;
+};
+
+const extractStructuredPayload = (payload) => {
+  if (!payload) return null;
+
+  if (typeof payload === "object") {
+    return payload;
+  }
+
+  return parseJsonCandidate(payload);
+};
+
+const extractApiErrorCode = (payload) => {
+  if (!payload || typeof payload !== "object") return "";
+
+  const candidates = [
+    payload.errorCode,
+    payload.code,
+    payload.error,
+    payload.detail?.errorCode,
+    payload.detail?.code,
+    payload.detail?.error,
+  ];
+
+  return (
+    candidates.find((item) => typeof item === "string" && item.trim()) || ""
+  );
+};
+
+const getFriendlyApiMessage = (payload) => {
+  const structuredPayload = extractStructuredPayload(payload);
+
+  if (!structuredPayload || typeof structuredPayload !== "object") {
+    return "";
+  }
+
+  const errorCode = String(extractApiErrorCode(structuredPayload) || "")
+    .trim()
+    .toUpperCase();
+
+  return FRIENDLY_API_ERROR_MAP[errorCode] || "";
+};
+
 const extractNestedMessages = (value) => {
   if (!value) return [];
 
@@ -95,25 +179,44 @@ const extractNestedMessages = (value) => {
 };
 
 const extractPayloadMessage = (payload) => {
+  const friendlyMessage = getFriendlyApiMessage(payload);
+  if (friendlyMessage) return friendlyMessage;
+
+  const structuredPayload = extractStructuredPayload(payload);
+  if (structuredPayload && structuredPayload !== payload) {
+    const structuredMessage = extractPayloadMessage(structuredPayload);
+    if (structuredMessage) return structuredMessage;
+  }
+
   if (!payload) return "";
 
   if (typeof payload === "string") return payload;
 
   const directCandidates = [
+    payload.detail?.message,
     payload.message,
     payload.error,
     payload.detail,
     payload.title,
     payload.reason,
+    payload.detail?.reason,
   ];
 
   const directMessage = directCandidates.find(
     (item) => typeof item === "string" && item.trim(),
   );
 
-  if (directMessage) return directMessage;
+  if (directMessage) {
+    const parsedDirectMessage = extractPayloadMessage(directMessage);
+    if (parsedDirectMessage && parsedDirectMessage !== directMessage) {
+      return parsedDirectMessage;
+    }
+
+    return directMessage;
+  }
 
   const nestedCandidates = [
+    payload.detail,
     payload.errors,
     payload.errorMessages,
     payload.messages,
@@ -178,6 +281,22 @@ export const normalizeErrorResponse = (error) => {
 
   const status = error?.response?.status;
   const payload = error?.response?.data;
+  const friendlyMessage = getFriendlyApiMessage(payload);
+
+  if (friendlyMessage) {
+    if (typeof payload === "string") {
+      error.response.data = friendlyMessage;
+    } else if (payload && typeof payload === "object") {
+      payload.message = friendlyMessage;
+
+      if (payload.detail && typeof payload.detail === "object") {
+        payload.detail.message = friendlyMessage;
+      }
+    }
+
+    error.message = friendlyMessage;
+    return error;
+  }
 
   if (typeof payload === "string") {
     error.response.data = translateKnownMessage(payload, status);

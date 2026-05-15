@@ -192,6 +192,38 @@
   flex: 1;
 }
 
+.content:has(> [data-page-theme="ai"]) {
+  --ai-bg: #edf9f7;
+  --ai-bg-soft: #f7fcfb;
+  --ai-bg-deep: #e2f4f1;
+  --ai-text: #173432;
+  padding: 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(20, 184, 166, 0.18),
+      transparent 26%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(14, 116, 110, 0.16),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at bottom center,
+      rgba(103, 232, 249, 0.14),
+      transparent 28%
+    ),
+    linear-gradient(
+      180deg,
+      var(--ai-bg) 0%,
+      var(--ai-bg-soft) 42%,
+      var(--ai-bg-deep) 100%
+    );
+  color: var(--ai-text);
+}
+
 /* AUTH BUTTONS */
 .authButtons {
   display: flex;

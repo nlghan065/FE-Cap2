@@ -716,7 +716,7 @@ function AIDesignerPage() {
   }, [step, uploadedImage, aiResults, formData, saveToStorage]);
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-page-theme="ai">
       <AIDesignerHero />
       <AIDesignerProgress step={step} />
 
