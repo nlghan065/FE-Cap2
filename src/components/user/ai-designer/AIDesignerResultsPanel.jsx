@@ -322,7 +322,7 @@ function AIDesignerResultsPanel({
                       <small>
                         Kích thước:{" "}
                         {product.dimensions
-                          ? `${product.dimensions.width ?? "-"} x ${product.dimensions.depth ?? "-"} x ${product.dimensions.height ?? "-"} cm`
+                          ? `${product.dimensions.width ?? "-"} x ${product.dimensions.depth ?? "-"} x ${product.dimensions.height ?? "-"} ${product.dimensions.unit || "m"}`
                           : "Chưa có"}
                       </small>
 

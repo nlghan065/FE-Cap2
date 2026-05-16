@@ -13,6 +13,80 @@ const toNumber = (value, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const normalizeLinearUnit = (value, fallback = "m") => {
+  const normalized = String(value || fallback)
+    .trim()
+    .toLowerCase();
+
+  if (
+    [
+      "cm",
+      "centimeter",
+      "centimeters",
+      "centimetre",
+      "centimetres",
+    ].includes(normalized)
+  ) {
+    return "cm";
+  }
+
+  if (
+    [
+      "mm",
+      "millimeter",
+      "millimeters",
+      "millimetre",
+      "millimetres",
+    ].includes(normalized)
+  ) {
+    return "mm";
+  }
+
+  return "m";
+};
+
+const hasDefinedKey = (source, keys) =>
+  Boolean(
+    source &&
+      typeof source === "object" &&
+      keys.some((key) => source[key] !== undefined && source[key] !== null),
+  );
+
+const getMeasurementUnit = (source, fallback = "m") => {
+  if (!source || typeof source !== "object") {
+    return normalizeLinearUnit(fallback, fallback);
+  }
+
+  const explicitUnit =
+    source.unit ||
+    source.dimensionUnit ||
+    source.dimension_unit ||
+    source.measurementUnit ||
+    source.measurement_unit;
+
+  if (explicitUnit) {
+    return normalizeLinearUnit(explicitUnit, fallback);
+  }
+
+  if (
+    hasDefinedKey(source, ["widthMm", "lengthMm", "depthMm", "heightMm"])
+  ) {
+    return "mm";
+  }
+
+  if (
+    hasDefinedKey(source, ["widthCm", "lengthCm", "depthCm", "heightCm"])
+  ) {
+    return "cm";
+  }
+
+  if (hasDefinedKey(source, ["widthM", "lengthM", "depthM", "heightM"])) {
+    return "m";
+  }
+
+  return normalizeLinearUnit(fallback, fallback);
+};
+
 const clamp01 = (value, fallback = 0.85) => {
   const parsed = toNumber(value, fallback);
   const normalized = parsed > 1 ? parsed / 100 : parsed;
@@ -156,6 +230,7 @@ const buildLayoutRoomPayload = ({ roomType, dimensions, style }) => ({
   widthM: toNumber(dimensions?.width, 4),
   lengthM: toNumber(dimensions?.length, 5),
   heightM: toNumber(dimensions?.height, 3),
+  unit: "m",
   type: normalizeLayoutRoomType(roomType),
   style: style || "",
 });
@@ -180,6 +255,7 @@ const buildLayoutProductPayload = (
       width: toNumber(dimensions.width, 0),
       depth: toNumber(dimensions.depth ?? dimensions.length, 0),
       height: toNumber(dimensions.height, 0),
+      unit: getMeasurementUnit(dimensions, "m"),
     },
     ranking_score: clamp01(
       product?.ranking_score ??

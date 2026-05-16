@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Color, Plane, Vector3 } from "three";
+import { Box3, Color, Plane, Vector3 } from "three";
 
 import { postAiLayoutFromRecommendationApi } from "../../api/aiRecommendApi";
 import { addToCartApi } from "../../api/cartApi";
@@ -1090,37 +1090,157 @@ const parseDimension = (value) => {
   return 0;
 };
 
-const toMeters = (value, fallback) => {
-  if (!value) return fallback;
-  return value > 10 ? value / 100 : value;
+const hasDefinedKey = (source, keys) =>
+  Boolean(
+    source &&
+      typeof source === "object" &&
+      keys.some((key) => source[key] !== undefined && source[key] !== null),
+  );
+
+const normalizeLinearUnit = (value, fallback = "m") => {
+  const normalized = String(value || fallback)
+    .trim()
+    .toLowerCase();
+
+  if (
+    [
+      "cm",
+      "centimeter",
+      "centimeters",
+      "centimetre",
+      "centimetres",
+    ].includes(normalized)
+  ) {
+    return "cm";
+  }
+
+  if (
+    [
+      "mm",
+      "millimeter",
+      "millimeters",
+      "millimetre",
+      "millimetres",
+    ].includes(normalized)
+  ) {
+    return "mm";
+  }
+
+  return "m";
 };
+
+const getMeasurementUnit = (source, fallback = "m") => {
+  if (!source || typeof source !== "object") {
+    return normalizeLinearUnit(fallback, fallback);
+  }
+
+  const explicitUnit =
+    source.unit ||
+    source.dimensionUnit ||
+    source.dimension_unit ||
+    source.measurementUnit ||
+    source.measurement_unit ||
+    source.positionUnit ||
+    source.position_unit ||
+    source.coordinateUnit ||
+    source.coordinate_unit;
+
+  if (explicitUnit) {
+    return normalizeLinearUnit(explicitUnit, fallback);
+  }
+
+  if (
+    hasDefinedKey(source, [
+      "widthMm",
+      "lengthMm",
+      "depthMm",
+      "heightMm",
+      "xMm",
+      "yMm",
+      "zMm",
+    ])
+  ) {
+    return "mm";
+  }
+
+  if (
+    hasDefinedKey(source, [
+      "widthCm",
+      "lengthCm",
+      "depthCm",
+      "heightCm",
+      "xCm",
+      "yCm",
+      "zCm",
+    ])
+  ) {
+    return "cm";
+  }
+
+  if (
+    hasDefinedKey(source, [
+      "widthM",
+      "lengthM",
+      "depthM",
+      "heightM",
+      "xM",
+      "yM",
+      "zM",
+      "elevationM",
+    ])
+  ) {
+    return "m";
+  }
+
+  return normalizeLinearUnit(fallback, fallback);
+};
+
+const toMeters = (value, unit = "m") => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+
+  const normalizedUnit = normalizeLinearUnit(unit, "m");
+
+  if (normalizedUnit === "cm") return num / 100;
+  if (normalizedUnit === "mm") return num / 1000;
+  return num;
+};
+
+const formatMeasureValue = (value) =>
+  Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
 
 const getRoomMetricValue = (dimensions, keys) =>
   keys
     .map((key) => parseDimension(dimensions?.[key]))
     .find((value) => value > 0) || 0;
 
-const getRoomMetrics = (dimensions) => ({
-  width: toMeters(
-    getRoomMetricValue(dimensions, ["width", "widthM", "width_m"]),
-    DEFAULT_ROOM_DIMENSIONS.width,
-  ),
-  length: toMeters(
-    getRoomMetricValue(dimensions, [
-      "length",
-      "lengthM",
-      "length_m",
-      "depth",
-      "depthM",
-      "depth_m",
-    ]),
-    DEFAULT_ROOM_DIMENSIONS.length,
-  ),
-  height: toMeters(
-    getRoomMetricValue(dimensions, ["height", "heightM", "height_m"]),
-    DEFAULT_ROOM_DIMENSIONS.height,
-  ),
-});
+const getRoomMetrics = (dimensions) => {
+  const unit = getMeasurementUnit(dimensions, "m");
+  const widthValue = getRoomMetricValue(dimensions, ["width", "widthM", "width_m"]);
+  const lengthValue = getRoomMetricValue(dimensions, [
+    "length",
+    "lengthM",
+    "length_m",
+    "depth",
+    "depthM",
+    "depth_m",
+  ]);
+  const heightValue = getRoomMetricValue(dimensions, [
+    "height",
+    "heightM",
+    "height_m",
+  ]);
+
+  return {
+    width: widthValue ? toMeters(widthValue, unit) : DEFAULT_ROOM_DIMENSIONS.width,
+    length: lengthValue
+      ? toMeters(lengthValue, unit)
+      : DEFAULT_ROOM_DIMENSIONS.length,
+    height: heightValue
+      ? toMeters(heightValue, unit)
+      : DEFAULT_ROOM_DIMENSIONS.height,
+  };
+};
 
 const getItemFloorOffset = (item) => (item?.type === "rug" ? 0.01 : 0);
 
@@ -1169,8 +1289,9 @@ const extractPlanarSizeFromText = (item) => {
   if (!Number.isFinite(sizeA) || !Number.isFinite(sizeB)) return null;
 
   return {
-    width: Math.min(sizeA, sizeB) * 100,
-    depth: Math.max(sizeA, sizeB) * 100,
+    width: Math.min(sizeA, sizeB),
+    depth: Math.max(sizeA, sizeB),
+    unit: "m",
   };
 };
 
@@ -1649,14 +1770,45 @@ const getComponentVariant = (item) => {
   return "panel";
 };
 
+const getRawDimensionValue = (dimensions, keys) =>
+  keys.map((key) => parseDimension(dimensions?.[key])).find((value) => value > 0) ||
+  0;
+
+const fromCentimeters = (value, unit = "cm") => {
+  const normalizedUnit = normalizeLinearUnit(unit, "cm");
+
+  if (normalizedUnit === "m") return value / 100;
+  if (normalizedUnit === "mm") return value * 10;
+  return value;
+};
+
 const getRawDimensionSet = (item) => {
-  const rawWidth = parseDimension(
-    item?.dimensions?.width ?? item?.dimensions?.length,
+  const sourceDimensions = item?.dimensions || {};
+  const sourceUnit = getMeasurementUnit(
+    sourceDimensions,
+    item?.unit || item?.dimensionUnit || "m",
   );
-  const rawHeight = parseDimension(item?.dimensions?.height);
-  const rawDepth = parseDimension(
-    item?.dimensions?.depth ?? item?.dimensions?.length,
-  );
+  const rawWidth = getRawDimensionValue(sourceDimensions, [
+    "width",
+    "widthM",
+    "width_m",
+    "length",
+    "lengthM",
+    "length_m",
+  ]);
+  const rawHeight = getRawDimensionValue(sourceDimensions, [
+    "height",
+    "heightM",
+    "height_m",
+  ]);
+  const rawDepth = getRawDimensionValue(sourceDimensions, [
+    "depth",
+    "depthM",
+    "depth_m",
+    "length",
+    "lengthM",
+    "length_m",
+  ]);
   const sorted = [rawWidth, rawHeight, rawDepth]
     .filter(Boolean)
     .sort((a, b) => a - b);
@@ -1664,10 +1816,20 @@ const getRawDimensionSet = (item) => {
   if (item?.type === "rug") {
     const textSize = extractPlanarSizeFromText(item);
 
+    if (textSize && !rawWidth && !rawDepth) {
+      return {
+        width: textSize.width,
+        height: rawHeight || 0.02,
+        depth: textSize.depth,
+        unit: textSize.unit,
+      };
+    }
+
     return {
-      width: rawWidth || textSize?.width || 180,
-      height: rawHeight || 2,
-      depth: rawDepth || textSize?.depth || 260,
+      width: rawWidth || fromCentimeters(180, sourceUnit),
+      height: rawHeight || fromCentimeters(2, sourceUnit),
+      depth: rawDepth || fromCentimeters(260, sourceUnit),
+      unit: sourceUnit,
     };
   }
 
@@ -1676,6 +1838,7 @@ const getRawDimensionSet = (item) => {
       width: sorted[1],
       height: sorted[2],
       depth: sorted[0],
+      unit: sourceUnit,
     };
   }
 
@@ -1684,6 +1847,7 @@ const getRawDimensionSet = (item) => {
       width: sorted[2],
       height: sorted[1],
       depth: sorted[0],
+      unit: sourceUnit,
     };
   }
 
@@ -1694,6 +1858,7 @@ const getRawDimensionSet = (item) => {
       width: footprint,
       height: rawHeight || sorted[1] || 0,
       depth: footprint,
+      unit: sourceUnit,
     };
   }
 
@@ -1702,6 +1867,7 @@ const getRawDimensionSet = (item) => {
       width: sorted[1],
       height: sorted[2],
       depth: sorted[1],
+      unit: sourceUnit,
     };
   }
 
@@ -1710,6 +1876,7 @@ const getRawDimensionSet = (item) => {
       width: sorted[2],
       height: sorted[0],
       depth: sorted[1],
+      unit: sourceUnit,
     };
   }
 
@@ -1720,8 +1887,9 @@ const getRawDimensionSet = (item) => {
     if (item?.boxVariant === "drawerTower") {
       return {
         width: sorted[2],
-        height: sorted[0] * 3 + 2,
+        height: sorted[0] * 3 + fromCentimeters(2, sourceUnit),
         depth: sorted[1],
+        unit: sourceUnit,
       };
     }
 
@@ -1729,6 +1897,7 @@ const getRawDimensionSet = (item) => {
       width: sorted[2],
       height: sorted[0],
       depth: sorted[1],
+      unit: sourceUnit,
     };
   }
 
@@ -1737,6 +1906,7 @@ const getRawDimensionSet = (item) => {
       width: sorted[2],
       height: sorted[0],
       depth: sorted[1],
+      unit: sourceUnit,
     };
   }
 
@@ -1745,6 +1915,7 @@ const getRawDimensionSet = (item) => {
       width: Math.max(rawWidth, rawDepth),
       height: rawHeight || rawWidth || 0,
       depth: Math.min(rawWidth || rawDepth || 0, rawDepth || rawWidth || 0),
+      unit: sourceUnit,
     };
   }
 
@@ -1753,6 +1924,7 @@ const getRawDimensionSet = (item) => {
       width: Math.max(rawWidth, rawDepth),
       height: rawHeight || Math.min(rawWidth, rawDepth),
       depth: Math.min(rawWidth || rawDepth || 0, rawDepth || rawWidth || 0),
+      unit: sourceUnit,
     };
   }
 
@@ -1761,6 +1933,7 @@ const getRawDimensionSet = (item) => {
       width: rawDepth,
       height: rawHeight,
       depth: rawWidth,
+      unit: sourceUnit,
     };
   }
 
@@ -1768,6 +1941,7 @@ const getRawDimensionSet = (item) => {
     width: rawWidth,
     height: rawHeight,
     depth: rawDepth,
+    unit: sourceUnit,
   };
 };
 
@@ -1778,10 +1952,16 @@ const formatItemDimensionsText = (item) => {
     return item?.dimensionsText || "Chưa có dữ liệu";
   }
 
-  return `${raw.width || 0} x ${raw.depth || 0} x ${raw.height || 0} cm`;
+  return `${raw.width || 0} x ${raw.depth || 0} x ${raw.height || 0} ${raw.unit || "m"}`;
 };
 
-const getItemDimensions = (item) => {
+const clampFurnitureSize = (size, room) => ({
+  width: Math.min(size.width, room.width * 0.9),
+  depth: Math.min(size.depth, room.length * 0.9),
+  height: Math.min(size.height, room.height * 0.9),
+});
+
+const getItemDimensions = (item, roomDimensions = null) => {
   const defaults =
     item.type === "storage"
       ? STORAGE_VARIANT_DEFAULT_DIMENSIONS[item.storageVariant || "wardrobe"] ||
@@ -1815,28 +1995,44 @@ const getItemDimensions = (item) => {
             ? LAMP_VARIANT_DIMENSION_LIMITS[item.lampVariant || "floor"] ||
               LAMP_VARIANT_DIMENSION_LIMITS.floor
             : item.type === "plant"
-              ? PLANT_VARIANT_DIMENSION_LIMITS[item.plantVariant || "floor"] ||
+               ? PLANT_VARIANT_DIMENSION_LIMITS[item.plantVariant || "floor"] ||
                 PLANT_VARIANT_DIMENSION_LIMITS.floor
               : TYPE_DIMENSION_LIMITS[item.type] || TYPE_DIMENSION_LIMITS.chair;
   const raw = getRawDimensionSet(item);
-
-  return {
-    width: clamp(
-      toMeters(raw.width, defaults.width),
-      limits.width[0],
-      limits.width[1],
-    ),
-    height: clamp(
-      toMeters(raw.height, defaults.height),
-      limits.height[0],
-      limits.height[1],
-    ),
-    depth: clamp(
-      toMeters(raw.depth, defaults.depth),
-      limits.depth[0],
-      limits.depth[1],
-    ),
+  const sizeInMeters = {
+    width: raw.width ? toMeters(raw.width, raw.unit) : defaults.width,
+    height: raw.height ? toMeters(raw.height, raw.unit) : defaults.height,
+    depth: raw.depth ? toMeters(raw.depth, raw.unit) : defaults.depth,
   };
+  const normalizedSize = {
+    width: clamp(sizeInMeters.width, limits.width[0], limits.width[1]),
+    height: clamp(sizeInMeters.height, limits.height[0], limits.height[1]),
+    depth: clamp(sizeInMeters.depth, limits.depth[0], limits.depth[1]),
+  };
+
+  if (!roomDimensions) {
+    return normalizedSize;
+  }
+
+  const room = getRoomMetrics(roomDimensions);
+  const roomClampedSize = clampFurnitureSize(normalizedSize, room);
+
+  if (
+    import.meta.env.DEV &&
+    (roomClampedSize.width !== normalizedSize.width ||
+      roomClampedSize.height !== normalizedSize.height ||
+      roomClampedSize.depth !== normalizedSize.depth)
+  ) {
+    console.warn("[AI Viewer][ClampFurnitureSize]", {
+      itemId: item?.id,
+      itemName: item?.name,
+      room,
+      beforeClamp: normalizedSize,
+      afterClamp: roomClampedSize,
+    });
+  }
+
+  return roomClampedSize;
 };
 
 const getPlacement = (type, typeIndex, overallIndex) => {
@@ -1897,7 +2093,12 @@ const pickOptionalNumber = (source, keys) => {
   return undefined;
 };
 
-const normalizeViewerLayoutPosition = (value) => {
+const normalizeViewerLayoutPosition = (value, unitHint = "m") => {
+  const unit = getMeasurementUnit(
+    Array.isArray(value) ? { unit: unitHint } : value,
+    unitHint,
+  );
+
   if (Array.isArray(value)) {
     const x = parseOptionalNumber(value[0]);
     const y = value.length >= 3 ? parseOptionalNumber(value[1]) : 0;
@@ -1906,7 +2107,9 @@ const normalizeViewerLayoutPosition = (value) => {
         ? parseOptionalNumber(value[2])
         : parseOptionalNumber(value[1]);
 
-    return x === null || z === null ? null : [x, y ?? 0, z];
+    return x === null || z === null
+      ? null
+      : [toMeters(x, unit), toMeters(y ?? 0, unit), toMeters(z, unit)];
   }
 
   if (!value || typeof value !== "object") {
@@ -1949,7 +2152,11 @@ const normalizeViewerLayoutPosition = (value) => {
     return null;
   }
 
-  return [x, explicitZ === undefined ? 0 : verticalY, z];
+  return [
+    toMeters(x, unit),
+    explicitZ === undefined ? 0 : toMeters(verticalY, unit),
+    toMeters(z, unit),
+  ];
 };
 
 const normalizeViewerLayoutRotation = (value) => {
@@ -2000,7 +2207,10 @@ const getAiLayoutPlacement = (product) => {
     source?.center ||
     source?.location ||
     product?.position;
-  const position = normalizeViewerLayoutPosition(positionSource);
+  const position = normalizeViewerLayoutPosition(
+    positionSource,
+    getMeasurementUnit(source || product, "m"),
+  );
 
   if (!position) {
     return null;
@@ -2098,8 +2308,8 @@ const getEligibleAnchorsForAccessory = (item, anchors) => {
   });
 };
 
-const getManualAccessorySurfaceY = (item, anchor) => {
-  const dimensions = getItemDimensions(anchor);
+const getManualAccessorySurfaceY = (item, anchor, roomDimensions = null) => {
+  const dimensions = getItemDimensions(anchor, roomDimensions);
   const surfaceGap = item.type === "textile" ? 0.014 : 0.02;
   const storageGap = item.type === "textile" ? 0.018 : 0.03;
   let positionY = anchor.position[1] || 0;
@@ -2141,16 +2351,21 @@ const getManualAccessorySurfaceY = (item, anchor) => {
   }
 };
 
-const getAccessorySurfaceSnapPlacement = (item, anchors, desiredPosition) => {
+const getAccessorySurfaceSnapPlacement = (
+  item,
+  anchors,
+  desiredPosition,
+  roomDimensions = null,
+) => {
   const eligibleAnchors = getEligibleAnchorsForAccessory(item, anchors);
 
   if (!eligibleAnchors.length) return null;
 
-  const itemDimensions = getItemDimensions(item);
+  const itemDimensions = getItemDimensions(item, roomDimensions);
   let bestMatch = null;
 
   eligibleAnchors.forEach((anchor) => {
-    const dimensions = getItemDimensions(anchor);
+    const dimensions = getItemDimensions(anchor, roomDimensions);
     const rotation = anchor.rotation || 0;
     const dx = desiredPosition[0] - anchor.position[0];
     const dz = desiredPosition[2] - anchor.position[2];
@@ -2187,7 +2402,11 @@ const getAccessorySurfaceSnapPlacement = (item, anchors, desiredPosition) => {
     if (!bestMatch || distanceScore < bestMatch.distanceScore) {
       bestMatch = {
         distanceScore,
-        position: [worldX, getManualAccessorySurfaceY(item, anchor), worldZ],
+        position: [
+          worldX,
+          getManualAccessorySurfaceY(item, anchor, roomDimensions),
+          worldZ,
+        ],
       };
     }
   });
@@ -2195,13 +2414,18 @@ const getAccessorySurfaceSnapPlacement = (item, anchors, desiredPosition) => {
   return bestMatch?.position || null;
 };
 
-const getSurfacePlacementForAccessory = (item, anchors, accessoryIndex) => {
+const getSurfacePlacementForAccessory = (
+  item,
+  anchors,
+  accessoryIndex,
+  roomDimensions = null,
+) => {
   const eligibleAnchors = getEligibleAnchorsForAccessory(item, anchors);
 
   if (!eligibleAnchors.length) return null;
 
   const anchor = eligibleAnchors[accessoryIndex % eligibleAnchors.length];
-  const dimensions = getItemDimensions(anchor);
+  const dimensions = getItemDimensions(anchor, roomDimensions);
   const rotation = anchor.rotation || 0;
   const offsetPatterns =
     item.type === "tray"
@@ -2318,6 +2542,7 @@ const getInitialManualPlacementForItem = (
   item,
   currentSceneItems,
   manualIndex,
+  roomDimensions = null,
 ) => {
   const fallbackPlacement = getManualPreviewPlacement(manualIndex);
 
@@ -2335,6 +2560,7 @@ const getInitialManualPlacementForItem = (
     item,
     getSurfaceAnchorItems(currentSceneItems, item.id),
     accessoryIndex,
+    roomDimensions,
   );
 
   return surfacePlacement || fallbackPlacement;
@@ -2361,9 +2587,10 @@ function ModelMaterial({ color, roughness = 0.5, metalness = 0 }) {
 }
 
 function Room({ dimensions, palette }) {
-  const width = Number(dimensions?.width) || 4.8;
-  const length = Number(dimensions?.length) || 5.8;
-  const height = Number(dimensions?.height) || 3;
+  const room = getRoomMetrics(dimensions);
+  const width = room.width;
+  const length = room.length;
+  const height = room.height;
   const floorPlanks = useMemo(
     () =>
       Array.from({ length: 12 }, (_, index) => ({
@@ -2372,6 +2599,15 @@ function Room({ dimensions, palette }) {
       })),
     [length, palette.floor, palette.floorAlt],
   );
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
+    console.log("[AI Viewer][RoomScale]", {
+      input: dimensions,
+      renderedMeters: { width, length, height },
+    });
+  }, [dimensions, height, length, width]);
 
   return (
     <group>
@@ -2540,6 +2776,7 @@ function FurnitureModel({
   roomDimensions,
 }) {
   const groupRef = useRef(null);
+  const lastDebugSignatureRef = useRef("");
   const [hovered, setHovered] = useState(false);
   const dragPlane = useMemo(() => new Plane(new Vector3(0, 1, 0), 0), []);
   const dragIntersection = useMemo(() => new Vector3(), []);
@@ -2548,7 +2785,10 @@ function FurnitureModel({
   const interactionModeRef = useRef(null);
   const rotatePointerXRef = useRef(0);
   const active = selected || hovered;
-  const dimensions = useMemo(() => getItemDimensions(item), [item]);
+  const dimensions = useMemo(
+    () => getItemDimensions(item, roomDimensions),
+    [item, roomDimensions],
+  );
   const highlightRadius = Math.max(
     0.48,
     Math.max(dimensions.width, dimensions.depth) * 0.58,
@@ -2564,6 +2804,7 @@ function FurnitureModel({
   const boxVariant = item.boxVariant || "handledBin";
   const chairVariant = item.chairVariant || "dining";
   const lampVariant = item.lampVariant || "floor";
+  const plantVariant = item.plantVariant || "floor";
   const tableVariant = item.tableVariant || "rect";
   const normalizedSource = sourceTextOf(item);
   const textileVariant =
@@ -2579,6 +2820,81 @@ function FurnitureModel({
           ? "table"
           : "standing"
       : "standing";
+
+  useLayoutEffect(() => {
+    if (!import.meta.env.DEV || !groupRef.current) return;
+
+    const signature = [
+      item.id,
+      item.name,
+      item.type,
+      item.rotation || 0,
+      dimensions.width,
+      dimensions.height,
+      dimensions.depth,
+      storageVariant,
+      boxVariant,
+      chairVariant,
+      lampVariant,
+      tableVariant,
+      plantVariant,
+      textileVariant,
+      componentVariant,
+      mirrorVariant,
+    ].join("|");
+
+    if (lastDebugSignatureRef.current === signature) return;
+    lastDebugSignatureRef.current = signature;
+
+    const measurementRoot = groupRef.current.clone(true);
+    measurementRoot.position.set(0, 0, 0);
+    measurementRoot.rotation.set(0, 0, 0);
+    measurementRoot.updateWorldMatrix(true, true);
+
+    const box = new Box3().setFromObject(measurementRoot);
+    const size = new Vector3();
+    box.getSize(size);
+
+    console.table([
+      {
+        name: item.name,
+        widthM: formatMeasureValue(dimensions.width),
+        depthM: formatMeasureValue(dimensions.depth),
+        heightM: formatMeasureValue(dimensions.height),
+        rotationY: formatMeasureValue(item.rotation || 0),
+      },
+    ]);
+
+    console.log("[AI Viewer][ModelScale]", {
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      modelUrl: item.modelUrl || null,
+      rotationY: item.rotation || 0,
+      expectedMeters: dimensions,
+      renderedMeters: {
+        width: Number(size.x.toFixed(3)),
+        height: Number(size.y.toFixed(3)),
+        depth: Number(size.z.toFixed(3)),
+      },
+    });
+  }, [
+    boxVariant,
+    chairVariant,
+    componentVariant,
+    dimensions,
+    item.id,
+    item.modelUrl,
+    item.name,
+    item.rotation,
+    item.type,
+    lampVariant,
+    mirrorVariant,
+    plantVariant,
+    storageVariant,
+    tableVariant,
+    textileVariant,
+  ]);
 
   useFrame((state) => {
     if (!groupRef.current) return;
@@ -6166,6 +6482,7 @@ function Viewer3DPage() {
         item,
         surfaceAnchors,
         accessoryIndex,
+        aiResults?.roomAnalysis,
       );
 
       if (!placement) {
@@ -6178,7 +6495,7 @@ function Viewer3DPage() {
         rotation: placement.rotation,
       };
     });
-  }, [manualPositions, manualSceneEntryById, productItems]);
+  }, [aiResults?.roomAnalysis, manualPositions, manualSceneEntryById, productItems]);
 
   const aiPlacedCount = sceneItems.filter((item) => item.hasAiPlacement).length;
   const manualPlacedCount = sceneItems.filter(
@@ -6234,6 +6551,7 @@ function Viewer3DPage() {
       productItem,
       sceneItems,
       existingEntryIndex >= 0 ? existingEntryIndex : manualSceneEntries.length,
+      aiResults?.roomAnalysis,
     );
 
     setManualSceneEntries((current) => {
@@ -6297,6 +6615,7 @@ function Viewer3DPage() {
             sceneItem,
             getSurfaceAnchorItems(sceneItems, itemId),
             nextPosition,
+            aiResults?.roomAnalysis,
           )
         : null;
 
@@ -6326,7 +6645,7 @@ function Viewer3DPage() {
         );
         const nextPosition = clampItemPositionToRoom(
           existingPlacement.position || sceneItem.position,
-          getItemDimensions(sceneItem),
+          getItemDimensions(sceneItem, aiResults?.roomAnalysis),
           aiResults?.roomAnalysis,
           {
             ...sceneItem,

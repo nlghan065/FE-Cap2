@@ -43,6 +43,129 @@ const toFiniteNumber = (value) => {
   return null;
 };
 
+const hasDefinedKey = (source, keys) =>
+  Boolean(
+    source &&
+      typeof source === "object" &&
+      keys.some((key) => source[key] !== undefined && source[key] !== null),
+  );
+
+const normalizeLinearUnit = (value, fallback = "m") => {
+  const normalized = String(value || fallback)
+    .trim()
+    .toLowerCase();
+
+  if (
+    [
+      "cm",
+      "centimeter",
+      "centimeters",
+      "centimetre",
+      "centimetres",
+    ].includes(normalized)
+  ) {
+    return "cm";
+  }
+
+  if (
+    [
+      "mm",
+      "millimeter",
+      "millimeters",
+      "millimetre",
+      "millimetres",
+    ].includes(normalized)
+  ) {
+    return "mm";
+  }
+
+  return "m";
+};
+
+const getMeasurementUnit = (source, fallback = "m") => {
+  if (!source || typeof source !== "object") {
+    return normalizeLinearUnit(fallback, fallback);
+  }
+
+  const explicitUnit = getFirstValue(source, [
+    "unit",
+    "dimensionUnit",
+    "dimension_unit",
+    "measurementUnit",
+    "measurement_unit",
+    "positionUnit",
+    "position_unit",
+    "coordinateUnit",
+    "coordinate_unit",
+  ]);
+
+  if (explicitUnit) {
+    return normalizeLinearUnit(explicitUnit, fallback);
+  }
+
+  if (
+    hasDefinedKey(source, [
+      "widthMm",
+      "lengthMm",
+      "depthMm",
+      "heightMm",
+      "xMm",
+      "yMm",
+      "zMm",
+    ])
+  ) {
+    return "mm";
+  }
+
+  if (
+    hasDefinedKey(source, [
+      "widthCm",
+      "lengthCm",
+      "depthCm",
+      "heightCm",
+      "xCm",
+      "yCm",
+      "zCm",
+    ])
+  ) {
+    return "cm";
+  }
+
+  if (
+    hasDefinedKey(source, [
+      "widthM",
+      "lengthM",
+      "depthM",
+      "heightM",
+      "xM",
+      "yM",
+      "zM",
+      "elevationM",
+    ])
+  ) {
+    return "m";
+  }
+
+  return normalizeLinearUnit(fallback, fallback);
+};
+
+const toMeters = (value, unit = "m") => {
+  const parsed = toFiniteNumber(value);
+
+  if (parsed === null) {
+    return 0;
+  }
+
+  const normalizedUnit = normalizeLinearUnit(unit, "m");
+
+  if (normalizedUnit === "cm") return parsed / 100;
+  if (normalizedUnit === "mm") return parsed / 1000;
+  return parsed;
+};
+
+const formatMeasureValue = (value) =>
+  Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
+
 const normalizeText = (value) =>
   String(value || "")
     .normalize("NFD")
@@ -135,18 +258,27 @@ const normalizeDimensions = (dimensions) => {
     return null;
   }
 
-  const width = toNumber(dimensions.width);
-  const depth = toNumber(dimensions.depth ?? dimensions.length);
-  const height = toNumber(dimensions.height);
+  const width = getFirstNumber(dimensions, ["width", "widthM", "width_m"]);
+  const depth = getFirstNumber(dimensions, [
+    "depth",
+    "depthM",
+    "depth_m",
+    "length",
+    "lengthM",
+    "length_m",
+  ]);
+  const height = getFirstNumber(dimensions, ["height", "heightM", "height_m"]);
+  const unit = getMeasurementUnit(dimensions, "m");
 
-  if (!width && !depth && !height) {
+  if (width === undefined && depth === undefined && height === undefined) {
     return null;
   }
 
   return {
-    width: width || 0,
-    depth: depth || 0,
-    height: height || 0,
+    width: width ?? 0,
+    depth: depth ?? 0,
+    height: height ?? 0,
+    unit,
   };
 };
 
@@ -180,7 +312,7 @@ const formatAiProductDimensions = (dimensions) => {
     return "Chưa có dữ liệu";
   }
 
-  return `${normalized.width} x ${normalized.depth} x ${normalized.height} cm`;
+  return `${normalized.width} x ${normalized.depth} x ${normalized.height} ${normalized.unit}`;
 };
 
 const buildAreaText = (dimensions) => {
@@ -188,22 +320,32 @@ const buildAreaText = (dimensions) => {
     return DEFAULT_ROOM_ANALYSIS.area;
   }
 
-  const width = getFirstNumber(dimensions, ["width", "widthM", "width_m"]);
-  const length = getFirstNumber(dimensions, [
-    "length",
-    "lengthM",
-    "length_m",
-    "depth",
-    "depthM",
-    "depth_m",
-  ]);
-  const height = getFirstNumber(dimensions, ["height", "heightM", "height_m"]);
+  const unit = getMeasurementUnit(dimensions, "m");
+  const width = toMeters(
+    getFirstNumber(dimensions, ["width", "widthM", "width_m"]),
+    unit,
+  );
+  const length = toMeters(
+    getFirstNumber(dimensions, [
+      "length",
+      "lengthM",
+      "length_m",
+      "depth",
+      "depthM",
+      "depth_m",
+    ]),
+    unit,
+  );
+  const height = toMeters(
+    getFirstNumber(dimensions, ["height", "heightM", "height_m"]),
+    unit,
+  );
 
   if (!width || !length || !height) {
     return DEFAULT_ROOM_ANALYSIS.area;
   }
 
-  return `${width} x ${length} x ${height} m`;
+  return `${formatMeasureValue(width)} x ${formatMeasureValue(length)} x ${formatMeasureValue(height)} m`;
 };
 
 const normalizeRoomAnalysis = (payload) => {
@@ -239,6 +381,52 @@ const normalizeRoomAnalysis = (payload) => {
     windows: DEFAULT_ROOM_ANALYSIS.windows,
     naturalLight: DEFAULT_ROOM_ANALYSIS.naturalLight,
     floorType: DEFAULT_ROOM_ANALYSIS.floorType,
+  };
+};
+
+const normalizeRoomAnalysisInMeters = (payload) => {
+  const sourceDimensions =
+    payload?.dimensions || payload?.room || payload || {};
+  const roomUnit = getMeasurementUnit(sourceDimensions, "m");
+  const widthSource = getFirstNumber(sourceDimensions, [
+    "width",
+    "widthM",
+    "width_m",
+  ]);
+  const lengthSource = getFirstNumber(sourceDimensions, [
+    "length",
+    "lengthM",
+    "length_m",
+    "depth",
+    "depthM",
+    "depth_m",
+  ]);
+  const heightSource = getFirstNumber(sourceDimensions, [
+    "height",
+    "heightM",
+    "height_m",
+  ]);
+  const width =
+    widthSource !== undefined
+      ? formatMeasureValue(toMeters(widthSource, roomUnit))
+      : DEFAULT_ROOM_ANALYSIS.width;
+  const length =
+    lengthSource !== undefined
+      ? formatMeasureValue(toMeters(lengthSource, roomUnit))
+      : DEFAULT_ROOM_ANALYSIS.length;
+  const height =
+    heightSource !== undefined
+      ? formatMeasureValue(toMeters(heightSource, roomUnit))
+      : DEFAULT_ROOM_ANALYSIS.height;
+
+  return {
+    ...normalizeRoomAnalysis(payload),
+    width,
+    length,
+    height,
+    unit: "m",
+    area: buildAreaText({ width, length, height, unit: "m" }),
+    ceiling: height ? `${height} m` : DEFAULT_ROOM_ANALYSIS.ceiling,
   };
 };
 
@@ -379,6 +567,10 @@ const findPositionSource = (item) => {
 
 const normalizeLayoutPosition = (item) => {
   const source = findPositionSource(item);
+  const unit = getMeasurementUnit(
+    Array.isArray(source) ? item : source,
+    getMeasurementUnit(item, "m"),
+  );
 
   if (Array.isArray(source)) {
     const x = toFiniteNumber(source[0]);
@@ -392,7 +584,7 @@ const normalizeLayoutPosition = (item) => {
       return null;
     }
 
-    return [x, y ?? 0, z];
+    return [toMeters(x, unit), toMeters(y ?? 0, unit), toMeters(z, unit)];
   }
 
   if (!source || typeof source !== "object") {
@@ -430,7 +622,11 @@ const normalizeLayoutPosition = (item) => {
     return null;
   }
 
-  return [x, explicitZ === undefined ? 0 : verticalY, z];
+  return [
+    toMeters(x, unit),
+    explicitZ === undefined ? 0 : toMeters(verticalY, unit),
+    toMeters(z, unit),
+  ];
 };
 
 const normalizeLayoutRotation = (item) => {
@@ -897,7 +1093,7 @@ export function normalizeAiRecommendResult(payload) {
     createdAt: payload?.createdAt || null,
     products,
     totalPrice,
-    roomAnalysis: normalizeRoomAnalysis(payload || {}),
+    roomAnalysis: normalizeRoomAnalysisInMeters(payload || {}),
     colorPalette:
       Array.isArray(payload?.dominantColors) && payload.dominantColors.length
         ? payload.dominantColors.map((color, index) => ({

@@ -49,6 +49,10 @@ const KNOWN_MESSAGE_MAP = [
     value: STATUS_MESSAGE_MAP[500],
   },
   {
+    test: /json parse error|unrecognized field|not marked as ignorable/i,
+    value: "Dữ liệu gửi lên chưa đúng định dạng. Vui lòng thử lại.",
+  },
+  {
     test: /duplicate|already exists|already in use/i,
     value: "Dữ liệu đã tồn tại.",
   },
