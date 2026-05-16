@@ -36,7 +36,10 @@ import toast from "react-hot-toast";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Box3, Color, Plane, Vector3 } from "three";
 
-import { postAiLayoutFromRecommendationApi } from "../../api/aiRecommendApi";
+import {
+  getDesignRequestByIdApi,
+  postAiLayoutFromRecommendationApi,
+} from "../../api/aiRecommendApi";
 import { addToCartApi } from "../../api/cartApi";
 import {
   createProject3DApi,
@@ -2943,8 +2946,23 @@ const createEmptyViewerEdits = () => ({
   manualSceneEntries: [],
 });
 
-const clonePositionArray = (value) =>
-  Array.isArray(value) ? [...value] : value || null;
+const clonePositionArray = (value) => {
+  if (Array.isArray(value)) {
+    return [...value];
+  }
+
+  if (value && typeof value === "object") {
+    const x = Number(value.x);
+    const y = Number(value.y);
+    const z = Number(value.z);
+
+    if ([x, y, z].every((item) => Number.isFinite(item))) {
+      return [x, y, z];
+    }
+  }
+
+  return value || null;
+};
 
 const clonePlacementConfig = (value) =>
   value && typeof value === "object" ? { ...value } : undefined;
@@ -3275,7 +3293,11 @@ const toProject3DVectorPayload = (value, fallback) => {
   };
 };
 
-const buildProject3DSceneData = (roomAnalysis, orbitControls = null) => {
+const buildProject3DSceneData = (
+  roomAnalysis,
+  orbitControls = null,
+  sceneMeta = {},
+) => {
   const room = getRoomMetrics(roomAnalysis || {});
   const cameraPosition = orbitControls?.object?.position;
   const cameraTarget = orbitControls?.target;
@@ -3289,8 +3311,87 @@ const buildProject3DSceneData = (roomAnalysis, orbitControls = null) => {
       widthM: formatMeasureValue(room.width),
       lengthM: formatMeasureValue(room.length),
       heightM: formatMeasureValue(room.height),
+      type:
+        sceneMeta?.roomType ||
+        roomAnalysis?.type ||
+        roomAnalysis?.roomType ||
+        undefined,
+      style: sceneMeta?.style || roomAnalysis?.style || undefined,
     },
   };
+};
+
+const getEditedProductPosition = (item) =>
+  clonePositionArray(item?.position || {
+    x: item?.x,
+    y: item?.y,
+    z: item?.z,
+  });
+
+const getEditedProductRotationY = (item) => {
+  const rotationY = Number(
+    item?.rotationY ??
+      item?.rotation?.y ??
+      item?.rotation ??
+      item?.metadata?.rotationY,
+  );
+
+  return Number.isFinite(rotationY) ? rotationY : 0;
+};
+
+const buildProject3DEditedProductPayload = (
+  item,
+  roomAnalysis = null,
+) => {
+  const dimensions = getItemDimensions(item, roomAnalysis);
+  const position = clonePositionArray(item?.position) || [0, 0, 0];
+  const layoutPlacement = item?.layoutPlacement || {};
+  const metadata = createCompactPayload({
+    imageUrl: item?.imageUrl || item?.image || undefined,
+    layer:
+      layoutPlacement?.layer || item?.layer || item?.metadata?.layer || "floor",
+    anchorWall:
+      layoutPlacement?.anchorWall ||
+      item?.anchorWall ||
+      item?.metadata?.anchorWall ||
+      undefined,
+    facingDirection:
+      layoutPlacement?.facingDirection ||
+      item?.facingDirection ||
+      item?.metadata?.facingDirection ||
+      undefined,
+    sceneMode: item?.sceneMode || undefined,
+    hidden: Boolean(item?.hidden),
+    hasAiPlacement: Boolean(item?.hasAiPlacement),
+    isManualPlaced: Boolean(item?.isManualPlaced),
+    layoutReasoning: item?.layoutReasoning || undefined,
+    viewerSlotId: item?.viewerSlotId || item?.id || undefined,
+    sourceProductId: item?.sourceProductId || undefined,
+    placement: item?.placement || undefined,
+    targetId: item?.placement?.targetId || undefined,
+    supportSurface: item?.supportSurface || undefined,
+  });
+
+  return createCompactPayload({
+    productId: item?.productId || item?.catalogProductId || undefined,
+    name: item?.name || undefined,
+    category: item?.category || item?.type || undefined,
+    modelUrl: item?.modelUrl || "",
+    price: Number(item?.price) || 0,
+    x: Number(position?.[0]) || 0,
+    y: Number(position?.[1]) || 0,
+    z: Number(position?.[2]) || 0,
+    rotationX: 0,
+    rotationY: Number(item?.rotation) || 0,
+    rotationZ: 0,
+    scaleX: 1,
+    scaleY: 1,
+    scaleZ: 1,
+    width: formatMeasureValue(dimensions.width),
+    depth: formatMeasureValue(dimensions.depth),
+    height: formatMeasureValue(dimensions.height),
+    metadata,
+  });
 };
 
 const buildProject3DCreatePayload = (aiResults, orbitControls = null) => {
@@ -3301,7 +3402,10 @@ const buildProject3DCreatePayload = (aiResults, orbitControls = null) => {
       [aiResults?.roomType, aiResults?.style].filter(Boolean).join(" - ") ||
       "3D Design",
     designRequestId: sourceDesignRequestId || undefined,
-    sceneData: buildProject3DSceneData(aiResults?.roomAnalysis, orbitControls),
+    sceneData: buildProject3DSceneData(aiResults?.roomAnalysis, orbitControls, {
+      roomType: aiResults?.roomType,
+      style: aiResults?.style,
+    }),
     editedProducts: [],
   });
 };
@@ -3311,29 +3415,21 @@ const buildProject3DEditedProductsPayload = (
   viewerEdits,
   productItems,
   sceneItems,
-  project3DId = "",
+  orbitControls = null,
 ) => {
-  const normalizedProject3DId = normalizeProject3DId(project3DId);
-  const sourceDesignRequestId = getSourceDesignRequestIdFromAiResults(aiResults);
   const editedProducts = buildEditedProductsSnapshot(
     productItems,
     sceneItems,
     viewerEdits,
-  );
+  ).map((item) => buildProject3DEditedProductPayload(item, aiResults?.roomAnalysis));
 
-  return {
-    project3DId: normalizedProject3DId,
-    sourceDesignRequestId: sourceDesignRequestId || undefined,
-    viewerEdits: cloneViewerEdits(viewerEdits),
-    snapshot: buildProject3DBackendSnapshot(
-      aiResults,
-      viewerEdits,
-      normalizedProject3DId,
-    ),
+  return createCompactPayload({
+    sceneData: buildProject3DSceneData(aiResults?.roomAnalysis, orbitControls, {
+      roomType: aiResults?.roomType,
+      style: aiResults?.style,
+    }),
     editedProducts,
-    products: editedProducts,
-    items: editedProducts,
-  };
+  });
 };
 
 const buildViewerEditsFromEditedProducts = (editedProducts) => {
@@ -3346,13 +3442,34 @@ const buildViewerEditsFromEditedProducts = (editedProducts) => {
   const manualSceneEntries = [];
 
   editedProducts.forEach((item) => {
-    const itemId = String(item?.viewerSlotId || item?.id || item?.productId || "");
+    const itemId = String(
+      item?.metadata?.viewerSlotId ||
+        item?.viewerSlotId ||
+        item?.id ||
+        item?.productId ||
+        "",
+    );
 
     if (!itemId) return;
 
-    if (item?.hidden) {
+    const hidden =
+      Boolean(item?.hidden) || Boolean(item?.metadata?.hidden);
+
+    if (hidden) {
       hiddenItemIds.push(itemId);
     }
+
+    const position = getEditedProductPosition(item);
+    const rotation = getEditedProductRotationY(item);
+    const sceneMode =
+      item?.sceneMode || item?.metadata?.sceneMode || undefined;
+    const isManualPlaced =
+      Boolean(item?.isManualPlaced) ||
+      Boolean(item?.metadata?.isManualPlaced) ||
+      sceneMode === "manual";
+    const placement =
+      clonePlacementConfig(item?.placement) ||
+      clonePlacementConfig(item?.metadata?.placement);
 
     const manualSceneEntry =
       item?.manualSceneEntry ||
@@ -3367,23 +3484,23 @@ const buildViewerEditsFromEditedProducts = (editedProducts) => {
         position: clonePositionArray(manualSceneEntry.position),
         placement: clonePlacementConfig(manualSceneEntry.placement),
       });
-    } else if (item?.isManualPlaced && item?.position) {
+    } else if (isManualPlaced && position) {
       manualSceneEntries.push({
         id: itemId,
-        position: clonePositionArray(item.position),
-        rotation: item?.rotation ?? 0,
-        placement: clonePlacementConfig(item?.placement),
+        position,
+        rotation,
+        placement,
       });
     }
 
     const manualPosition =
       item?.manualPosition ||
       item?.manualPlacement ||
-      (item?.isManualPlaced && item?.position
+      (isManualPlaced && position
         ? {
-            position: item.position,
-            rotation: item?.rotation ?? 0,
-            placement: item?.placement,
+            position,
+            rotation,
+            placement,
           }
         : null);
 
@@ -7832,6 +7949,34 @@ function Viewer3DPage() {
     return getProject3DIdFromPayload(matchedProject);
   }, []);
 
+  const hydrateProject3DState = useCallback(async (projectPayload) => {
+    if (!projectPayload || typeof projectPayload !== "object") {
+      return projectPayload;
+    }
+
+    if (normalizeProject3DAiResults(projectPayload)) {
+      return projectPayload;
+    }
+
+    const designRequestId = getSourceDesignRequestIdFromProject3D(projectPayload);
+
+    if (!designRequestId) {
+      return projectPayload;
+    }
+
+    try {
+      const designRequestPayload = await getDesignRequestByIdApi(designRequestId);
+
+      return {
+        ...projectPayload,
+        designRequest: designRequestPayload,
+      };
+    } catch (error) {
+      console.error("Load design request for 3D project error:", error);
+      return projectPayload;
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -7881,7 +8026,13 @@ function Viewer3DPage() {
           return;
         }
 
-        applyProject3DViewerState(projectPayload);
+        const hydratedProjectPayload = await hydrateProject3DState(projectPayload);
+
+        if (cancelled) {
+          return;
+        }
+
+        applyProject3DViewerState(hydratedProjectPayload);
       } catch (error) {
         if (explicitProjectId) {
           console.error("Load 3D project detail error:", error);
@@ -7902,6 +8053,7 @@ function Viewer3DPage() {
     };
   }, [
     applyProject3DViewerState,
+    hydrateProject3DState,
     location.state?.aiResults,
     location.state?.sourceDesignRequestId,
     routeProject3DId,
@@ -8783,7 +8935,7 @@ function Viewer3DPage() {
             nextViewerEdits,
             productItems,
             sceneItems,
-            nextProject3DId,
+            controlsRef.current,
           ),
         );
       }

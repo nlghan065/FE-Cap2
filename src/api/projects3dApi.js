@@ -96,12 +96,56 @@ const extractPagedContent = (payload) => {
     };
   }
 
+  if (payload && typeof payload === "object" && !Array.isArray(payload?.content)) {
+    const singleProjectId = normalizeId(
+      payload?.id || payload?._id || payload?.projectId || payload?.project3DId,
+    );
+
+    if (singleProjectId) {
+      return {
+        content: [payload],
+        page: 0,
+        totalPages: 1,
+        totalElements: 1,
+      };
+    }
+  }
+
   return {
     content: Array.isArray(payload?.content) ? payload.content : [],
     page: payload?.page || 0,
     totalPages: payload?.totalPages || 1,
     totalElements: payload?.totalElements || 0,
   };
+};
+
+const extractProjectDetail = (payload, projectId = "") => {
+  const normalizedProjectId = normalizeId(projectId);
+
+  if (Array.isArray(payload)) {
+    return (
+      payload.find(
+        (item) =>
+          normalizeId(
+            item?.id || item?._id || item?.projectId || item?.project3DId,
+          ) === normalizedProjectId,
+      ) ||
+      payload[0] ||
+      null
+    );
+  }
+
+  const candidateList =
+    payload?.content ||
+    payload?.items ||
+    payload?.projects ||
+    payload?.data;
+
+  if (Array.isArray(candidateList)) {
+    return extractProjectDetail(candidateList, projectId);
+  }
+
+  return payload && typeof payload === "object" ? payload : null;
 };
 
 export async function createProject3DApi(payload) {
@@ -114,9 +158,14 @@ export async function createProject3DApi(payload) {
     String(payload?.title || payload?.name || "3D Design").trim() || "3D Design";
 
   return postWithPayloadFallback(PROJECTS_3D_ENDPOINT, [
+    stripEmptyFields(payload),
     stripEmptyFields({
       designRequestId,
       name: projectName,
+      sceneData: payload?.sceneData,
+      editedProducts: Array.isArray(payload?.editedProducts)
+        ? payload.editedProducts
+        : [],
     }),
     stripEmptyFields({
       designRequestId,
@@ -129,7 +178,6 @@ export async function createProject3DApi(payload) {
       sourceDesignRequestId: designRequestId,
       name: projectName,
     }),
-    stripEmptyFields(payload),
   ]);
 }
 
@@ -147,6 +195,11 @@ export async function saveProject3DEditedProductsApi(projectId, payload) {
   return postWithPayloadFallback(
     `${PROJECTS_3D_ENDPOINT}/${projectId}/edited-products`,
     [
+      stripEmptyFields(payload),
+      stripEmptyFields({
+        sceneData: payload?.sceneData,
+        editedProducts,
+      }),
       stripEmptyFields({
         editedProducts,
       }),
@@ -162,7 +215,6 @@ export async function saveProject3DEditedProductsApi(projectId, payload) {
         snapshot: payload?.snapshot,
         editedProducts,
       }),
-      stripEmptyFields(payload),
     ],
   );
 }
@@ -181,5 +233,5 @@ export async function getMyProjects3DApi({
 
 export async function getProject3DByIdApi(projectId) {
   const response = await apiClient.get(`${PROJECTS_3D_ENDPOINT}/${projectId}`);
-  return extractApiData(response);
+  return extractProjectDetail(extractApiData(response), projectId);
 }

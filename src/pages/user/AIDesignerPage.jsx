@@ -7,6 +7,7 @@ import {
   postAiRecommendApi,
 } from "../../api/aiRecommendApi";
 import { getUserByIdApi } from "../../api/authApi";
+import { getMyProjects3DApi } from "../../api/projects3dApi";
 import { getProfileApi } from "../../api/profileApi";
 import AIDesignerConfigStep from "../../components/user/ai-designer/AIDesignerConfigStep";
 import AIDesignerHero from "../../components/user/ai-designer/AIDesignerHero";
@@ -36,6 +37,30 @@ const getAuthToken = () =>
 
 const getCurrentUserId = () =>
   localStorage.getItem("userId") || sessionStorage.getItem("userId");
+
+const normalizeProjectLinkId = (value) => String(value || "").trim();
+
+const getAiDesignRequestId = (result) =>
+  normalizeProjectLinkId(
+    result?.id ||
+      result?._id ||
+      result?.requestId ||
+      result?.designRequestId ||
+      result?.requestMeta?.id,
+  );
+
+const getProject3DLinkId = (project) =>
+  normalizeProjectLinkId(
+    project?.id || project?._id || project?.projectId || project?.project3DId,
+  );
+
+const getProject3DDesignRequestId = (project) =>
+  normalizeProjectLinkId(
+    project?.designRequestId ||
+      project?.sourceDesignRequestId ||
+      project?.requestId ||
+      project?.designRequest?.id,
+  );
 
 const normalizeNumericInput = (value, { allowDecimal = true } = {}) => {
   const normalized = String(value ?? "").replace(",", ".");
@@ -677,17 +702,45 @@ function AIDesignerPage() {
     });
   };
 
-  const handleView3D = () => {
+  const handleView3D = async () => {
     if (!aiResults?.products?.length) {
       toast.error("Chưa có danh sách sản phẩm để dựng không gian 3D.");
       return;
     }
 
+    const sourceDesignRequestId = getAiDesignRequestId(aiResults);
+
+    if (sourceDesignRequestId) {
+      try {
+        const projectHistory = await getMyProjects3DApi({
+          page: 0,
+          size: 100,
+          sort: "createdAt,desc",
+        });
+        const matchedProject = (projectHistory?.content || []).find(
+          (project) =>
+            getProject3DDesignRequestId(project) === sourceDesignRequestId,
+        );
+        const matchedProjectId = getProject3DLinkId(matchedProject);
+
+        if (matchedProjectId) {
+          navigate(`/viewer/${matchedProjectId}`, {
+            state: {
+              project3DId: matchedProjectId,
+              sourceDesignRequestId,
+            },
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Find 3D project before opening viewer error:", error);
+      }
+    }
+
     navigate("/viewer", {
       state: {
         aiResults,
-        sourceDesignRequestId:
-          aiResults.id || aiResults.requestMeta?.id || "",
+        sourceDesignRequestId,
       },
     });
   };
