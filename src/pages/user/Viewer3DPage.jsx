@@ -171,6 +171,22 @@ const TABLE_LAMP_KEYS = [
   "den dau giuong",
 ];
 const FLOOR_LAMP_KEYS = ["floor lamp", "standing lamp", "den cay", "den san"];
+const CEILING_LAMP_KEYS = [
+  "ceiling lamp",
+  "ceiling light",
+  "ceiling fixture",
+  "pendant lamp",
+  "pendant light",
+  "flush mount",
+  "semi flush",
+  "chandelier",
+  "den tran",
+  "den op tran",
+  "den mam",
+  "den tha",
+  "den tha tran",
+  "den chum",
+];
 const TABLE_PLANT_KEYS = [
   "chau hoa",
   "chau cay",
@@ -307,6 +323,15 @@ const TABLE_CONSOLE_KEYS = [
 const TABLE_DINING_KEYS = ["dining table", "ban an", "ban tiec"];
 const SHELF_CATEGORY_KEYS = ["ke phong khach", "ke sach"];
 const DISPLAY_CABINET_KEYS = ["trung bay", "display cabinet", "china cabinet"];
+const SIDEBOARD_KEYS = [
+  "tu ly",
+  "sideboard",
+  "buffet",
+  "credenza",
+  "dresser",
+  "tu buffet",
+  "tu ruou",
+];
 const ROLLING_STORAGE_KEYS = [
   "co banh xe",
   "stocker",
@@ -322,7 +347,7 @@ const WIRE_RACK_KEYS = [
   "wire rack",
   "shoe rack",
 ];
-const GLASS_CABINET_KEYS = ["tu ly", ...DISPLAY_CABINET_KEYS];
+const GLASS_CABINET_KEYS = [...DISPLAY_CABINET_KEYS];
 const CATEGORY_TYPE_RULES = [
   { categories: ["tham"], type: "rug", color: "#c6b39b" },
   { categories: ["khung guong"], type: "mirror", color: "#cfbfac" },
@@ -539,6 +564,7 @@ const TYPE_DEFAULT_DIMENSIONS = {
 const LAMP_VARIANT_DEFAULT_DIMENSIONS = {
   floor: { width: 0.34, height: 1.6, depth: 0.34 },
   table: { width: 0.24, height: 0.46, depth: 0.24 },
+  ceiling: { width: 0.72, height: 0.68, depth: 0.72 },
 };
 
 const CHAIR_VARIANT_DEFAULT_DIMENSIONS = {
@@ -568,6 +594,7 @@ const PLANT_VARIANT_DEFAULT_DIMENSIONS = {
 const STORAGE_VARIANT_DEFAULT_DIMENSIONS = {
   nightstand: { width: 0.56, height: 0.62, depth: 0.42 },
   tvStand: { width: 1.75, height: 0.62, depth: 0.46 },
+  sideboard: { width: 1.58, height: 0.88, depth: 0.46 },
   shelfTall: { width: 0.96, height: 1.95, depth: 0.38 },
   shelfWide: { width: 1.72, height: 0.96, depth: 0.36 },
   displayShelf: { width: 1.21, height: 1.81, depth: 0.36 },
@@ -691,6 +718,11 @@ const LAMP_VARIANT_DIMENSION_LIMITS = {
     height: [0.26, 0.78],
     depth: [0.16, 0.38],
   },
+  ceiling: {
+    width: [0.32, 1.35],
+    height: [0.24, 1.1],
+    depth: [0.32, 1.35],
+  },
 };
 
 const CHAIR_VARIANT_DIMENSION_LIMITS = {
@@ -788,6 +820,11 @@ const STORAGE_VARIANT_DIMENSION_LIMITS = {
     height: [0.45, 0.82],
     depth: [0.34, 0.6],
   },
+  sideboard: {
+    width: [1, 2.2],
+    height: [0.68, 1.18],
+    depth: [0.32, 0.58],
+  },
   shelfTall: {
     width: [0.72, 1.28],
     height: [1.45, 2.25],
@@ -828,6 +865,7 @@ const STORAGE_VARIANT_DIMENSION_LIMITS = {
 const SURFACE_STORAGE_VARIANTS = [
   "nightstand",
   "tvStand",
+  "sideboard",
   "shelfWide",
   "displayShelf",
   "rollingShelf",
@@ -947,6 +985,11 @@ const TYPE_LAYOUTS = {
     { position: [2.15, 0, 1.55], rotation: -Math.PI / 2 },
   ],
   glassCabinet: [{ position: [-2.15, 0, -0.95], rotation: Math.PI / 2 }],
+  sideboard: [
+    { position: [1.95, 0, 1.15], rotation: -Math.PI / 2 },
+    { position: [-1.95, 0, 1.1], rotation: Math.PI / 2 },
+    { position: [0, 0, -2], rotation: Math.PI },
+  ],
   decor: [
     { position: [1.85, 0, 1.6], rotation: 0.25 },
     { position: [-1.85, 0, 1.55], rotation: -0.25 },
@@ -959,6 +1002,11 @@ const TYPE_LAYOUTS = {
   tableLamp: [
     { position: [1.45, 0, -1.15], rotation: -0.1 },
     { position: [-1.45, 0, -1.15], rotation: 0.1 },
+  ],
+  ceilingLamp: [
+    { position: [0, 0, -0.15], rotation: 0 },
+    { position: [-1.15, 0, -1.1], rotation: 0 },
+    { position: [1.15, 0, 0.85], rotation: 0 },
   ],
   plant: [
     { position: [1.55, 0, 1.6], rotation: 0 },
@@ -1328,21 +1376,47 @@ const isNightstandSource = (source) =>
 
 const getLampVariant = (product) => {
   const source = sourceTextOf(product);
+  const category = categoryTextOf(product);
   const rawHeight = parseDimension(product?.dimensions?.height);
   const rawWidth = parseDimension(
     product?.dimensions?.width ?? product?.dimensions?.length,
   );
+  const rawDepth = parseDimension(
+    product?.dimensions?.depth ?? product?.dimensions?.length,
+  );
+  const maxSpan = Math.max(rawWidth || 0, rawDepth || 0);
+  const hasTableLampKeyword = TABLE_LAMP_KEYS.some((keyword) =>
+    matchesKeyword(source, keyword),
+  );
+  const hasFloorLampKeyword = FLOOR_LAMP_KEYS.some((keyword) =>
+    matchesKeyword(source, keyword),
+  );
+  const hasCeilingLampKeyword =
+    category.includes("den tran") ||
+    CEILING_LAMP_KEYS.some((keyword) => matchesKeyword(source, keyword));
 
-  if (FLOOR_LAMP_KEYS.some((keyword) => matchesKeyword(source, keyword))) {
+  if (hasTableLampKeyword) {
+    return "table";
+  }
+
+  if (hasFloorLampKeyword) {
     return "floor";
   }
 
-  if (TABLE_LAMP_KEYS.some((keyword) => matchesKeyword(source, keyword))) {
-    return "table";
+  if (hasCeilingLampKeyword) {
+    return "ceiling";
   }
 
   if (rawHeight > 0 && rawHeight <= 90 && (!rawWidth || rawWidth <= 45)) {
     return "table";
+  }
+
+  if (rawHeight >= 110) {
+    return "floor";
+  }
+
+  if (rawHeight > 0 && rawHeight <= 45 && maxSpan >= 42) {
+    return "ceiling";
   }
 
   return "floor";
@@ -1591,6 +1665,13 @@ const getStorageVariant = (product) => {
   }
 
   if (
+    category.includes("tu ly") ||
+    SIDEBOARD_KEYS.some((keyword) => matchesKeyword(source, keyword))
+  ) {
+    return "sideboard";
+  }
+
+  if (
     category.includes("tu tivi") ||
     TV_STAND_KEYS.some((keyword) => matchesKeyword(source, keyword)) ||
     (rawWidth >= 120 && rawHeight > 0 && rawHeight <= 90 && rawDepth <= 65)
@@ -1635,11 +1716,11 @@ const getStorageVariant = (product) => {
   }
 
   if (
-    ["drawer", "dresser", "sideboard", "buffet"].some((keyword) =>
+    ["drawer", "dresser", "sideboard", "buffet", "credenza"].some((keyword) =>
       matchesKeyword(source, keyword),
     )
   ) {
-    return "wardrobe";
+    return "sideboard";
   }
 
   return "wardrobe";
@@ -2249,6 +2330,7 @@ const getEligibleAnchorsForAccessory = (item, anchors) => {
       return [
         "nightstand",
         "tvStand",
+        "sideboard",
         "shelfWide",
         "displayShelf",
         "rollingShelf",
@@ -2267,6 +2349,7 @@ const getEligibleAnchorsForAccessory = (item, anchors) => {
       return [
         "nightstand",
         "tvStand",
+        "sideboard",
         "shelfWide",
         "displayShelf",
         "rollingShelf",
@@ -2289,6 +2372,7 @@ const getEligibleAnchorsForAccessory = (item, anchors) => {
         ? [
             "nightstand",
             "tvStand",
+            "sideboard",
             "shelfWide",
             "displayShelf",
             "rollingShelf",
@@ -2297,6 +2381,7 @@ const getEligibleAnchorsForAccessory = (item, anchors) => {
         : [
             "nightstand",
             "tvStand",
+            "sideboard",
             "shelfWide",
             "displayShelf",
             "rollingShelf",
@@ -2333,6 +2418,7 @@ const getManualAccessorySurfaceY = (item, anchor, roomDimensions = null) => {
   switch (anchor.storageVariant) {
     case "nightstand":
     case "tvStand":
+    case "sideboard":
       return positionY + dimensions.height + storageGap;
     case "shelfWide":
       return positionY + dimensions.height + storageGap;
@@ -2482,6 +2568,7 @@ const getSurfacePlacementForAccessory = (
     switch (anchor.storageVariant) {
       case "nightstand":
       case "tvStand":
+      case "sideboard":
         positionY += dimensions.height + 0.03;
         break;
       case "shelfWide":
@@ -2785,6 +2872,7 @@ function FurnitureModel({
   const interactionModeRef = useRef(null);
   const rotatePointerXRef = useRef(0);
   const active = selected || hovered;
+  const room = useMemo(() => getRoomMetrics(roomDimensions), [roomDimensions]);
   const dimensions = useMemo(
     () => getItemDimensions(item, roomDimensions),
     [item, roomDimensions],
@@ -2793,7 +2881,6 @@ function FurnitureModel({
     0.48,
     Math.max(dimensions.width, dimensions.depth) * 0.58,
   );
-  const labelHeight = Math.min(1.9, dimensions.height + 0.5);
   const baseColor = item.color;
   const woodColor = "#7b583e";
   const darkWoodColor = "#4d3727";
@@ -2807,6 +2894,10 @@ function FurnitureModel({
   const plantVariant = item.plantVariant || "floor";
   const tableVariant = item.tableVariant || "rect";
   const normalizedSource = sourceTextOf(item);
+  const labelHeight =
+    item.type === "lamp" && lampVariant === "ceiling"
+      ? Math.max(room.height - dimensions.height * 0.28, 1.35)
+      : Math.min(1.9, dimensions.height + 0.5);
   const textileVariant =
     item.type === "textile" ? getTextileVariant(item) : "folded";
   const componentVariant =
@@ -2900,7 +2991,9 @@ function FurnitureModel({
     if (!groupRef.current) return;
 
     const targetY =
-      active && !interactionModeRef.current
+      active &&
+      !interactionModeRef.current &&
+      !(item.type === "lamp" && lampVariant === "ceiling")
         ? Math.sin(state.clock.elapsedTime * 2.4) * 0.018
         : 0;
     groupRef.current.position.y +=
@@ -5280,6 +5373,98 @@ function FurnitureModel({
                 </mesh>
               ))}
             </>
+          ) : storageVariant === "sideboard" ? (
+            <>
+              <mesh castShadow position={[0, 0.04, 0]}>
+                <boxGeometry
+                  args={[dimensions.width * 0.98, 0.08, dimensions.depth * 0.98]}
+                />
+                <ModelMaterial
+                  color="#c8a867"
+                  roughness={0.32}
+                  metalness={0.22}
+                />
+              </mesh>
+              <RoundedBox
+                castShadow
+                args={[
+                  dimensions.width,
+                  dimensions.height * 0.76,
+                  dimensions.depth,
+                ]}
+                radius={0.04}
+                position={[0, dimensions.height * 0.38 + 0.08, 0]}
+              >
+                <ModelMaterial color={baseColor} roughness={0.48} />
+              </RoundedBox>
+              <mesh
+                castShadow
+                position={[0, dimensions.height * 0.78 + 0.12, 0]}
+              >
+                <boxGeometry
+                  args={[
+                    dimensions.width * 1.02,
+                    0.06,
+                    dimensions.depth * 1.02,
+                  ]}
+                />
+                <ModelMaterial color={softAccent} roughness={0.42} />
+              </mesh>
+              {[-0.36, -0.12, 0.12, 0.36].map((x, index) => (
+                <group key={`sideboard-door-${index}`}>
+                  <mesh
+                    castShadow
+                    position={[
+                      x * dimensions.width,
+                      dimensions.height * 0.38 + 0.08,
+                      dimensions.depth / 2 + 0.016,
+                    ]}
+                  >
+                    <boxGeometry
+                      args={[
+                        dimensions.width * 0.21,
+                        dimensions.height * 0.58,
+                        0.03,
+                      ]}
+                    />
+                    <ModelMaterial color={baseColor} roughness={0.42} />
+                  </mesh>
+                  <mesh
+                    castShadow
+                    position={[
+                      x * dimensions.width,
+                      dimensions.height * 0.38 + 0.08,
+                      dimensions.depth / 2 + 0.038,
+                    ]}
+                  >
+                    <boxGeometry args={[0.018, dimensions.height * 0.22, 0.02]} />
+                    <ModelMaterial
+                      color={metalColor}
+                      roughness={0.28}
+                      metalness={0.24}
+                    />
+                  </mesh>
+                </group>
+              ))}
+              {[-0.24, 0, 0.24].map((x, index) => (
+                <mesh
+                  castShadow
+                  key={`sideboard-trim-${index}`}
+                  position={[
+                    x * dimensions.width,
+                    dimensions.height * 0.38 + 0.08,
+                    dimensions.depth / 2 + 0.034,
+                  ]}
+                >
+                  <boxGeometry args={[0.014, dimensions.height * 0.62, 0.018]} />
+                  <ModelMaterial
+                    color="#c8a867"
+                    roughness={0.32}
+                    metalness={0.22}
+                  />
+                </mesh>
+              ))}
+            </>
           ) : storageVariant === "displayShelf" ? (
             <>
               {[-1, 1].map((x, index) => (
@@ -6035,6 +6220,68 @@ function FurnitureModel({
                 position={[0, dimensions.height * 0.7, 0]}
               />
             </>
+          ) : lampVariant === "ceiling" ? (
+            <>
+              <mesh castShadow position={[0, room.height - 0.03, 0]}>
+                <cylinderGeometry
+                  args={[
+                    dimensions.width * 0.12,
+                    dimensions.width * 0.16,
+                    0.06,
+                    24,
+                  ]}
+                />
+                <ModelMaterial
+                  color={metalColor}
+                  roughness={0.32}
+                  metalness={0.26}
+                />
+              </mesh>
+              <mesh
+                castShadow
+                position={[0, room.height - dimensions.height * 0.34, 0]}
+              >
+                <cylinderGeometry
+                  args={[0.016, 0.02, Math.max(dimensions.height * 0.7, 0.18), 18]}
+                />
+                <ModelMaterial
+                  color="#30323a"
+                  roughness={0.28}
+                  metalness={0.24}
+                />
+              </mesh>
+              <mesh
+                castShadow
+                position={[0, room.height - dimensions.height * 0.72, 0]}
+              >
+                <cylinderGeometry
+                  args={[
+                    dimensions.width * 0.28,
+                    dimensions.width * 0.34,
+                    dimensions.height * 0.16,
+                    28,
+                  ]}
+                />
+                <ModelMaterial
+                  color="#c8a867"
+                  roughness={0.3}
+                  metalness={0.24}
+                />
+              </mesh>
+              <mesh
+                castShadow
+                position={[0, room.height - dimensions.height * 0.82, 0]}
+              >
+                <sphereGeometry args={[dimensions.width * 0.3, 24, 24]} />
+                <ModelMaterial color={softAccent} roughness={0.44} />
+              </mesh>
+              <pointLight
+                color="#fff1c2"
+                distance={4.8}
+                intensity={active ? 1.22 : 0.8}
+                position={[0, room.height - dimensions.height * 0.88, 0]}
+              />
+            </>
           ) : (
             <>
               <mesh castShadow position={[0, 0.03, 0]}>
@@ -6373,8 +6620,12 @@ function Viewer3DPage() {
         meta.type === "storageBox" ? getStorageBoxVariant(product) : undefined;
       const placementKey =
         storageVariant ||
-        (meta.type === "lamp" && lampVariant === "table"
-          ? "tableLamp"
+        (meta.type === "lamp"
+          ? lampVariant === "table"
+            ? "tableLamp"
+            : lampVariant === "ceiling"
+              ? "ceilingLamp"
+              : meta.type
           : meta.type === "plant" && plantVariant === "table"
             ? "tablePlant"
             : meta.type);
