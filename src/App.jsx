@@ -87,6 +87,7 @@ function App() {
             <Route path="/ai-designer" element={<AIDesignerPage />} />
             <Route path="/ai-design" element={<AIDesignerPage />} />
             <Route path="/viewer" element={<Viewer3DPage />} />
+            <Route path="/viewer/:projectId" element={<Viewer3DPage />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/cart2" element={<CartStep2 />} />
             <Route path="/payment" element={<CartStep3 />} />

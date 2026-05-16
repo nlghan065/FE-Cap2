@@ -686,6 +686,8 @@ function AIDesignerPage() {
     navigate("/viewer", {
       state: {
         aiResults,
+        sourceDesignRequestId:
+          aiResults.id || aiResults.requestMeta?.id || "",
       },
     });
   };

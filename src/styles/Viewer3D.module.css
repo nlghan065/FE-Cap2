@@ -96,7 +96,7 @@
 
 .viewerShell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-columns: minmax(0, 2.5fr) minmax(420px, 1fr);
   min-height: 0;
   height: 100%;
   overflow: hidden;
@@ -219,6 +219,8 @@
 .summaryBlock,
 .detailBlock,
 .productList {
+  width: 100%;
+  min-width: 0;
   border: 1px solid rgba(54, 67, 63, 0.12);
   border-radius: 8px;
   background: #ffffff;
@@ -252,35 +254,52 @@
 }
 
 .detailBlock {
-  padding: 16px;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
 }
 
 .detailMeta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 12px;
+  text-align: center;
+}
+
+.detailMeta > span {
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .detailBlock img {
   display: block;
   width: 100%;
   height: 190px;
-  margin-bottom: 14px;
   border-radius: 8px;
   object-fit: cover;
 }
 
 .detailBlock h2 {
-  margin: 8px 0;
-  font-size: 21px;
-  line-height: 1.28;
+  margin: 0;
+  font-size: clamp(22px, 1.45vw, 26px);
+  line-height: 1.32;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .detailBlock > strong {
   display: block;
   color: #0f766e;
   font-size: 22px;
+  text-align: center;
+}
+
+.detailBlock p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .aiPlacementChip,
@@ -296,6 +315,7 @@
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .aiPlacementChip {
@@ -319,18 +339,18 @@
 }
 
 .manualPlacementHint {
-  margin-top: 14px;
   padding: 12px 13px;
   border-radius: 8px;
   background: #f7f3ea;
   color: #546560;
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .detailBlock dl {
   display: grid;
   gap: 10px;
-  margin: 16px 0;
+  margin: 0;
 }
 
 .detailBlock dl div {
@@ -351,15 +371,24 @@
 .detailBlock dd {
   margin: 0;
   color: #263332;
+  overflow-wrap: anywhere;
 }
 
 .detailBlock button {
   width: 100%;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.detailBlock button svg {
+  flex: 0 0 auto;
 }
 
 .detailActions {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .rotationActions {
@@ -373,37 +402,157 @@
 }
 
 .productList {
-  padding: 14px;
+  padding: 20px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 244, 237, 0.98));
 }
 
 .productList h3 {
-  margin: 2px 2px 12px;
-  font-size: 18px;
+  margin: 2px 2px 14px;
+  color: #243332;
+  font-size: 20px;
 }
 
-.productList button {
-  width: 100%;
-  justify-content: space-between;
+.productListItem + .productListItem {
+  margin-top: 14px;
+}
+
+.productListItem {
+  display: grid;
   gap: 12px;
-  margin-top: 8px;
-  padding: 12px;
-  border-radius: 8px;
-  background: #f7f5f0;
-  color: #22312f;
-  text-align: left;
+  padding: 16px;
+  border: 1px solid rgba(54, 67, 63, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 28px rgba(33, 42, 39, 0.06);
 }
 
-.productList button span {
+.productListItemActive {
+  border-color: rgba(15, 118, 110, 0.28);
+  box-shadow:
+    0 16px 32px rgba(18, 90, 84, 0.12),
+    inset 0 0 0 1px rgba(15, 118, 110, 0.14);
+}
+
+.productCurrentButton {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f9f7f2, #f3eee6);
+  color: #22312f;
+  text-align: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+.productCurrentButton span,
+.productCurrentButton strong,
+.productCurrentButton small {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+.productCurrentButton strong,
+.productCurrentButton small {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.productCurrentButton strong {
+  width: 100%;
+  display: -webkit-box;
+  color: #0f766e;
+  font-size: 16px;
+  line-height: 1.4;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.productCurrentButton small {
+  color: #1f2f2d;
+  font-size: 14px;
+  font-weight: 700;
   white-space: nowrap;
 }
 
-.productList button strong {
-  flex: 0 0 auto;
-  color: #0f766e;
+.productCurrentLabel {
+  color: #6f746d;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.productStatusDescription {
+  margin: 0;
+  color: #5b6a66;
   font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.productReplacementControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "type type"
+    "select action";
+  gap: 10px;
+  align-items: stretch;
+}
+
+.productTypeLabel {
+  grid-area: type;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #efe6d7;
+  color: #344240;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.productReplacementControls select {
+  grid-area: select;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(112, 104, 90, 0.18);
+  border-radius: 12px;
+  background: #fffdfa;
+  color: #233331;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.replaceButton {
+  grid-area: action;
+  width: auto !important;
+  min-height: 44px;
+  min-width: 110px;
+  margin-top: 0 !important;
+  padding: 0 18px !important;
+  white-space: nowrap;
+  border-radius: 12px !important;
+}
+
+.productReplacementHint {
+  margin: 0;
+  color: #6b7874;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .productList .activeItem {
@@ -417,11 +566,12 @@
 
 .productList select {
   width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  background: #f7f5f0;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: #fffdfa;
   color: #22312f;
-  border: 1px solid rgba(54, 67, 63, 0.13);
+  border: 1px solid rgba(112, 104, 90, 0.18);
   font-size: 14px;
 }
 
@@ -556,5 +706,19 @@
 
   .sidePanel {
     padding: 14px;
+  }
+
+  .productReplacementControls {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "type"
+      "select"
+      "action";
+    gap: 8px;
+  }
+
+  .replaceButton {
+    width: 100% !important;
+    padding: 0 12px !important;
   }
 }

@@ -365,13 +365,13 @@ const normalizeDimensions = (dimensions) => {
   };
 };
 
-const formatReasoningText = (reasoning) => {
+const formatOptionalReasoningText = (reasoning) => {
   if (!reasoning) {
-    return DEFAULT_ROOM_ANALYSIS.reasoning;
+    return "";
   }
 
   if (typeof reasoning === "string") {
-    return reasoning;
+    return reasoning.trim();
   }
 
   if (typeof reasoning === "object") {
@@ -380,13 +380,56 @@ const formatReasoningText = (reasoning) => {
       reasoning.colorJustification,
       reasoning.densityJustification,
       reasoning.userProfileNote,
+      reasoning.reason,
+      reasoning.message,
+      reasoning.note,
     ]
       .filter(Boolean)
-      .join(" ");
+      .join(" ")
+      .trim();
   }
 
-  return String(reasoning);
+  return String(reasoning).trim();
 };
+
+const formatReasoningText = (reasoning) =>
+  formatOptionalReasoningText(reasoning) || DEFAULT_ROOM_ANALYSIS.reasoning;
+
+const getProductReasonText = (item) =>
+  [
+    item?.reason,
+    item?.reasoning,
+    item?.aiReason,
+    item?.recommendationReason,
+    item?.explanation,
+    item?.description,
+    item?.product?.reason,
+    item?.product?.reasoning,
+    item?.product?.aiReason,
+    item?.product?.recommendationReason,
+    item?.product?.explanation,
+    item?.product?.description,
+  ]
+    .map(formatOptionalReasoningText)
+    .find(Boolean) || "";
+
+const getLayoutItemReasonText = (item) =>
+  [
+    item?.layoutReasoning,
+    item?.layout_reasoning,
+    item?.placementReason,
+    item?.placement_reason,
+    item?.reasoning,
+    item?.reason,
+    item?.explanation,
+    item?.message,
+    item?.note,
+    item?.placement?.reasoning,
+    item?.placement?.reason,
+    item?.placement?.message,
+  ]
+    .map(formatOptionalReasoningText)
+    .find(Boolean) || "";
 
 const formatAiProductDimensions = (dimensions) => {
   const normalized = normalizeDimensions(dimensions);
@@ -526,6 +569,51 @@ const normalizeRecommendations = (payload, products) => {
   }
 
   return ["AI đã trả kết quả nhưng chưa có phần giải thích chi tiết."];
+};
+
+const normalizeColorPalette = (payload) => {
+  const rawPaletteSources = [
+    payload?.dominantColors,
+    payload?.colorPalette,
+    payload?.palette,
+    payload?.colors,
+    payload?.roomAnalysis?.dominantColors,
+    payload?.roomAnalysis?.colorPalette,
+    payload?.roomAnalysis?.palette,
+    payload?.roomAnalysis?.colors,
+  ];
+  const rawPalette =
+    rawPaletteSources.find((value) => Array.isArray(value) && value.length) ||
+    [];
+
+  if (!rawPalette.length) {
+    return DEFAULT_PALETTE;
+  }
+
+  const normalizedPalette = rawPalette
+    .map((item, index) => {
+      if (typeof item === "string") {
+        return {
+          name:
+            index === 0
+              ? "Primary"
+              : index === 1
+                ? "Neutral"
+                : "Accent",
+          color: item,
+          percentage: 0,
+        };
+      }
+
+      return {
+        name: item?.name || item?.label || `Color ${index + 1}`,
+        color: item?.color || item?.hex || item?.value || "",
+        percentage: item?.percentage || 0,
+      };
+    })
+    .filter((item) => item.color);
+
+  return normalizedPalette.length ? normalizedPalette : DEFAULT_PALETTE;
 };
 
 const unwrapLayoutPayload = (payload) => {
@@ -898,6 +986,7 @@ const normalizeAiLayoutResult = (layoutPayload, roomAnalysis) => {
             productId: String(getLayoutProductId(item) || ""),
             idAliases,
             name: getLayoutProductName(item),
+            layoutReasoning: getLayoutItemReasonText(item),
             position: null,
             rotation,
             rotationY: rotation,
@@ -922,6 +1011,7 @@ const normalizeAiLayoutResult = (layoutPayload, roomAnalysis) => {
         productId: String(getLayoutProductId(item) || ""),
         idAliases,
         name: getLayoutProductName(item),
+        layoutReasoning: getLayoutItemReasonText(item),
         position,
         rotation,
         rotationY: rotation,
@@ -1039,6 +1129,7 @@ const normalizeProducts = (payload) => {
             item?.matchScore,
         ) || null,
       modelUrl: getProductModelUrl(item),
+      productReason: getProductReasonText(item),
       reason:
         item?.reason ||
         item?.reasoning ||
@@ -1145,6 +1236,11 @@ export function mergeAiLayoutResult(aiResult, layoutPayload) {
     return {
       ...product,
       modelUrl: product.modelUrl || placement.modelUrl || "",
+      layoutReasoning:
+        placement.layoutReasoning ||
+        product.layoutReasoning ||
+        product.layoutPlacement?.layoutReasoning ||
+        "",
       layoutPlacement: {
         ...placement,
         productId: placement.productId || matchedProductId || productId,
@@ -1153,6 +1249,7 @@ export function mergeAiLayoutResult(aiResult, layoutPayload) {
         rotationY: placement.rotation,
         score: placement.score,
         modelUrl: placement.modelUrl || product.modelUrl || "",
+        layoutReasoning: placement.layoutReasoning || "",
         placement: placement.placement || { mode: "floor", targetId: "" },
         canSupportItems: placement.canSupportItems,
         supportSurface: placement.supportSurface,
@@ -1202,7 +1299,7 @@ export function normalizeAiRecommendResult(payload) {
     products,
     totalPrice,
     roomAnalysis: normalizeRoomAnalysisInMeters(payload || {}),
-    colorPalette:
+    _legacyColorPalette:
       Array.isArray(payload?.dominantColors) && payload.dominantColors.length
         ? payload.dominantColors.map((color, index) => ({
             name: `Màu ${index + 1}`,
@@ -1210,6 +1307,7 @@ export function normalizeAiRecommendResult(payload) {
             percentage: 0,
           }))
         : DEFAULT_PALETTE,
+    colorPalette: normalizeColorPalette(payload || {}),
     recommendations: normalizeRecommendations(payload || {}, products),
     requestMeta: {
       id:

@@ -385,13 +385,19 @@ export async function postAiRecommendApi({
 export async function getMyDesignRequestsApi({
   page = 0,
   size = 10,
-  sort = "createdAt,desc",
+  sort = "createdAt, desc",
 } = {}) {
   const response = await apiClient.get(`${AI_RECOMMEND_ENDPOINT}/my`, {
     params: { page, size, sort },
   });
 
   return extractPagedContent(extractApiData(response));
+}
+
+export async function getDesignRequestByIdApi(id) {
+  const response = await apiClient.get(`${AI_RECOMMEND_ENDPOINT}/${id}`);
+
+  return extractApiData(response);
 }
 
 export async function postAiLayoutFromRecommendationApi({
