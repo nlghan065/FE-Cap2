@@ -51,6 +51,11 @@ function AIDesignerConfigStep({
     return Number.isFinite(parsed) ? parsed : null;
   };
 
+  const widthValue = getNumericValue(formData.dimensions.width);
+  const lengthValue = getNumericValue(formData.dimensions.length);
+  const hasInvalidRoomProportion =
+    widthValue !== null && lengthValue !== null && lengthValue < widthValue;
+
   const getDimensionHint = (field) => {
     const rule = dimensionRules[field];
     const value = formData.dimensions[field];
@@ -119,10 +124,24 @@ function AIDesignerConfigStep({
     };
   };
 
-  const widthHint = getDimensionHint("width");
-  const lengthHint = getDimensionHint("length");
+  let widthHint = getDimensionHint("width");
+  let lengthHint = getDimensionHint("length");
   const heightHint = getDimensionHint("height");
   const ageHint = getAgeHint();
+
+  if (hasInvalidRoomProportion && !widthHint.invalid && !lengthHint.invalid) {
+    widthHint = {
+      text:
+        "Chiều rộng không được lớn hơn chiều dài.",
+      invalid: true,
+    };
+    lengthHint = {
+      text:
+        "Chiều dài không được ngắn hơn chiều rộng.",
+      invalid: true,
+    };
+  }
+
   const isDisabled =
     loading ||
     !formData.roomType ||

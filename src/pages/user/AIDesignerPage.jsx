@@ -430,6 +430,12 @@ function AIDesignerPage() {
       toast.error("Length phải từ 2–12m");
       return;
     }
+    if (l < w) {
+      toast.error(
+        "Chiều dài phòng không được ngắn hơn chiều rộng.",
+      );
+      return;
+    }
     if (h < 2 || h > 4) {
       toast.error("Height phải từ 2–4m");
       return;
