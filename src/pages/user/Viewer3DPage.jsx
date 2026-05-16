@@ -862,24 +862,26 @@ const STORAGE_VARIANT_DIMENSION_LIMITS = {
   },
 };
 
-const SURFACE_STORAGE_VARIANTS = [
+const SUPPORT_TYPES = [
+  "table",
+  "desk",
   "nightstand",
-  "tvStand",
-  "sideboard",
-  "shelfWide",
-  "displayShelf",
-  "rollingShelf",
-  "wireRack",
-  "glassCabinet",
-  "shelfTall",
+  "cabinet",
+  "shelf",
+  "dresser",
+  "bench",
+  "bed",
+  "sofa",
 ];
 
-const ACCESSORY_SURFACE_TYPES = ["tray", "vase", "storageBox", "textile"];
-
-const isSurfaceAccessoryItem = (item) =>
-  ACCESSORY_SURFACE_TYPES.includes(item?.type) ||
-  (item?.type === "lamp" && item?.lampVariant === "table") ||
-  (item?.type === "plant" && item?.plantVariant === "table");
+const DECOR_TYPES = [
+  "table_lamp",
+  "vase",
+  "plant",
+  "storage_box",
+  "tray",
+  "textile",
+];
 
 const TYPE_LAYOUTS = {
   textile: [
@@ -1313,7 +1315,9 @@ const clampItemPositionToRoom = (
 
   return [
     clamp(position[0], Math.min(minX, maxX), Math.max(minX, maxX)),
-    getItemFloorOffset(item),
+    typeof position[1] === "number" && Number.isFinite(position[1])
+      ? position[1]
+      : getItemFloorOffset(item),
     clamp(position[2], Math.min(minZ, maxZ), Math.max(minZ, maxZ)),
   ];
 };
@@ -2275,6 +2279,311 @@ const normalizeViewerLayoutRotation = (value) => {
   return parsed;
 };
 
+const normalizeLinkId = (value) => {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  const normalized = String(value).trim();
+  return normalized && normalized.toLowerCase() !== "undefined" ? normalized : "";
+};
+
+const normalizePlacementMode = (value, fallback = "floor") => {
+  const normalized = normalizeText(value || fallback);
+
+  if (
+    [
+      "on_top_of",
+      "on top of",
+      "ontopof",
+      "surface",
+      "tabletop",
+      "top",
+    ].includes(normalized)
+  ) {
+    return "on_top_of";
+  }
+
+  return "floor";
+};
+
+const normalizeSupportSurface = (value) => {
+  const normalized = normalizeText(value);
+
+  if (!normalized) return "";
+  if (normalized.includes("shelf")) return "shelf";
+  if (normalized.includes("top")) return "top";
+
+  return "";
+};
+
+const getPlacementConfigSource = (item) =>
+  item?.placement && typeof item.placement === "object" ? item.placement : item;
+
+const getPlacementTargetId = (item) => {
+  const source = getPlacementConfigSource(item);
+
+  return (
+    normalizeLinkId(
+      source?.targetId ||
+        source?.target_id ||
+        source?.parentId ||
+        source?.parent_id ||
+        source?.anchorId ||
+        source?.anchor_id ||
+        source?.supportId ||
+        source?.support_id ||
+        source?.targetItemId ||
+        source?.target_item_id ||
+        source?.target?.id,
+    ) || ""
+  );
+};
+
+const getDecorType = (item) => {
+  if (item?.type === "lamp" && item?.lampVariant === "table") {
+    return "table_lamp";
+  }
+
+  if (item?.type === "plant" && item?.plantVariant === "table") {
+    return "plant";
+  }
+
+  if (item?.type === "vase") {
+    return "vase";
+  }
+
+  if (item?.type === "storageBox") {
+    return "storage_box";
+  }
+
+  if (item?.type === "tray") {
+    return "tray";
+  }
+
+  if (
+    item?.type === "textile" &&
+    (!getTextileVariant(item) || getTextileVariant(item) !== "curtain")
+  ) {
+    return "textile";
+  }
+
+  return "";
+};
+
+const getSupportType = (item) => {
+  if (item?.supportType) {
+    return item.supportType;
+  }
+
+  if (item?.type === "table") {
+    return item.tableVariant === "desk" ? "desk" : "table";
+  }
+
+  if (item?.type === "storage") {
+    switch (item.storageVariant) {
+      case "nightstand":
+        return "nightstand";
+      case "displayShelf":
+      case "rollingShelf":
+      case "wireRack":
+      case "shelfTall":
+      case "shelfWide":
+        return "shelf";
+      case "sideboard":
+        return "dresser";
+      default:
+        return "cabinet";
+    }
+  }
+
+  if (item?.type === "bench") return "bench";
+  if (item?.type === "bed") return "bed";
+  if (item?.type === "sofa") return "sofa";
+
+  return "";
+};
+
+const getItemSupportSurface = (item) => {
+  const explicitSurface = normalizeSupportSurface(item?.supportSurface);
+
+  if (explicitSurface) {
+    return explicitSurface;
+  }
+
+  if (item?.type === "table") {
+    return "top";
+  }
+
+  if (item?.type === "storage") {
+    switch (item.storageVariant) {
+      case "displayShelf":
+      case "rollingShelf":
+      case "wireRack":
+      case "glassCabinet":
+      case "shelfTall":
+      case "shelfWide":
+        return "shelf";
+      default:
+        return "top";
+    }
+  }
+
+  if (["bench", "bed", "sofa"].includes(item?.type)) {
+    return "top";
+  }
+
+  return "";
+};
+
+const getCanSupportItems = (item) => {
+  if (typeof item?.canSupportItems === "boolean") {
+    return item.canSupportItems;
+  }
+
+  return SUPPORT_TYPES.includes(getSupportType(item));
+};
+
+const getDefaultPlacementMode = (item) =>
+  DECOR_TYPES.includes(getDecorType(item)) ? "on_top_of" : "floor";
+
+const getItemPlacementConfig = (item) => {
+  const source = getPlacementConfigSource(item);
+  const targetId = getPlacementTargetId(item);
+  const rawMode =
+    source?.mode ||
+    source?.placementMode ||
+    source?.placement_mode ||
+    item?.placementMode ||
+    item?.placement_mode;
+
+  return {
+    mode: normalizePlacementMode(rawMode || (targetId ? "on_top_of" : getDefaultPlacementMode(item))),
+    targetId,
+  };
+};
+
+const isSurfaceAccessoryItem = (item) =>
+  getItemPlacementConfig(item).mode === "on_top_of" &&
+  DECOR_TYPES.includes(getDecorType(item));
+
+const getSupportSurfaceLevels = (anchor, item, accessoryIndex = 0) => {
+  if (getItemSupportSurface(anchor) !== "shelf") {
+    return [1];
+  }
+
+  switch (anchor.storageVariant) {
+    case "shelfWide":
+      return item?.type === "storageBox" ? [0.23, 0.77] : [1];
+    case "displayShelf":
+      return [0.14, 0.46, 0.8];
+    case "rollingShelf":
+      return [0.16, 0.48, 0.8];
+    case "wireRack":
+      return [0.16, 0.38, 0.6, 0.82];
+    case "shelfTall":
+      return [0.06, 0.26, 0.46, 0.66, 0.86];
+    case "glassCabinet":
+      return [0.18, 0.42, 0.66];
+    default:
+      return [Math.max(0.2, Math.min(1, 1 - accessoryIndex * 0.12))];
+  }
+};
+
+const getSupportTopHeight = (anchor, dimensions) => {
+  if (anchor?.type === "sofa") {
+    return dimensions.height * 0.48;
+  }
+
+  if (anchor?.type === "bench") {
+    return dimensions.height * 0.78;
+  }
+
+  if (anchor?.type === "bed") {
+    return 0.3;
+  }
+
+  return dimensions.height;
+};
+
+const canPlaceOnTop = (child, parent, roomDimensions = null) => {
+  if (!isSurfaceAccessoryItem(child) || !getCanSupportItems(parent)) {
+    return false;
+  }
+
+  const supportType = getSupportType(parent);
+  const decorType = getDecorType(child);
+
+  if (!SUPPORT_TYPES.includes(supportType) || !DECOR_TYPES.includes(decorType)) {
+    return false;
+  }
+
+  const childDimensions = getItemDimensions(child, roomDimensions);
+  const parentDimensions = getItemDimensions(parent, roomDimensions);
+  const widthAllowance = Math.max(parentDimensions.width - 0.06, parentDimensions.width * 0.82);
+  const depthAllowance = Math.max(parentDimensions.depth - 0.06, parentDimensions.depth * 0.82);
+
+  return (
+    childDimensions.width <= widthAllowance &&
+    childDimensions.depth <= depthAllowance
+  );
+};
+
+const findNearestSupport = (
+  child,
+  furnitureList,
+  roomDimensions = null,
+  desiredPosition = null,
+) => {
+  const eligible = furnitureList.filter((item) =>
+    canPlaceOnTop(child, item, roomDimensions),
+  );
+
+  if (!eligible.length) {
+    return null;
+  }
+
+  const referencePosition =
+    desiredPosition ||
+    (Array.isArray(child?.position) ? child.position : null) || [0, 0, 0];
+
+  return eligible.reduce((bestMatch, candidate) => {
+    const dx = referencePosition[0] - candidate.position[0];
+    const dz = referencePosition[2] - candidate.position[2];
+    const distance = dx * dx + dz * dz;
+
+    if (!bestMatch || distance < bestMatch.distance) {
+      return {
+        distance,
+        item: candidate,
+      };
+    }
+
+    return bestMatch;
+  }, null)?.item || null;
+};
+
+const resolvePlacementTargetAnchor = (
+  child,
+  anchors,
+  roomDimensions = null,
+  desiredPosition = null,
+) => {
+  const { targetId } = getItemPlacementConfig(child);
+
+  if (targetId) {
+    const matchedAnchor = anchors.find(
+      (anchor) => normalizeLinkId(anchor.id) === targetId,
+    );
+
+    if (matchedAnchor && canPlaceOnTop(child, matchedAnchor, roomDimensions)) {
+      return matchedAnchor;
+    }
+  }
+
+  return findNearestSupport(child, anchors, roomDimensions, desiredPosition);
+};
+
 const getAiLayoutPlacement = (product) => {
   const source =
     product?.layoutPlacement ||
@@ -2292,8 +2601,16 @@ const getAiLayoutPlacement = (product) => {
     positionSource,
     getMeasurementUnit(source || product, "m"),
   );
+  const placement = getItemPlacementConfig(source || product);
+  const canSupportItems =
+    typeof source?.canSupportItems === "boolean"
+      ? source.canSupportItems
+      : undefined;
+  const supportSurface = normalizeSupportSurface(
+    source?.supportSurface || source?.support_surface,
+  );
 
-  if (!position) {
+  if (!position && !(placement.mode === "on_top_of" && placement.targetId)) {
     return null;
   }
 
@@ -2304,6 +2621,9 @@ const getAiLayoutPlacement = (product) => {
     ),
     modelUrl: source?.modelUrl || product?.modelUrl || "",
     score: source?.score ?? product?.layoutScore,
+    placement,
+    canSupportItems,
+    supportSurface: supportSurface || undefined,
   };
 };
 
@@ -2311,130 +2631,33 @@ const getSurfaceAnchorItems = (items, excludedId = null) =>
   items.filter(
     (item) =>
       String(item.id) !== String(excludedId) &&
-      (["table", "sofa", "bench", "bed"].includes(item.type) ||
-        (item.type === "storage" &&
-          SURFACE_STORAGE_VARIANTS.includes(item.storageVariant))),
+      getCanSupportItems(item),
   );
 
-const getEligibleAnchorsForAccessory = (item, anchors) => {
-  const textileVariant =
-    item.type === "textile" ? getTextileVariant(item) : null;
-  const isTableLamp = item.type === "lamp" && item.lampVariant === "table";
-  const isTablePlant = item.type === "plant" && item.plantVariant === "table";
+const getEligibleAnchorsForAccessory = (
+  item,
+  anchors,
+  roomDimensions = null,
+) => anchors.filter((anchor) => canPlaceOnTop(item, anchor, roomDimensions));
 
-  return anchors.filter((anchor) => {
-    if (isTableLamp || isTablePlant) {
-      if (anchor.type === "table") return true;
-      if (anchor.type !== "storage") return false;
-
-      return [
-        "nightstand",
-        "tvStand",
-        "sideboard",
-        "shelfWide",
-        "displayShelf",
-        "rollingShelf",
-        "wireRack",
-        "glassCabinet",
-      ].includes(anchor.storageVariant);
-    }
-
-    if (item.type === "textile") {
-      if (textileVariant === "curtain") return false;
-
-      if (["table", "sofa", "bench", "bed"].includes(anchor.type)) return true;
-
-      if (anchor.type !== "storage") return false;
-
-      return [
-        "nightstand",
-        "tvStand",
-        "sideboard",
-        "shelfWide",
-        "displayShelf",
-        "rollingShelf",
-        "wireRack",
-      ].includes(anchor.storageVariant);
-    }
-
-    if (item.type === "storageBox") {
-      if (anchor.type === "table") return true;
-      if (anchor.type !== "storage") return false;
-
-      return SURFACE_STORAGE_VARIANTS.includes(anchor.storageVariant);
-    }
-
-    if (anchor.type === "table") return true;
-    if (anchor.type !== "storage") return false;
-
-    const allowedVariants =
-      item.type === "tray"
-        ? [
-            "nightstand",
-            "tvStand",
-            "sideboard",
-            "shelfWide",
-            "displayShelf",
-            "rollingShelf",
-            "wireRack",
-          ]
-        : [
-            "nightstand",
-            "tvStand",
-            "sideboard",
-            "shelfWide",
-            "displayShelf",
-            "rollingShelf",
-            "wireRack",
-            "glassCabinet",
-          ];
-
-    return allowedVariants.includes(anchor.storageVariant);
-  });
-};
-
-const getManualAccessorySurfaceY = (item, anchor, roomDimensions = null) => {
+const getManualAccessorySurfaceY = (
+  item,
+  anchor,
+  roomDimensions = null,
+  accessoryIndex = 0,
+) => {
   const dimensions = getItemDimensions(anchor, roomDimensions);
-  const surfaceGap = item.type === "textile" ? 0.014 : 0.02;
-  const storageGap = item.type === "textile" ? 0.018 : 0.03;
-  let positionY = anchor.position[1] || 0;
+  const surfaceGap = item.type === "textile" ? 0.018 : 0.03;
+  const positionY = anchor.position[1] || 0;
+  const supportSurface = getItemSupportSurface(anchor);
 
-  if (anchor.type === "table") {
-    return positionY + dimensions.height + surfaceGap;
+  if (supportSurface === "shelf") {
+    const levels = getSupportSurfaceLevels(anchor, item, accessoryIndex);
+    const ratio = levels[accessoryIndex % levels.length] ?? levels[0] ?? 1;
+    return positionY + dimensions.height * ratio + surfaceGap;
   }
 
-  if (anchor.type === "sofa") {
-    return positionY + dimensions.height * 0.48 + surfaceGap;
-  }
-
-  if (anchor.type === "bench") {
-    return positionY + dimensions.height * 0.78 + surfaceGap;
-  }
-
-  if (anchor.type === "bed") {
-    return positionY + 0.3 + surfaceGap;
-  }
-
-  switch (anchor.storageVariant) {
-    case "nightstand":
-    case "tvStand":
-    case "sideboard":
-      return positionY + dimensions.height + storageGap;
-    case "shelfWide":
-      return positionY + dimensions.height + storageGap;
-    case "displayShelf":
-      return positionY + dimensions.height * 0.8 + storageGap;
-    case "rollingShelf":
-      return positionY + dimensions.height * 0.8 + storageGap;
-    case "wireRack":
-      return positionY + dimensions.height * 0.82 + storageGap;
-    case "shelfTall":
-      return positionY + dimensions.height * 0.86 + storageGap;
-    case "glassCabinet":
-      return positionY + dimensions.height * 0.66 + storageGap;
-    default:
-      return positionY + dimensions.height + surfaceGap;
-  }
+  return positionY + getSupportTopHeight(anchor, dimensions) + surfaceGap;
 };
 
 const getAccessorySurfaceSnapPlacement = (
@@ -2443,14 +2666,25 @@ const getAccessorySurfaceSnapPlacement = (
   desiredPosition,
   roomDimensions = null,
 ) => {
-  const eligibleAnchors = getEligibleAnchorsForAccessory(item, anchors);
+  const eligibleAnchors = getEligibleAnchorsForAccessory(
+    item,
+    anchors,
+    roomDimensions,
+  );
 
   if (!eligibleAnchors.length) return null;
 
+  const preferredAnchor = resolvePlacementTargetAnchor(
+    item,
+    eligibleAnchors,
+    roomDimensions,
+    desiredPosition,
+  );
+  const candidateAnchors = preferredAnchor ? [preferredAnchor] : eligibleAnchors;
   const itemDimensions = getItemDimensions(item, roomDimensions);
   let bestMatch = null;
 
-  eligibleAnchors.forEach((anchor) => {
+  candidateAnchors.forEach((anchor) => {
     const dimensions = getItemDimensions(anchor, roomDimensions);
     const rotation = anchor.rotation || 0;
     const dx = desiredPosition[0] - anchor.position[0];
@@ -2506,11 +2740,44 @@ const getSurfacePlacementForAccessory = (
   accessoryIndex,
   roomDimensions = null,
 ) => {
-  const eligibleAnchors = getEligibleAnchorsForAccessory(item, anchors);
+  const eligibleAnchors = getEligibleAnchorsForAccessory(
+    item,
+    anchors,
+    roomDimensions,
+  );
 
   if (!eligibleAnchors.length) return null;
 
-  const anchor = eligibleAnchors[accessoryIndex % eligibleAnchors.length];
+  const desiredPosition = Array.isArray(item?.position) ? item.position : null;
+  const anchor =
+    resolvePlacementTargetAnchor(
+      item,
+      eligibleAnchors,
+      roomDimensions,
+      desiredPosition,
+    ) || eligibleAnchors[accessoryIndex % eligibleAnchors.length];
+  const shouldPreserveItemRotation =
+    Boolean(item?.hasAiPlacement) || Boolean(getItemPlacementConfig(item).targetId);
+
+  if (desiredPosition) {
+    const snappedPosition = getAccessorySurfaceSnapPlacement(
+      item,
+      [anchor],
+      desiredPosition,
+      roomDimensions,
+    );
+
+    if (snappedPosition) {
+      return {
+        position: snappedPosition,
+        rotation: shouldPreserveItemRotation
+          ? item.rotation ?? anchor.rotation ?? 0
+          : anchor.rotation + (item.type === "tray" ? 0.14 : 0.08),
+        targetId: anchor.id,
+      };
+    }
+  }
+
   const dimensions = getItemDimensions(anchor, roomDimensions);
   const rotation = anchor.rotation || 0;
   const offsetPatterns =
@@ -2554,61 +2821,12 @@ const getSurfacePlacementForAccessory = (
 
   const localOffsetX = dimensions.width * offsetXFactor;
   const localOffsetZ = dimensions.depth * offsetZFactor;
-  let positionY = anchor.position[1] || 0;
-
-  if (anchor.type === "table") {
-    positionY += dimensions.height + 0.02;
-  } else if (anchor.type === "sofa") {
-    positionY += dimensions.height * 0.48 + 0.02;
-  } else if (anchor.type === "bench") {
-    positionY += dimensions.height * 0.78 + 0.02;
-  } else if (anchor.type === "bed") {
-    positionY += 0.32;
-  } else {
-    switch (anchor.storageVariant) {
-      case "nightstand":
-      case "tvStand":
-      case "sideboard":
-        positionY += dimensions.height + 0.03;
-        break;
-      case "shelfWide":
-        positionY +=
-          dimensions.height *
-            (item.type === "storageBox"
-              ? accessoryIndex % 2 === 0
-                ? 0.23
-                : 0.77
-              : 1) +
-          0.03;
-        break;
-      case "displayShelf":
-        positionY +=
-          dimensions.height * [0.14, 0.46, 0.8][accessoryIndex % 3] + 0.03;
-        break;
-      case "rollingShelf":
-        positionY +=
-          dimensions.height * [0.16, 0.48, 0.8][accessoryIndex % 3] + 0.03;
-        break;
-      case "wireRack":
-        positionY +=
-          dimensions.height * [0.16, 0.38, 0.6, 0.82][accessoryIndex % 4] +
-          0.03;
-        break;
-      case "shelfTall":
-        positionY +=
-          dimensions.height *
-            [0.06, 0.26, 0.46, 0.66, 0.86][accessoryIndex % 5] +
-          0.03;
-        break;
-      case "glassCabinet":
-        positionY +=
-          dimensions.height * [0.18, 0.42, 0.66][accessoryIndex % 3] + 0.03;
-        break;
-      default:
-        positionY += dimensions.height + 0.02;
-        break;
-    }
-  }
+  const positionY = getManualAccessorySurfaceY(
+    item,
+    anchor,
+    roomDimensions,
+    accessoryIndex,
+  );
 
   const rotatedOffsetX =
     localOffsetX * Math.cos(rotation) - localOffsetZ * Math.sin(rotation);
@@ -2622,6 +2840,7 @@ const getSurfacePlacementForAccessory = (
       anchor.position[2] + rotatedOffsetZ,
     ],
     rotation: rotation + (item.type === "tray" ? 0.14 : 0.08),
+    targetId: anchor.id,
   };
 };
 
@@ -2990,12 +3209,15 @@ function FurnitureModel({
   useFrame((state) => {
     if (!groupRef.current) return;
 
-    const targetY =
+    const baseY = Array.isArray(item.position) ? item.position[1] || 0 : 0;
+    const hoverY =
       active &&
       !interactionModeRef.current &&
       !(item.type === "lamp" && lampVariant === "ceiling")
         ? Math.sin(state.clock.elapsedTime * 2.4) * 0.018
         : 0;
+    const targetY = baseY + hoverY;
+
     groupRef.current.position.y +=
       (targetY - groupRef.current.position.y) * 0.18;
   });
@@ -3055,10 +3277,11 @@ function FurnitureModel({
 
         if (!event.ray.intersectPlane(dragPlane, dragIntersection)) return;
 
+        const baseY = Array.isArray(item.position) ? item.position[1] || 0 : 0;
         const clampedPosition = clampItemPositionToRoom(
           [
             dragIntersection.x - dragOffsetRef.current.x,
-            0,
+            baseY,
             dragIntersection.z - dragOffsetRef.current.z,
           ],
           dimensions,
@@ -6633,9 +6856,32 @@ function Viewer3DPage() {
       counts[placementKey] = typeIndex + 1;
 
       const aiPlacement = getAiLayoutPlacement(product);
-      const placement =
+      const fallbackPlacement =
         aiPlacement || getPlacement(placementKey, typeIndex, index);
       const rawColor = product?.colors?.[0];
+      const itemDraft = {
+        ...product,
+        boxVariant,
+        chairVariant,
+        lampVariant,
+        plantVariant,
+        storageVariant,
+        tableVariant,
+        type: meta.type,
+        placement: aiPlacement?.placement || product?.placement,
+        canSupportItems:
+          typeof aiPlacement?.canSupportItems === "boolean"
+            ? aiPlacement.canSupportItems
+            : product?.canSupportItems,
+        supportSurface:
+          aiPlacement?.supportSurface || product?.supportSurface || "",
+      };
+      const placementConfig = getItemPlacementConfig(itemDraft);
+      const hasAiPlacement = Boolean(
+        aiPlacement &&
+          (Array.isArray(aiPlacement.position) ||
+            (placementConfig.mode === "on_top_of" && placementConfig.targetId)),
+      );
 
       return {
         ...product,
@@ -6648,16 +6894,19 @@ function Viewer3DPage() {
           storageVariant,
           type: meta.type,
         }),
-        hasAiPlacement: Boolean(aiPlacement),
+        canSupportItems: getCanSupportItems(itemDraft),
         layoutScore: aiPlacement?.score ?? product?.layoutScore,
         modelUrl: aiPlacement?.modelUrl || product?.modelUrl || "",
-        position: placement.position,
-        rotation: aiPlacement?.rotation ?? placement.rotation,
+        hasAiPlacement,
+        placement: placementConfig,
+        position: aiPlacement?.position || fallbackPlacement.position,
+        rotation: aiPlacement?.rotation ?? fallbackPlacement.rotation,
         boxVariant,
         chairVariant,
         lampVariant,
         plantVariant,
         storageVariant,
+        supportSurface: getItemSupportSurface(itemDraft),
         tableVariant,
         type: meta.type,
       };
@@ -6704,6 +6953,7 @@ function Viewer3DPage() {
         ...item,
         position: manualPlacement.position || item.position,
         rotation: manualPlacement.rotation ?? item.rotation,
+        placement: manualPlacement.placement || item.placement,
       };
     });
 
@@ -6718,16 +6968,13 @@ function Viewer3DPage() {
     };
 
     return baseItems.map((item) => {
-      if (
-        !isSurfaceAccessoryItem(item) ||
-        item.hasAiPlacement ||
-        manualPositions[item.id]
-      ) {
+      if (!isSurfaceAccessoryItem(item) || manualPositions[item.id]) {
         return item;
       }
 
-      const accessoryIndex = accessoryCounts[item.type] || 0;
-      accessoryCounts[item.type] = accessoryIndex + 1;
+      const accessoryKey = getDecorType(item) || item.type;
+      const accessoryIndex = accessoryCounts[accessoryKey] || 0;
+      accessoryCounts[accessoryKey] = accessoryIndex + 1;
 
       const placement = getSurfacePlacementForAccessory(
         item,
@@ -6744,6 +6991,12 @@ function Viewer3DPage() {
         ...item,
         position: placement.position,
         rotation: placement.rotation,
+        placement: {
+          ...item.placement,
+          mode: "on_top_of",
+          targetId:
+            normalizeLinkId(placement.targetId) || item.placement?.targetId || "",
+        },
       };
     });
   }, [aiResults?.roomAnalysis, manualPositions, manualSceneEntryById, productItems]);
@@ -6857,24 +7110,33 @@ function Viewer3DPage() {
   };
 
   const handleMoveItem = (itemId, nextPosition) => {
-    const sceneItem = sceneItems.find(
+    const movingItem = sceneItems.find(
       (item) => String(item.id) === String(itemId),
     );
-    const accessorySurfacePosition =
-      sceneItem && isSurfaceAccessoryItem(sceneItem)
-        ? getAccessorySurfaceSnapPlacement(
-            sceneItem,
-            getSurfaceAnchorItems(sceneItems, itemId),
-            nextPosition,
-            aiResults?.roomAnalysis,
-          )
-        : null;
+    if (!movingItem) return;
+
+    const anchors = getSurfaceAnchorItems(sceneItems, itemId);
+    const surfacePlacement = isSurfaceAccessoryItem(movingItem)
+      ? getAccessorySurfaceSnapPlacement(
+          movingItem,
+          anchors,
+          nextPosition,
+          aiResults?.roomAnalysis,
+        )
+      : null;
 
     setManualPositions((current) => ({
       ...current,
       [itemId]: {
         ...(current[itemId] || {}),
-        position: accessorySurfacePosition || nextPosition,
+        position: surfacePlacement?.position || nextPosition,
+        rotation: surfacePlacement?.rotation ?? movingItem.rotation,
+        placement: surfacePlacement
+          ? {
+              mode: "on_top_of",
+              targetId: surfacePlacement.targetId,
+            }
+          : current[itemId]?.placement || movingItem.placement,
       },
     }));
     setSelectedId(itemId);

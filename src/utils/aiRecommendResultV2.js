@@ -208,6 +208,89 @@ const normalizeIdValue = (value) => {
   return normalized;
 };
 
+const normalizePlacementMode = (value, fallback = "floor") => {
+  const normalized = normalizeText(value || fallback);
+
+  if (
+    [
+      "on_top_of",
+      "on top of",
+      "ontopof",
+      "surface",
+      "tabletop",
+      "top",
+    ].includes(normalized)
+  ) {
+    return "on_top_of";
+  }
+
+  return "floor";
+};
+
+const normalizeSupportSurface = (value) => {
+  const normalized = normalizeText(value);
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (normalized.includes("shelf")) {
+    return "shelf";
+  }
+
+  if (normalized.includes("top")) {
+    return "top";
+  }
+
+  return "";
+};
+
+const getLayoutPlacementTargetId = (source) =>
+  normalizeIdValue(
+    getFirstValue(source, [
+      "targetId",
+      "target_id",
+      "parentId",
+      "parent_id",
+      "anchorId",
+      "anchor_id",
+      "supportId",
+      "support_id",
+      "targetItemId",
+      "target_item_id",
+    ]) || source?.target?.id,
+  );
+
+const normalizeLayoutPlacementConfig = (item) => {
+  const placementSource =
+    item?.placement && typeof item.placement === "object"
+      ? item.placement
+      : item;
+  const targetId =
+    getLayoutPlacementTargetId(placementSource) ||
+    getLayoutPlacementTargetId(item);
+  const rawMode =
+    getFirstValue(placementSource, ["mode", "placementMode", "placement_mode"]) ||
+    getFirstValue(item, ["placementMode", "placement_mode"]);
+
+  return {
+    mode: normalizePlacementMode(rawMode || (targetId ? "on_top_of" : "floor")),
+    targetId,
+  };
+};
+
+const extractLayoutSupportMetadata = (item) => {
+  const supportSurface = normalizeSupportSurface(
+    getFirstValue(item, ["supportSurface", "support_surface", "surface"]),
+  );
+
+  return {
+    canSupportItems:
+      typeof item?.canSupportItems === "boolean" ? item.canSupportItems : undefined,
+    supportSurface: supportSurface || undefined,
+  };
+};
+
 const getProductIdCandidates = (item) =>
   Array.from(
     new Set(
@@ -806,8 +889,26 @@ const normalizeAiLayoutResult = (layoutPayload, roomAnalysis) => {
       const position = normalizeLayoutPosition(item);
       const rotation = normalizeLayoutRotation(item);
       const idAliases = getLayoutProductIdCandidates(item);
+      const placement = normalizeLayoutPlacementConfig(item);
+      const supportMetadata = extractLayoutSupportMetadata(item);
 
       if (!position) {
+        if (placement.mode === "on_top_of" && placement.targetId) {
+          return {
+            productId: String(getLayoutProductId(item) || ""),
+            idAliases,
+            name: getLayoutProductName(item),
+            position: null,
+            rotation,
+            rotationY: rotation,
+            modelUrl: getLayoutModelUrl(item),
+            score: getLayoutScore(item),
+            index,
+            placement,
+            ...supportMetadata,
+          };
+        }
+
         if (index < 3) {
           console.warn(
             `[normalizeAiLayoutResult] Item ${index} position is null. Item:`,
@@ -827,6 +928,8 @@ const normalizeAiLayoutResult = (layoutPayload, roomAnalysis) => {
         modelUrl: getLayoutModelUrl(item),
         score: getLayoutScore(item),
         index,
+        placement,
+        ...supportMetadata,
       };
 
       if (index < 3) {
@@ -853,7 +956,9 @@ const normalizeAiLayoutResult = (layoutPayload, roomAnalysis) => {
   const normalizedItems = shouldTranslate
     ? items.map((item) => ({
         ...item,
-        position: translatePositionToRoomCenter(item.position, roomAnalysis),
+        position: item.position
+          ? translatePositionToRoomCenter(item.position, roomAnalysis)
+          : item.position,
       }))
     : items;
 
@@ -1048,6 +1153,9 @@ export function mergeAiLayoutResult(aiResult, layoutPayload) {
         rotationY: placement.rotation,
         score: placement.score,
         modelUrl: placement.modelUrl || product.modelUrl || "",
+        placement: placement.placement || { mode: "floor", targetId: "" },
+        canSupportItems: placement.canSupportItems,
+        supportSurface: placement.supportSurface,
       },
     };
   });
