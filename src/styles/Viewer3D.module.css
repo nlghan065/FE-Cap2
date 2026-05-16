@@ -83,6 +83,12 @@
   color: #22312f !important;
 }
 
+.iconButton:disabled,
+.detailBlock button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .cartButton:disabled {
   cursor: not-allowed;
   opacity: 0.72;
@@ -279,7 +285,8 @@
 
 .aiPlacementChip,
 .manualPlacementChip,
-.pendingPlacementChip {
+.pendingPlacementChip,
+.hiddenPlacementChip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -304,6 +311,11 @@
 .pendingPlacementChip {
   background: #f7ead7;
   color: #8a5a12;
+}
+
+.hiddenPlacementChip {
+  background: #f7e6e2;
+  color: #9d412f;
 }
 
 .manualPlacementHint {
@@ -397,6 +409,10 @@
 .productList .activeItem {
   background: #dff4ef;
   box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.25);
+}
+
+.productList .hiddenItem {
+  opacity: 0.66;
 }
 
 .productList select {

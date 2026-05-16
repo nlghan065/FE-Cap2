@@ -26,8 +26,11 @@ import {
   Maximize2,
   RotateCcw,
   RotateCw,
+  Save,
   ShoppingCart,
   Sparkles,
+  Trash2,
+  Undo2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -1143,8 +1146,8 @@ const parseDimension = (value) => {
 const hasDefinedKey = (source, keys) =>
   Boolean(
     source &&
-      typeof source === "object" &&
-      keys.some((key) => source[key] !== undefined && source[key] !== null),
+    typeof source === "object" &&
+    keys.some((key) => source[key] !== undefined && source[key] !== null),
   );
 
 const normalizeLinearUnit = (value, fallback = "m") => {
@@ -1153,25 +1156,17 @@ const normalizeLinearUnit = (value, fallback = "m") => {
     .toLowerCase();
 
   if (
-    [
-      "cm",
-      "centimeter",
-      "centimeters",
-      "centimetre",
-      "centimetres",
-    ].includes(normalized)
+    ["cm", "centimeter", "centimeters", "centimetre", "centimetres"].includes(
+      normalized,
+    )
   ) {
     return "cm";
   }
 
   if (
-    [
-      "mm",
-      "millimeter",
-      "millimeters",
-      "millimetre",
-      "millimetres",
-    ].includes(normalized)
+    ["mm", "millimeter", "millimeters", "millimetre", "millimetres"].includes(
+      normalized,
+    )
   ) {
     return "mm";
   }
@@ -1266,7 +1261,11 @@ const getRoomMetricValue = (dimensions, keys) =>
 
 const getRoomMetrics = (dimensions) => {
   const unit = getMeasurementUnit(dimensions, "m");
-  const widthValue = getRoomMetricValue(dimensions, ["width", "widthM", "width_m"]);
+  const widthValue = getRoomMetricValue(dimensions, [
+    "width",
+    "widthM",
+    "width_m",
+  ]);
   const lengthValue = getRoomMetricValue(dimensions, [
     "length",
     "lengthM",
@@ -1282,7 +1281,9 @@ const getRoomMetrics = (dimensions) => {
   ]);
 
   return {
-    width: widthValue ? toMeters(widthValue, unit) : DEFAULT_ROOM_DIMENSIONS.width,
+    width: widthValue
+      ? toMeters(widthValue, unit)
+      : DEFAULT_ROOM_DIMENSIONS.width,
     length: lengthValue
       ? toMeters(lengthValue, unit)
       : DEFAULT_ROOM_DIMENSIONS.length,
@@ -1856,8 +1857,9 @@ const getComponentVariant = (item) => {
 };
 
 const getRawDimensionValue = (dimensions, keys) =>
-  keys.map((key) => parseDimension(dimensions?.[key])).find((value) => value > 0) ||
-  0;
+  keys
+    .map((key) => parseDimension(dimensions?.[key]))
+    .find((value) => value > 0) || 0;
 
 const fromCentimeters = (value, unit = "cm") => {
   const normalizedUnit = normalizeLinearUnit(unit, "cm");
@@ -2080,7 +2082,7 @@ const getItemDimensions = (item, roomDimensions = null) => {
             ? LAMP_VARIANT_DIMENSION_LIMITS[item.lampVariant || "floor"] ||
               LAMP_VARIANT_DIMENSION_LIMITS.floor
             : item.type === "plant"
-               ? PLANT_VARIANT_DIMENSION_LIMITS[item.plantVariant || "floor"] ||
+              ? PLANT_VARIANT_DIMENSION_LIMITS[item.plantVariant || "floor"] ||
                 PLANT_VARIANT_DIMENSION_LIMITS.floor
               : TYPE_DIMENSION_LIMITS[item.type] || TYPE_DIMENSION_LIMITS.chair;
   const raw = getRawDimensionSet(item);
@@ -2285,7 +2287,9 @@ const normalizeLinkId = (value) => {
   }
 
   const normalized = String(value).trim();
-  return normalized && normalized.toLowerCase() !== "undefined" ? normalized : "";
+  return normalized && normalized.toLowerCase() !== "undefined"
+    ? normalized
+    : "";
 };
 
 const normalizePlacementMode = (value, fallback = "floor") => {
@@ -2458,7 +2462,9 @@ const getItemPlacementConfig = (item) => {
     item?.placement_mode;
 
   return {
-    mode: normalizePlacementMode(rawMode || (targetId ? "on_top_of" : getDefaultPlacementMode(item))),
+    mode: normalizePlacementMode(
+      rawMode || (targetId ? "on_top_of" : getDefaultPlacementMode(item)),
+    ),
     targetId,
   };
 };
@@ -2490,6 +2496,74 @@ const getSupportSurfaceLevels = (anchor, item, accessoryIndex = 0) => {
   }
 };
 
+const createEmptyViewerEdits = () => ({
+  hiddenItemIds: [],
+  manualPositions: {},
+  manualSceneEntries: [],
+});
+
+const clonePositionArray = (value) =>
+  Array.isArray(value) ? [...value] : value || null;
+
+const clonePlacementConfig = (value) =>
+  value && typeof value === "object" ? { ...value } : undefined;
+
+const cloneViewerEdits = (snapshot = null) => {
+  const source =
+    snapshot && typeof snapshot === "object"
+      ? snapshot
+      : createEmptyViewerEdits();
+
+  return {
+    hiddenItemIds: Array.isArray(source.hiddenItemIds)
+      ? source.hiddenItemIds.map((id) => String(id))
+      : [],
+    manualPositions: Object.fromEntries(
+      Object.entries(source.manualPositions || {}).map(([id, value]) => [
+        String(id),
+        {
+          ...value,
+          placement: clonePlacementConfig(value?.placement),
+          position: clonePositionArray(value?.position),
+        },
+      ]),
+    ),
+    manualSceneEntries: Array.isArray(source.manualSceneEntries)
+      ? source.manualSceneEntries.map((entry) => ({
+          ...entry,
+          placement: clonePlacementConfig(entry?.placement),
+          position: clonePositionArray(entry?.position),
+        }))
+      : [],
+  };
+};
+
+const normalizeViewerStatePayload = (state) => {
+  if (!state || typeof state !== "object") {
+    return {
+      aiResults: state || null,
+      viewerEdits: createEmptyViewerEdits(),
+    };
+  }
+
+  if ("aiResults" in state || "viewerEdits" in state) {
+    return {
+      aiResults: state.aiResults || null,
+      viewerEdits: cloneViewerEdits(state.viewerEdits),
+    };
+  }
+
+  return {
+    aiResults: state,
+    viewerEdits: createEmptyViewerEdits(),
+  };
+};
+
+const buildViewerStatePayload = (aiResults, viewerEdits) => ({
+  aiResults: aiResults || null,
+  viewerEdits: cloneViewerEdits(viewerEdits),
+});
+
 const getSupportTopHeight = (anchor, dimensions) => {
   if (anchor?.type === "sofa") {
     return dimensions.height * 0.48;
@@ -2514,14 +2588,23 @@ const canPlaceOnTop = (child, parent, roomDimensions = null) => {
   const supportType = getSupportType(parent);
   const decorType = getDecorType(child);
 
-  if (!SUPPORT_TYPES.includes(supportType) || !DECOR_TYPES.includes(decorType)) {
+  if (
+    !SUPPORT_TYPES.includes(supportType) ||
+    !DECOR_TYPES.includes(decorType)
+  ) {
     return false;
   }
 
   const childDimensions = getItemDimensions(child, roomDimensions);
   const parentDimensions = getItemDimensions(parent, roomDimensions);
-  const widthAllowance = Math.max(parentDimensions.width - 0.06, parentDimensions.width * 0.82);
-  const depthAllowance = Math.max(parentDimensions.depth - 0.06, parentDimensions.depth * 0.82);
+  const widthAllowance = Math.max(
+    parentDimensions.width - 0.06,
+    parentDimensions.width * 0.82,
+  );
+  const depthAllowance = Math.max(
+    parentDimensions.depth - 0.06,
+    parentDimensions.depth * 0.82,
+  );
 
   return (
     childDimensions.width <= widthAllowance &&
@@ -2543,24 +2626,25 @@ const findNearestSupport = (
     return null;
   }
 
-  const referencePosition =
-    desiredPosition ||
+  const referencePosition = desiredPosition ||
     (Array.isArray(child?.position) ? child.position : null) || [0, 0, 0];
 
-  return eligible.reduce((bestMatch, candidate) => {
-    const dx = referencePosition[0] - candidate.position[0];
-    const dz = referencePosition[2] - candidate.position[2];
-    const distance = dx * dx + dz * dz;
+  return (
+    eligible.reduce((bestMatch, candidate) => {
+      const dx = referencePosition[0] - candidate.position[0];
+      const dz = referencePosition[2] - candidate.position[2];
+      const distance = dx * dx + dz * dz;
 
-    if (!bestMatch || distance < bestMatch.distance) {
-      return {
-        distance,
-        item: candidate,
-      };
-    }
+      if (!bestMatch || distance < bestMatch.distance) {
+        return {
+          distance,
+          item: candidate,
+        };
+      }
 
-    return bestMatch;
-  }, null)?.item || null;
+      return bestMatch;
+    }, null)?.item || null
+  );
 };
 
 const resolvePlacementTargetAnchor = (
@@ -2630,15 +2714,11 @@ const getAiLayoutPlacement = (product) => {
 const getSurfaceAnchorItems = (items, excludedId = null) =>
   items.filter(
     (item) =>
-      String(item.id) !== String(excludedId) &&
-      getCanSupportItems(item),
+      String(item.id) !== String(excludedId) && getCanSupportItems(item),
   );
 
-const getEligibleAnchorsForAccessory = (
-  item,
-  anchors,
-  roomDimensions = null,
-) => anchors.filter((anchor) => canPlaceOnTop(item, anchor, roomDimensions));
+const getEligibleAnchorsForAccessory = (item, anchors, roomDimensions = null) =>
+  anchors.filter((anchor) => canPlaceOnTop(item, anchor, roomDimensions));
 
 const getManualAccessorySurfaceY = (
   item,
@@ -2680,7 +2760,9 @@ const getAccessorySurfaceSnapPlacement = (
     roomDimensions,
     desiredPosition,
   );
-  const candidateAnchors = preferredAnchor ? [preferredAnchor] : eligibleAnchors;
+  const candidateAnchors = preferredAnchor
+    ? [preferredAnchor]
+    : eligibleAnchors;
   const itemDimensions = getItemDimensions(item, roomDimensions);
   let bestMatch = null;
 
@@ -2757,7 +2839,8 @@ const getSurfacePlacementForAccessory = (
       desiredPosition,
     ) || eligibleAnchors[accessoryIndex % eligibleAnchors.length];
   const shouldPreserveItemRotation =
-    Boolean(item?.hasAiPlacement) || Boolean(getItemPlacementConfig(item).targetId);
+    Boolean(item?.hasAiPlacement) ||
+    Boolean(getItemPlacementConfig(item).targetId);
 
   if (desiredPosition) {
     const snappedPosition = getAccessorySurfaceSnapPlacement(
@@ -2771,7 +2854,7 @@ const getSurfacePlacementForAccessory = (
       return {
         position: snappedPosition,
         rotation: shouldPreserveItemRotation
-          ? item.rotation ?? anchor.rotation ?? 0
+          ? (item.rotation ?? anchor.rotation ?? 0)
           : anchor.rotation + (item.type === "tray" ? 0.14 : 0.08),
         targetId: anchor.id,
       };
@@ -5600,7 +5683,11 @@ function FurnitureModel({
             <>
               <mesh castShadow position={[0, 0.04, 0]}>
                 <boxGeometry
-                  args={[dimensions.width * 0.98, 0.08, dimensions.depth * 0.98]}
+                  args={[
+                    dimensions.width * 0.98,
+                    0.08,
+                    dimensions.depth * 0.98,
+                  ]}
                 />
                 <ModelMaterial
                   color="#c8a867"
@@ -5660,7 +5747,9 @@ function FurnitureModel({
                       dimensions.depth / 2 + 0.038,
                     ]}
                   >
-                    <boxGeometry args={[0.018, dimensions.height * 0.22, 0.02]} />
+                    <boxGeometry
+                      args={[0.018, dimensions.height * 0.22, 0.02]}
+                    />
                     <ModelMaterial
                       color={metalColor}
                       roughness={0.28}
@@ -5679,7 +5768,9 @@ function FurnitureModel({
                     dimensions.depth / 2 + 0.034,
                   ]}
                 >
-                  <boxGeometry args={[0.014, dimensions.height * 0.62, 0.018]} />
+                  <boxGeometry
+                    args={[0.014, dimensions.height * 0.62, 0.018]}
+                  />
                   <ModelMaterial
                     color="#c8a867"
                     roughness={0.32}
@@ -6465,7 +6556,12 @@ function FurnitureModel({
                 position={[0, room.height - dimensions.height * 0.34, 0]}
               >
                 <cylinderGeometry
-                  args={[0.016, 0.02, Math.max(dimensions.height * 0.7, 0.18), 18]}
+                  args={[
+                    0.016,
+                    0.02,
+                    Math.max(dimensions.height * 0.7, 0.18),
+                    18,
+                  ]}
                 />
                 <ModelMaterial
                   color="#30323a"
@@ -6681,9 +6777,29 @@ function Viewer3DPage() {
   const canvasPanelRef = useRef(null);
   const pageRef = useRef(null);
   const layoutRequestKeyRef = useRef("");
+  const latestViewerEditsRef = useRef(createEmptyViewerEdits());
   const [draggingId, setDraggingId] = useState(null);
-  const [manualSceneEntries, setManualSceneEntries] = useState([]);
-  const [manualPositions, setManualPositions] = useState({});
+  const savedViewerState = useMemo(
+    () => normalizeViewerStatePayload(getSavedAiViewerState()),
+    [],
+  );
+  const initialViewerEdits = useMemo(
+    () =>
+      location.state?.aiResults
+        ? createEmptyViewerEdits()
+        : cloneViewerEdits(savedViewerState.viewerEdits),
+    [location.state?.aiResults, savedViewerState.viewerEdits],
+  );
+  const [manualSceneEntries, setManualSceneEntries] = useState(
+    initialViewerEdits.manualSceneEntries,
+  );
+  const [manualPositions, setManualPositions] = useState(
+    initialViewerEdits.manualPositions,
+  );
+  const [hiddenItemIds, setHiddenItemIds] = useState(
+    initialViewerEdits.hiddenItemIds,
+  );
+  const [savedViewerEdits, setSavedViewerEdits] = useState(initialViewerEdits);
   const [availableHeight, setAvailableHeight] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [addingCart, setAddingCart] = useState(false);
@@ -6691,27 +6807,56 @@ function Viewer3DPage() {
   const [layoutLoading, setLayoutLoading] = useState(false);
 
   const initialAiResults = useMemo(
-    () => location.state?.aiResults || getSavedAiViewerState() || null,
-    [location.state],
+    () => location.state?.aiResults || savedViewerState.aiResults || null,
+    [location.state?.aiResults, savedViewerState.aiResults],
   );
   const [aiResults, setAiResults] = useState(initialAiResults);
 
   useEffect(() => {
     setAiResults(initialAiResults);
     setDraggingId(null);
-    setManualSceneEntries([]);
-    setManualPositions({});
+    setManualSceneEntries(initialViewerEdits.manualSceneEntries);
+    setManualPositions(initialViewerEdits.manualPositions);
+    setHiddenItemIds(initialViewerEdits.hiddenItemIds);
+    setSavedViewerEdits(initialViewerEdits);
     setSelectedId(null);
     layoutRequestKeyRef.current = "";
+    latestViewerEditsRef.current = cloneViewerEdits(initialViewerEdits);
 
     if (initialAiResults) {
-      saveAiViewerState(initialAiResults);
+      saveAiViewerState(
+        buildViewerStatePayload(initialAiResults, initialViewerEdits),
+      );
     }
-  }, [initialAiResults]);
+  }, [initialAiResults, initialViewerEdits]);
+
+  const currentViewerEdits = useMemo(
+    () =>
+      cloneViewerEdits({
+        hiddenItemIds,
+        manualPositions,
+        manualSceneEntries,
+      }),
+    [hiddenItemIds, manualPositions, manualSceneEntries],
+  );
+
+  useEffect(() => {
+    latestViewerEditsRef.current = currentViewerEdits;
+  }, [currentViewerEdits]);
+
+  useEffect(() => {
+    if (!aiResults) return;
+
+    saveAiViewerState(buildViewerStatePayload(aiResults, currentViewerEdits));
+  }, [aiResults, currentViewerEdits]);
 
   const products = useMemo(
     () => (Array.isArray(aiResults?.products) ? aiResults.products : []),
     [aiResults],
+  );
+  const hiddenItemIdSet = useMemo(
+    () => new Set(hiddenItemIds.map((id) => String(id))),
+    [hiddenItemIds],
   );
 
   useEffect(() => {
@@ -6770,7 +6915,12 @@ function Viewer3DPage() {
         }
 
         setAiResults(versionedResult);
-        saveAiViewerState(versionedResult);
+        saveAiViewerState(
+          buildViewerStatePayload(
+            versionedResult,
+            latestViewerEditsRef.current,
+          ),
+        );
       } catch (error) {
         if (cancelled) return;
 
@@ -6879,8 +7029,8 @@ function Viewer3DPage() {
       const placementConfig = getItemPlacementConfig(itemDraft);
       const hasAiPlacement = Boolean(
         aiPlacement &&
-          (Array.isArray(aiPlacement.position) ||
-            (placementConfig.mode === "on_top_of" && placementConfig.targetId)),
+        (Array.isArray(aiPlacement.position) ||
+          (placementConfig.mode === "on_top_of" && placementConfig.targetId)),
       );
 
       return {
@@ -6922,7 +7072,8 @@ function Viewer3DPage() {
     const mappedItems = productItems
       .filter(
         (item) =>
-          item.hasAiPlacement || manualSceneEntryById.has(String(item.id)),
+          !hiddenItemIdSet.has(String(item.id)) &&
+          (item.hasAiPlacement || manualSceneEntryById.has(String(item.id))),
       )
       .map((item) => {
         if (item.hasAiPlacement) {
@@ -6995,11 +7146,24 @@ function Viewer3DPage() {
           ...item.placement,
           mode: "on_top_of",
           targetId:
-            normalizeLinkId(placement.targetId) || item.placement?.targetId || "",
+            normalizeLinkId(placement.targetId) ||
+            item.placement?.targetId ||
+            "",
         },
       };
     });
-  }, [aiResults?.roomAnalysis, manualPositions, manualSceneEntryById, productItems]);
+  }, [
+    aiResults?.roomAnalysis,
+    hiddenItemIdSet,
+    manualPositions,
+    manualSceneEntryById,
+    productItems,
+  ]);
+
+  const visibleProductItems = useMemo(
+    () => productItems.filter((item) => !hiddenItemIdSet.has(String(item.id))),
+    [hiddenItemIdSet, productItems],
+  );
 
   const aiPlacedCount = sceneItems.filter((item) => item.hasAiPlacement).length;
   const manualPlacedCount = sceneItems.filter(
@@ -7016,7 +7180,7 @@ function Viewer3DPage() {
     productItems[0] ||
     null;
 
-  const totalPrice = productItems.reduce(
+  const totalPrice = visibleProductItems.reduce(
     (sum, item) => sum + (Number(item.price) || 0),
     0,
   );
@@ -7025,10 +7189,18 @@ function Viewer3DPage() {
     [aiResults?.colorPalette],
   );
 
+  const hasUnsavedChanges =
+    JSON.stringify(currentViewerEdits) !== JSON.stringify(savedViewerEdits);
+  const selectedItemHidden = Boolean(
+    selectedItem && hiddenItemIdSet.has(String(selectedItem.id)),
+  );
   const selectedItemHasAiPlacement = Boolean(selectedItem?.hasAiPlacement);
   const selectedItemIsManualPlaced = Boolean(selectedSceneItem?.isManualPlaced);
   const selectedItemNeedsManualPlacement = Boolean(
-    selectedItem && !selectedItemHasAiPlacement,
+    selectedItem && !selectedItemHasAiPlacement && !selectedItemHidden,
+  );
+  const canToggleSelectedItemVisibility = Boolean(
+    selectedSceneItem || selectedItemHidden,
   );
 
   const handleSelect = (item) => {
@@ -7184,13 +7356,59 @@ function Viewer3DPage() {
     setDraggingId(itemId);
   };
 
+  const handleSaveDesign = () => {
+    if (!aiResults) return;
+
+    setSavedViewerEdits(currentViewerEdits);
+    saveAiViewerState(buildViewerStatePayload(aiResults, currentViewerEdits));
+    toast.success("Đã lưu thiết kế 3D hiện tại.");
+  };
+
   const handleResetView = () => {
+    setDraggingId(null);
     setResetToken((current) => current + 1);
   };
 
   const handleResetItems = () => {
     setDraggingId(null);
     setManualPositions({});
+  };
+
+  const handleRestoreSavedDesign = () => {
+    setDraggingId(null);
+    setManualSceneEntries(savedViewerEdits.manualSceneEntries);
+    setManualPositions(savedViewerEdits.manualPositions);
+    setHiddenItemIds(savedViewerEdits.hiddenItemIds);
+    setResetToken((current) => current + 1);
+    toast.success("Đã quay lại bản trước khi chỉnh sửa.");
+  };
+
+  const handleToggleItemVisibility = (product) => {
+    const productId = String(product?.id || "");
+
+    if (!productId) return;
+
+    const isHidden = hiddenItemIdSet.has(productId);
+
+    setHiddenItemIds((current) =>
+      isHidden
+        ? current.filter((id) => String(id) !== productId)
+        : [...current, productId],
+    );
+
+    if (isHidden) {
+      const productItem =
+        productItems.find((item) => String(item.id) === productId) || product;
+
+      if (!productItem?.hasAiPlacement) {
+        handlePreviewProduct(productItem);
+      }
+
+      toast.success("Đã thêm lại sản phẩm vào 3D view.");
+      return;
+    }
+
+    toast.success("Đã xóa sản phẩm khỏi 3D view.");
   };
 
   useEffect(() => {
@@ -7241,7 +7459,7 @@ function Viewer3DPage() {
   };
 
   const handleAddAllToCart = async () => {
-    const realItems = productItems.filter(
+    const realItems = visibleProductItems.filter(
       (item) => !String(item.id).startsWith("ai-product-"),
     );
 
@@ -7354,6 +7572,24 @@ function Viewer3DPage() {
             <Maximize2 size={18} />
           </button>
           <button
+            className={styles.iconButton}
+            disabled={!hasUnsavedChanges}
+            onClick={handleSaveDesign}
+            title="Lưu bố cục 3D hiện tại"
+            type="button"
+          >
+            <Save size={18} />
+          </button>
+          <button
+            className={styles.iconButton}
+            disabled={!hasUnsavedChanges}
+            onClick={handleRestoreSavedDesign}
+            title="Khôi phục bản đã lưu"
+            type="button"
+          >
+            <Undo2 size={18} />
+          </button>
+          <button
             className={styles.cartButton}
             disabled={addingCart}
             onClick={handleAddAllToCart}
@@ -7443,18 +7679,22 @@ function Viewer3DPage() {
                 <span>{selectedItem.category || selectedItem.type}</span>
                 <strong
                   className={
-                    selectedItemHasAiPlacement
-                      ? styles.aiPlacementChip
-                      : selectedItemIsManualPlaced
-                        ? styles.manualPlacementChip
-                        : styles.pendingPlacementChip
+                    selectedItemHidden
+                      ? styles.hiddenPlacementChip
+                      : selectedItemHasAiPlacement
+                        ? styles.aiPlacementChip
+                        : selectedItemIsManualPlaced
+                          ? styles.manualPlacementChip
+                          : styles.pendingPlacementChip
                   }
                 >
-                  {selectedItemHasAiPlacement
-                    ? "AI placed"
-                    : selectedItemIsManualPlaced
-                      ? "Manual placed"
-                      : "Chưa vào phòng"}
+                  {selectedItemHidden
+                    ? "Ẩn khỏi 3D"
+                    : selectedItemHasAiPlacement
+                      ? "AI placed"
+                      : selectedItemIsManualPlaced
+                        ? "Manual placed"
+                        : "Chưa vào phòng"}
                 </strong>
               </div>
               <h2>{selectedItem.name}</h2>
@@ -7467,6 +7707,12 @@ function Viewer3DPage() {
                 <div className={styles.manualPlacementHint}>
                   Sản phẩm này chưa có vị trí AI. Bạn có thể thêm vào phòng và
                   kéo để đặt thủ công.
+                </div>
+              )}
+              {selectedItemHidden && (
+                <div className={styles.manualPlacementHint}>
+                  Sản phẩm này đang bị ẩn khỏi mô hình 3D. Bạn có thể hiện lại
+                  để tiếp tục chỉnh bố cục hoặc giữ nó ngoài không gian.
                 </div>
               )}
               <dl>
@@ -7517,6 +7763,18 @@ function Viewer3DPage() {
                     <ChevronRight size={16} />
                   </button>
                 )}
+                {canToggleSelectedItemVisibility && (
+                  <button
+                    className={styles.secondaryButton}
+                    type="button"
+                    onClick={() => handleToggleItemVisibility(selectedItem)}
+                  >
+                    <Trash2 size={16} />
+                    {selectedItemHidden
+                      ? "Hiện lại trong 3D"
+                      : "Xóa khỏi 3D view"}
+                  </button>
+                )}
                 <button
                   className={styles.secondaryButton}
                   type="button"
@@ -7539,15 +7797,23 @@ function Viewer3DPage() {
             {productItems.map((item) => (
               <button
                 className={
-                  String(item.id) === String(selectedItem?.id)
-                    ? styles.activeItem
-                    : ""
+                  [
+                    String(item.id) === String(selectedItem?.id)
+                      ? styles.activeItem
+                      : "",
+                    hiddenItemIdSet.has(String(item.id)) ? styles.hiddenItem : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
                 }
                 key={item.id}
                 onClick={() => handleSelect(item)}
                 type="button"
               >
-                <span>{item.name}</span>
+                <span>
+                  {item.name}
+                  {hiddenItemIdSet.has(String(item.id)) ? " (ẩn)" : ""}
+                </span>
                 <strong>{formatPrice(item.price)}</strong>
               </button>
             ))}
