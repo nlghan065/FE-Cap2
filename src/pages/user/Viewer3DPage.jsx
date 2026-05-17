@@ -8522,10 +8522,10 @@ function Viewer3DPage() {
           "Sản phẩm này đang có trong danh sách AI nhưng chưa được thêm vào scene 3D.";
 
         if (isHidden) {
-          statusKey = "hidden";
-          statusLabel = "Đã ẩn khỏi scene";
+          statusKey = "removed";
+          statusLabel = "Đã xóa khỏi thiết kế";
           statusDescription =
-            "Sản phẩm này thuộc AI result nhưng hiện đang bị ẩn khỏi không gian 3D.";
+            "Sản phẩm này không còn trong không gian 3D, nhưng vẫn được giữ trong danh sách đề xuất để bạn thêm lại.";
         } else if (isManualPlaced) {
           statusKey = "manual";
           statusLabel = "Thêm thủ công";
@@ -8988,33 +8988,42 @@ function Viewer3DPage() {
     toast.success("Đã quay lại bản trước khi chỉnh sửa.");
   };
 
-  const handleToggleItemVisibility = (product) => {
+  const handleAddBackToDesign = (product) => {
     const productId = String(product?.id || "");
 
     if (!productId) return;
 
-    const isHidden = hiddenItemIdSet.has(productId);
-
-    setHiddenItemIds((current) =>
-      isHidden
-        ? current.filter((id) => String(id) !== productId)
-        : [...current, productId],
-    );
-
-    if (isHidden) {
-      const productItem =
-        productItems.find((item) => String(item.id) === productId) || product;
-
-      if (!productItem?.hasAiPlacement) {
-        handlePreviewProduct(productItem);
-      }
-
-      toast.success("Đã thêm lại sản phẩm vào 3D view.");
+    if (!hiddenItemIdSet.has(productId)) {
       return;
     }
 
-    toast.success("Đã xóa sản phẩm khỏi 3D view.");
+    setHiddenItemIds((current) =>
+      current.filter((id) => String(id) !== productId),
+    );
+
+    const productItem =
+      productItems.find((item) => String(item.id) === productId) || product;
+
+    if (!productItem?.hasAiPlacement) {
+      handlePreviewProduct(productItem);
+    }
+
+    toast.success("Đã thêm lại sản phẩm vào thiết kế.");
   };
+
+  const handleRemoveFromDesign = (product) => {
+    const productId = String(product?.id || "");
+
+    if (!productId || hiddenItemIdSet.has(productId)) return;
+
+    setHiddenItemIds((current) => [...current, productId]);
+    toast.success("Đã xóa sản phẩm khỏi thiết kế.");
+  };
+
+  const handleToggleItemVisibility = (product) =>
+    hiddenItemIdSet.has(String(product?.id || ""))
+      ? handleAddBackToDesign(product)
+      : handleRemoveFromDesign(product);
 
   useEffect(() => {
     if (!selectedSceneItem || draggingId) return undefined;
@@ -9311,7 +9320,7 @@ function Viewer3DPage() {
                   }
                 >
                   {selectedItemHidden
-                    ? "Ẩn khỏi 3D"
+                    ? "Xóa khỏi thiết kế"
                     : selectedItemHasAiPlacement
                       ? "AI placed"
                       : selectedItemIsManualPlaced
@@ -9335,8 +9344,8 @@ function Viewer3DPage() {
               )}
               {selectedItemHidden && (
                 <div className={styles.manualPlacementHint}>
-                  Sản phẩm này đang bị ẩn khỏi mô hình 3D. Bạn có thể hiện lại
-                  để tiếp tục chỉnh bố cục hoặc giữ nó ngoài không gian.
+                  Sản phẩm này đã được xóa khỏi thiết kế 3D nhưng vẫn còn trong
+                  danh sách đề xuất. Bạn có thể thêm lại bất cứ lúc nào.
                 </div>
               )}
               <dl>
@@ -9395,8 +9404,8 @@ function Viewer3DPage() {
                   >
                     <Trash2 size={16} />
                     {selectedItemHidden
-                      ? "Hiện lại trong 3D"
-                      : "Xóa khỏi 3D view"}
+                      ? "Thêm lại vào thiết kế"
+                      : "Xóa khỏi thiết kế"}
                   </button>
                 )}
                 <button
@@ -9460,8 +9469,7 @@ function Viewer3DPage() {
                 type="button"
               >
                 <span className={styles.productCurrentLabel}>
-                  {isHiddenItem ? "Đang ẩn trong 3D" : "Đang dùng"}
-                  {hiddenItemIdSet.has(String(item.id)) ? " (ẩn)" : ""}
+                  {isHiddenItem ? "Đã xóa khỏi thiết kế" : "Đang có trong thiết kế"}
                 </span>
                 <strong>{item.name}</strong>
                 <small>{formatPrice(item.price)}</small>
