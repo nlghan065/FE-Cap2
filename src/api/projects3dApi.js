@@ -72,9 +72,17 @@ const postWithPayloadFallback = async (url, payloads) => {
 
   for (const payload of buildUniquePayloads(payloads)) {
     try {
+      console.log("[PROJECTS 3D API] POST", url, payload);
       const response = await apiClient.post(url, payload);
+      console.log("[PROJECTS 3D API] RESPONSE", url, response?.data);
       return extractApiData(response);
     } catch (error) {
+      console.error("[PROJECTS 3D API] ERROR", url, {
+        payload,
+        status: error?.response?.status,
+        data: error?.response?.data,
+      });
+
       lastError = error;
 
       if (!shouldRetryWithAlternatePayload(error)) {
@@ -224,14 +232,23 @@ export async function getMyProjects3DApi({
   size = 10,
   sort = "createdAt,desc",
 } = {}) {
+  console.log("[PROJECTS 3D API] GET /my", { page, size, sort });
+
   const response = await apiClient.get(`${PROJECTS_3D_ENDPOINT}/my`, {
     params: { page, size, sort },
   });
+
+  console.log("[PROJECTS 3D API] RESPONSE /my", response?.data);
 
   return extractPagedContent(extractApiData(response));
 }
 
 export async function getProject3DByIdApi(projectId) {
+  console.log("[PROJECTS 3D API] GET detail", projectId);
+
   const response = await apiClient.get(`${PROJECTS_3D_ENDPOINT}/${projectId}`);
+
+  console.log("[PROJECTS 3D API] RESPONSE detail", response?.data);
+
   return extractProjectDetail(extractApiData(response), projectId);
 }

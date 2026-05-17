@@ -3396,17 +3396,22 @@ const buildProject3DEditedProductPayload = (
 
 const buildProject3DCreatePayload = (aiResults, orbitControls = null) => {
   const sourceDesignRequestId = getSourceDesignRequestIdFromAiResults(aiResults);
+  const emptyEdits = createEmptyViewerEdits();
 
   return createCompactPayload({
     name:
       [aiResults?.roomType, aiResults?.style].filter(Boolean).join(" - ") ||
       "3D Design",
     designRequestId: sourceDesignRequestId || undefined,
+    sourceDesignRequestId: sourceDesignRequestId || undefined,
     sceneData: buildProject3DSceneData(aiResults?.roomAnalysis, orbitControls, {
       roomType: aiResults?.roomType,
       style: aiResults?.style,
     }),
     editedProducts: [],
+    viewerEdits: emptyEdits,
+    snapshot: buildProject3DBackendSnapshot(aiResults, emptyEdits),
+    viewerState: buildViewerStatePayload(aiResults, emptyEdits),
   });
 };
 
@@ -3417,11 +3422,15 @@ const buildProject3DEditedProductsPayload = (
   sceneItems,
   orbitControls = null,
 ) => {
+  const normalizedViewerEdits = cloneViewerEdits(viewerEdits);
+
   const editedProducts = buildEditedProductsSnapshot(
     productItems,
     sceneItems,
-    viewerEdits,
-  ).map((item) => buildProject3DEditedProductPayload(item, aiResults?.roomAnalysis));
+    normalizedViewerEdits,
+  ).map((item) =>
+    buildProject3DEditedProductPayload(item, aiResults?.roomAnalysis),
+  );
 
   return createCompactPayload({
     sceneData: buildProject3DSceneData(aiResults?.roomAnalysis, orbitControls, {
@@ -3429,6 +3438,9 @@ const buildProject3DEditedProductsPayload = (
       style: aiResults?.style,
     }),
     editedProducts,
+    viewerEdits: normalizedViewerEdits,
+    snapshot: buildProject3DBackendSnapshot(aiResults, normalizedViewerEdits),
+    viewerState: buildViewerStatePayload(aiResults, normalizedViewerEdits),
   });
 };
 
@@ -8000,6 +8012,7 @@ function Viewer3DPage() {
 
         if (explicitProjectId) {
           projectPayload = await getProject3DByIdApi(explicitProjectId);
+          console.log("[3D LOAD] project detail:", projectPayload);
         } else {
           const projectHistory = await getMyProjects3DApi({
             page: 0,
@@ -8928,6 +8941,9 @@ function Viewer3DPage() {
       }
 
       if (nextProject3DId) {
+        console.log("[3D SAVE] projectId:", nextProject3DId);
+        console.log("[3D SAVE] viewerEdits:", nextViewerEdits);
+        console.log("[3D SAVE] sceneItems:", sceneItems);
         await saveProject3DEditedProductsApi(
           nextProject3DId,
           buildProject3DEditedProductsPayload(
