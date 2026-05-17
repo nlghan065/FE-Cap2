@@ -1453,8 +1453,8 @@ const isMeaningfulReasoningText = (value) => {
 
   return Boolean(
     normalized &&
-      normalized !== "chua co du lieu" &&
-      normalized !== "khong co du lieu",
+    normalized !== "chua co du lieu" &&
+    normalized !== "khong co du lieu",
   );
 };
 
@@ -3952,10 +3952,13 @@ const normalizeProject3DViewerState = (payload) => {
             : normalizedAiResults?.colorPalette || [],
         imageUrl:
           snapshotAiResults?.imageUrl || normalizedAiResults?.imageUrl || "",
-        layout: snapshotAiResults?.layout || normalizedAiResults?.layout || null,
+        layout:
+          snapshotAiResults?.layout || normalizedAiResults?.layout || null,
         reasoning: isMeaningfulReasoningText(snapshotAiResults?.reasoning)
           ? snapshotAiResults.reasoning
-          : normalizedAiResults?.reasoning || snapshotAiResults?.reasoning || "",
+          : normalizedAiResults?.reasoning ||
+            snapshotAiResults?.reasoning ||
+            "",
       }
     : normalizedAiResults || snapshot.aiResults || null;
   const payloadViewerEdits = cloneViewerEdits(
@@ -9121,12 +9124,17 @@ function Viewer3DPage() {
     () => getRoomSurfacePalette(aiResults?.colorPalette),
     [aiResults?.colorPalette],
   );
-  const summaryReasoning = isMeaningfulReasoningText(aiResults?.reasoning)
-    ? formatOptionalReasonText(aiResults?.reasoning)
-    : isHistoryMode
-      ? "Dang khoi phuc du lieu tu project 3D da luu."
-      : "Viewer dang dung danh sach san pham tu ket qua AI recommend.";
+  const historyReasoning =
+    projectDetail?.reasoning ||
+    projectDetail?.designRequest?.reasoning ||
+    aiResults?.reasoning ||
+    "";
 
+  const summaryReasoning = isMeaningfulReasoningText(historyReasoning)
+    ? formatOptionalReasonText(historyReasoning)
+    : isHistoryMode
+      ? "Không có dữ liệu giải thích đã lưu."
+      : "Viewer đang dùng danh sách sản phẩm từ kết quả AI recommend.";
   const hasUnsavedChanges =
     JSON.stringify(currentViewerEdits) !== JSON.stringify(savedViewerEdits);
   const canSaveDesign =
@@ -9743,9 +9751,9 @@ function Viewer3DPage() {
               </span>
               <strong>
                 {isHistoryMode
-                  ? `${sceneItems.length}/${productItems.length} mon trong layout`
+                  ? `${sceneItems.length}/${productItems.length} món trong layout`
                   : layoutLoading
-                    ? "Dang xep vi tri AI..."
+                    ? "Đang sắp xếp vị trí AI..."
                     : `${aiPlacedCount}/${productItems.length} vị trí AI`}
               </strong>
               {manualPlacedCount > 0 && (
