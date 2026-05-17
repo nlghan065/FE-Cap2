@@ -9124,17 +9124,12 @@ function Viewer3DPage() {
     () => getRoomSurfacePalette(aiResults?.colorPalette),
     [aiResults?.colorPalette],
   );
-  const historyReasoning =
-    projectDetail?.reasoning ||
-    projectDetail?.designRequest?.reasoning ||
-    aiResults?.reasoning ||
-    "";
-
-  const summaryReasoning = isMeaningfulReasoningText(historyReasoning)
-    ? formatOptionalReasonText(historyReasoning)
+  const summaryReasoning = isMeaningfulReasoningText(aiResults?.reasoning)
+    ? formatOptionalReasonText(aiResults?.reasoning)
     : isHistoryMode
-      ? "Không có dữ liệu giải thích đã lưu."
-      : "Viewer đang dùng danh sách sản phẩm từ kết quả AI recommend.";
+      ? "Đang khôi phục dữ liệu."
+      : "Viewer dang dung danh sach san pham tu ket qua AI recommend.";
+
   const hasUnsavedChanges =
     JSON.stringify(currentViewerEdits) !== JSON.stringify(savedViewerEdits);
   const canSaveDesign =
