@@ -195,6 +195,13 @@ function Products() {
       setTimeout(() => setToast(null), 1500);
       return;
     }
+
+    if (!getAuthToken()) {
+      setToast({ id: item.id, message: "Hãy đăng nhập!", error: true });
+      setTimeout(() => setToast(null), 1500);
+      return;
+    }
+
     try {
       await addToCartApi({ productId: item.id, quantity: 1 });
       window.dispatchEvent(new Event("cartUpdated"));
@@ -204,7 +211,12 @@ function Products() {
       setTimeout(() => setToast(null), 1500);
     } catch (err) {
       console.error(err);
-      setToast({ id: item.id, message: "Lỗi!", error: true });
+      setToast({
+        id: item.id,
+        message:
+          err?.response?.status === 401 ? "Hãy đăng nhập!" : "Lỗi!",
+        error: true,
+      });
       setTimeout(() => setToast(null), 1500);
     }
   };
@@ -224,11 +236,10 @@ function Products() {
     if (!getAuthToken()) {
       setToast({
         id: item.id,
-        message: "Vui lòng đăng nhập!",
+        message: "Hãy đăng nhập!",
         error: true,
       });
       setTimeout(() => setToast(null), 1500);
-      navigate("/login");
       return;
     }
 
@@ -264,7 +275,12 @@ function Products() {
         else next.delete(productId);
         return next;
       });
-      setToast({ id: item.id, message: "Lỗi yêu thích!", error: true });
+      setToast({
+        id: item.id,
+        message:
+          err?.response?.status === 401 ? "Hãy đăng nhập!" : "Lỗi yêu thích!",
+        error: true,
+      });
       setTimeout(() => setToast(null), 1500);
     } finally {
       setWishlistBusy(productId, false);
@@ -406,6 +422,8 @@ function Products() {
       <div className={styles.content}>
         {loading ? (
           <p>Đang tải...</p>
+        ) : products.length === 0 ? (
+          <div className={styles.emptyState}>Không có sản phẩm.</div>
         ) : (
           <div className={styles.grid}>
             {products.map((item) => {
@@ -500,26 +518,28 @@ function Products() {
         )}
 
         {/* PAGINATION */}
-        <div className={styles.pagination}>
-          <button disabled={page === 0} onClick={() => setPage(page - 1)}>
-            ←
-          </button>
-          {[...Array(totalPages)].map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setPage(i)}
-              className={page === i ? styles.activePage : ""}
-            >
-              {i + 1}
+        {!loading && products.length > 0 && totalPages > 1 && (
+          <div className={styles.pagination}>
+            <button disabled={page === 0} onClick={() => setPage(page - 1)}>
+              ←
             </button>
-          ))}
-          <button
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage(page + 1)}
-          >
-            →
-          </button>
-        </div>
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i)}
+                className={page === i ? styles.activePage : ""}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage(page + 1)}
+            >
+              →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

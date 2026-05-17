@@ -2,8 +2,15 @@ import axios from "axios";
 import { normalizeErrorResponse } from "../utils/errorMessage";
 
 // ================= BASE CLIENT =================
-const API_BASE_URL =
+export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "https://capstone02.onrender.com";
+
+export const publicApiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

@@ -1,4 +1,4 @@
-import apiClient from "./apiClient";
+import apiClient, { publicApiClient } from "./apiClient";
 
 const unwrapResponse = (res) => res?.data?.data ?? res?.data ?? null;
 
@@ -29,7 +29,7 @@ export const getReviewsByProductApi = async ({
   size = 10,
 }) => {
   try {
-    const res = await apiClient.get(`/reviews/product/${productId}`, {
+    const res = await publicApiClient.get(`/reviews/product/${productId}`, {
       params: { page, size },
     });
 
@@ -71,7 +71,9 @@ export const getReviewsAdminApi = async ({ page = 0, size = 10 } = {}) => {
 
 export const getReviewSummaryByProductApi = async (productId) => {
   try {
-    const res = await apiClient.get(`/reviews/product/${productId}/summary`);
+    const res = await publicApiClient.get(
+      `/reviews/product/${productId}/summary`,
+    );
     return unwrapResponse(res);
   } catch (error) {
     console.error("Get review summary error:", error);

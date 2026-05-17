@@ -22,12 +22,6 @@ function UserMenu() {
       icon: <Store size={18} />,
     },
     {
-      key: "ai",
-      label: "AI Designer",
-      path: token ? "/ai-designer" : "/ai-demo",
-      icon: <Sparkles size={18} />,
-    },
-    {
       key: "viewer",
       label: "3D Viewer",
       path: token ? "/viewer" : "/viewer-demo",
@@ -37,6 +31,13 @@ function UserMenu() {
 
   // Thêm mục khi đã đăng nhập
   if (token) {
+    menu.splice(2, 0, {
+      key: "ai",
+      label: "AI Designer",
+      path: "/ai-designer",
+      icon: <Sparkles size={18} />,
+    });
+
     menu.push({
       key: "wishlist",
       label: "Yêu thích",

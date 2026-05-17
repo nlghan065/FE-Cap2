@@ -31,10 +31,7 @@ function AIDesignerResultsPanel({
   const requestStatusLabel = getAiRequestStatusLabel(requestStatus);
   const roomTypeLabel = getAiRoomTypeLabel(results.roomType, "Chưa có");
   const styleLabel = getAiStyleLabel(results.style, "Chưa có");
-  const densityLabel = getAiDensityLabel(
-    results.furnitureDensity,
-    "Chưa có",
-  );
+  const densityLabel = getAiDensityLabel(results.furnitureDensity, "Chưa có");
   const genderLabel = getAiGenderLabel(results.gender, "Chưa có");
   const averagePrice = hasProducts
     ? Math.round(
@@ -140,7 +137,9 @@ function AIDesignerResultsPanel({
               {hasProducts ? "Tổng giá trị dự kiến" : "Trạng thái yêu cầu"}
             </span>
             <strong>
-              {hasProducts ? formatPrice(results.totalPrice) : requestStatusLabel}
+              {hasProducts
+                ? formatPrice(results.totalPrice)
+                : requestStatusLabel}
             </strong>
             {hasProducts && <small>~{averagePrice}M / sản phẩm</small>}
           </div>
@@ -284,7 +283,8 @@ function AIDesignerResultsPanel({
             <h3 className={styles.resultCardTitle}>
               <ShoppingCart size={18} />
               <span>
-                Danh sách sản phẩm {hasProducts ? `(${results.products.length})` : ""}
+                Danh sách sản phẩm{" "}
+                {hasProducts ? `(${results.products.length})` : ""}
               </span>
             </h3>
           </div>
@@ -319,12 +319,6 @@ function AIDesignerResultsPanel({
                           product.reasoning ||
                           "Sản phẩm phù hợp với không gian đã chọn."}
                       </p>
-                      <small>
-                        Kích thước:{" "}
-                        {product.dimensions
-                          ? `${product.dimensions.width ?? "-"} x ${product.dimensions.depth ?? "-"} x ${product.dimensions.height ?? "-"} ${product.dimensions.unit || "m"}`
-                          : "Chưa có"}
-                      </small>
 
                       {product.styles?.length > 0 && (
                         <small>

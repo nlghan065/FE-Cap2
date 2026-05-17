@@ -50,6 +50,21 @@ body {
   flex: 1;
   height: auto;
 }
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  border: 1px dashed #b2dfdb;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f8fffe 0%, #eefaf8 100%);
+  color: #00695c;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  padding: 24px;
+}
 /* STYLE FILTER */
 .styleFilter {
   display: flex;

@@ -280,6 +280,9 @@ function DemoScene({ lightsOn, room, selectedId, onSelect }) {
 function ViewerDemo() {
   const location = useLocation();
   const navigate = useNavigate();
+  const hasToken =
+    localStorage.getItem("token") || sessionStorage.getItem("token");
+  const aiEntryPath = hasToken ? "/ai-designer" : "/";
   const demoResult = location.state?.demoResult || null;
   const initialRoomKey =
     demoResult?.roomType === "Bedroom" ? "bedroom" : "living";
@@ -313,8 +316,8 @@ function ViewerDemo() {
         <div className={styles.toolbarMain}>
           <button
             className={styles.iconButton}
-            onClick={() => navigate("/ai-demo")}
-            title="Quay lại AI Demo"
+            onClick={() => navigate(aiEntryPath)}
+            title={hasToken ? "Quay lại AI Designer" : "Về trang chủ"}
             type="button"
           >
             <ArrowLeft size={19} />
@@ -432,15 +435,9 @@ function ViewerDemo() {
             <div className={styles.detailActions}>
               <button
                 type="button"
-                onClick={() =>
-                  navigate("/ai-demo", {
-                    state: {
-                      demoResult,
-                    },
-                  })
-                }
+                onClick={() => navigate(aiEntryPath)}
               >
-                Xem lại AI Demo
+                {hasToken ? "Mở AI Designer" : "Về trang chủ"}
                 <ChevronRight size={16} />
               </button>
               <button

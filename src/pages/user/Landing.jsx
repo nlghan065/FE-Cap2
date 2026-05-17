@@ -159,6 +159,8 @@ function Home() {
   const [featuredProducts, setFeaturedProducts] = useState(
     fallbackProducts.map((item) => ({ ...item, isFallback: true })),
   );
+  const hasToken =
+    localStorage.getItem("token") || sessionStorage.getItem("token");
 
   useEffect(() => {
     let isMounted = true;
@@ -219,14 +221,21 @@ function Home() {
             </p>
 
             <div className={styles.heroActions}>
-              <Link to="/ai-designer" className={styles.primaryButton}>
+              <Link
+                to={hasToken ? "/ai-designer" : "/login"}
+                className={styles.primaryButton}
+              >
                 <Wand2 size={18} />
-                <span>Thử với phòng của bạn</span>
+                <span>
+                  {hasToken
+                    ? "Thử với phòng của bạn"
+                    : "Đăng nhập để dùng AI Designer"}
+                </span>
               </Link>
 
-              <Link to="/ai-demo" className={styles.secondaryButton}>
+              <Link to="/viewer-demo" className={styles.secondaryButton}>
                 <Eye size={18} />
-                <span>Xem demo</span>
+                <span>Xem 3D Viewer</span>
               </Link>
             </div>
 
@@ -333,8 +342,13 @@ function Home() {
               Mỗi concept là một hướng tham chiếu để bạn áp lên bản preview của
               mình, so sánh nhanh trước khi chốt cách bài trí.
             </p>
-            <Link to="/ai-designer" className={styles.inlineLink}>
-              Áp dụng vào phòng của bạn
+            <Link
+              to={hasToken ? "/ai-designer" : "/login"}
+              className={styles.inlineLink}
+            >
+              {hasToken
+                ? "Áp dụng vào phòng của bạn"
+                : "Đăng nhập để dùng AI Designer"}
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -445,13 +459,16 @@ function Home() {
           </div>
 
           <div className={styles.ctaActions}>
-            <Link to="/ai-designer" className={styles.primaryButton}>
+            <Link
+              to={hasToken ? "/ai-designer" : "/login"}
+              className={styles.primaryButton}
+            >
               <Wand2 size={18} />
-              <span>Thử ngay</span>
+              <span>{hasToken ? "Thử ngay" : "Đăng nhập"}</span>
             </Link>
-            <Link to="/ai-demo" className={styles.secondaryButton}>
+            <Link to="/viewer-demo" className={styles.secondaryButton}>
               <Eye size={18} />
-              <span>Xem demo</span>
+              <span>Xem 3D Viewer</span>
             </Link>
           </div>
         </div>

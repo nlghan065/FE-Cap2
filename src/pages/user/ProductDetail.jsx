@@ -18,6 +18,8 @@ import { getReviewsByProductApi } from "../../api/reviewApi";
 import { addToCartApi } from "../../api/cartApi";
 import { trackBehaviorApi } from "../../api/behaviorApi";
 
+const getAuthToken = () =>
+  localStorage.getItem("token") || sessionStorage.getItem("token");
 function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -32,6 +34,7 @@ function ProductDetail() {
   const [reviewTotalPages, setReviewTotalPages] = useState(1);
   const [loadingReview, setLoadingReview] = useState(false);
   const [added, setAdded] = useState(false);
+  const resolvedProductId = product?.id || product?._id || id;
 
   useEffect(() => {
     if (!id || id === "undefined") {
@@ -53,6 +56,7 @@ function ProductDetail() {
 
         setProduct({
           ...res,
+          id: res.id || res._id || id,
           images,
           oldPrice: res.price,
           finalPrice: res.price,
@@ -77,6 +81,12 @@ function ProductDetail() {
   const handleAddToCart = async () => {
     if (!product || product.stock === 0) return;
 
+    if (!getAuthToken()) {
+      setToast({ message: "Hãy đăng nhập!", error: true });
+      setTimeout(() => setToast(null), 1500);
+      return;
+    }
+
     try {
       await addToCartApi({
         productId: product.id || product._id,
@@ -93,10 +103,21 @@ function ProductDetail() {
       }, 1200);
     } catch (err) {
       console.error(err);
+      setToast({
+        message: err?.response?.status === 401 ? "Hãy đăng nhập!" : "Lỗi!",
+        error: true,
+      });
+      setTimeout(() => setToast(null), 1500);
     }
   };
   const handleBuyNow = async () => {
     if (!product || product.stock === 0) return;
+
+    if (!getAuthToken()) {
+      setToast({ message: "Hãy đăng nhập!", error: true });
+      setTimeout(() => setToast(null), 1500);
+      return;
+    }
 
     try {
       await addToCartApi({
@@ -110,7 +131,11 @@ function ProductDetail() {
       navigate("/cart");
     } catch (err) {
       console.error(err);
-      setToast({ message: "Lỗi mua ngay!", error: true });
+      setToast({
+        message:
+          err?.response?.status === 401 ? "Hãy đăng nhập!" : "Lỗi mua ngay!",
+        error: true,
+      });
       setTimeout(() => setToast(null), 1500);
     }
   };
@@ -120,13 +145,13 @@ function ProductDetail() {
   }, [product]);
 
   useEffect(() => {
-    if (activeTab !== "review" || !product?.id) return;
+    if (activeTab !== "review" || !resolvedProductId) return;
 
     const fetchReviews = async () => {
       setLoadingReview(true);
 
       const res = await getReviewsByProductApi({
-        productId: product.id,
+        productId: resolvedProductId,
         page: reviewPage,
         size: 5,
       });
@@ -137,7 +162,7 @@ function ProductDetail() {
     };
 
     fetchReviews();
-  }, [activeTab, product?.id, reviewPage]);
+  }, [activeTab, resolvedProductId, reviewPage]);
 
   useEffect(() => {
     const trackedProductId = product?.id || product?._id;
