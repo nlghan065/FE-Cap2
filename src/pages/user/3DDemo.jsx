@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { PCFShadowMap } from "three";
 import styles from "../../styles/Viewer3D.module.css";
 
 const ROOM_PRESETS = {
@@ -182,7 +183,7 @@ function formatPrice(price) {
 }
 
 function formatDimensions(size) {
-  return `${size[0].toFixed(2)} x ${size[2].toFixed(2)} x ${size[1].toFixed(2)} m`;
+  return `${size[0].toFixed(2)} x ${size[2].toFixed(2)} x ${size[1].toFixed(2)} cm`;
 }
 
 function RoomObject({ item, onSelect, selected }) {
@@ -280,7 +281,8 @@ function ViewerDemo() {
   const location = useLocation();
   const navigate = useNavigate();
   const demoResult = location.state?.demoResult || null;
-  const initialRoomKey = demoResult?.roomType === "Bedroom" ? "bedroom" : "living";
+  const initialRoomKey =
+    demoResult?.roomType === "Bedroom" ? "bedroom" : "living";
 
   const [roomKey, setRoomKey] = useState(initialRoomKey);
   const [lightsOn, setLightsOn] = useState(true);
@@ -366,7 +368,11 @@ function ViewerDemo() {
 
       <main className={styles.viewerShell}>
         <section className={styles.canvasPanel}>
-          <Canvas shadows dpr={[1, 1.5]} onPointerMissed={() => setSelectedId("")}>
+          <Canvas
+            shadows={{ type: PCFShadowMap }}
+            dpr={[1, 1.5]}
+            onPointerMissed={() => setSelectedId("")}
+          >
             <DemoScene
               lightsOn={lightsOn}
               onSelect={setSelectedId}
@@ -382,8 +388,12 @@ function ViewerDemo() {
             </div>
             <div className={styles.sceneStatsMeta}>
               <span className={styles.sceneStatsLabel}>AI layout</span>
-              <strong>{room.items.length}/{room.items.length} vị trí AI</strong>
-              <small className={styles.sceneStatsHint}>Click object để xem chi tiết</small>
+              <strong>
+                {room.items.length}/{room.items.length} vị trí AI
+              </strong>
+              <small className={styles.sceneStatsHint}>
+                Click object để xem chi tiết
+              </small>
               <small className={styles.sceneStatsHint}>
                 {lightsOn ? "Đèn đang bật" : "Đèn đang tắt"}
               </small>

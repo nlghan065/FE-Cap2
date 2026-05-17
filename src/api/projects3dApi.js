@@ -2,7 +2,8 @@ import apiClient from "./apiClient";
 
 const PROJECTS_3D_ENDPOINT = "/api/projects-3d";
 
-const extractApiData = (response) => response?.data?.data || response?.data || null;
+const extractApiData = (response) =>
+  response?.data?.data || response?.data || null;
 const normalizeId = (value) => String(value || "").trim();
 
 const stripEmptyFields = (value) => {
@@ -104,7 +105,11 @@ const extractPagedContent = (payload) => {
     };
   }
 
-  if (payload && typeof payload === "object" && !Array.isArray(payload?.content)) {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    !Array.isArray(payload?.content)
+  ) {
     const singleProjectId = normalizeId(
       payload?.id || payload?._id || payload?.projectId || payload?.project3DId,
     );
@@ -144,10 +149,7 @@ const extractProjectDetail = (payload, projectId = "") => {
   }
 
   const candidateList =
-    payload?.content ||
-    payload?.items ||
-    payload?.projects ||
-    payload?.data;
+    payload?.content || payload?.items || payload?.projects || payload?.data;
 
   if (Array.isArray(candidateList)) {
     return extractProjectDetail(candidateList, projectId);
@@ -158,35 +160,22 @@ const extractProjectDetail = (payload, projectId = "") => {
 
 export async function createProject3DApi(payload) {
   const designRequestId = normalizeId(
-    payload?.designRequestId || payload?.sourceDesignRequestId || payload?.requestId,
+    payload?.designRequestId ||
+      payload?.sourceDesignRequestId ||
+      payload?.requestId,
   );
-  const projectName =
-    String(payload?.name || payload?.title || "3D Design").trim() || "3D Design";
-  const projectTitle =
-    String(payload?.title || payload?.name || "3D Design").trim() || "3D Design";
 
-  return postWithPayloadFallback(PROJECTS_3D_ENDPOINT, [
-    stripEmptyFields(payload),
-    stripEmptyFields({
-      designRequestId,
-      name: projectName,
-      sceneData: payload?.sceneData,
-      editedProducts: Array.isArray(payload?.editedProducts)
-        ? payload.editedProducts
-        : [],
-    }),
-    stripEmptyFields({
-      designRequestId,
-      title: projectTitle,
-    }),
-    stripEmptyFields({
-      designRequestId,
-    }),
-    stripEmptyFields({
-      sourceDesignRequestId: designRequestId,
-      name: projectName,
-    }),
-  ]);
+  const finalPayload = {
+    designRequestId,
+  };
+
+  console.log("[PROJECTS 3D API] POST create project", finalPayload);
+
+  const response = await apiClient.post(PROJECTS_3D_ENDPOINT, finalPayload);
+
+  console.log("[PROJECTS 3D API] RESPONSE create project", response?.data);
+
+  return extractApiData(response);
 }
 
 export async function saveProject3DEditedProductsApi(projectId, payload) {

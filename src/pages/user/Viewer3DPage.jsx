@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Box3, Color, Plane, Vector3 } from "three";
+import { Box3, Color, PCFShadowMap, Plane, Vector3 } from "three";
 
 import {
   getDesignRequestByIdApi,
@@ -63,6 +63,15 @@ const DEFAULT_ROOM_DIMENSIONS = { width: 4.8, length: 5.8, height: 3 };
 const DEFAULT_ROOM_PALETTE = ["#f5f5dc", "#d2b48c", "#ffffff"];
 const DRAG_ROOM_PADDING = 0.08;
 const ITEM_ROTATION_STEP = Math.PI / 12;
+const PRODUCT_3D_TEXT = {
+  in3D: "CÓ TRONG 3D",
+  notIn3D: "CHƯA CÓ TRONG 3D",
+  manual3D: "THÊM THỦ CÔNG",
+  aiPlaced: "Đã có vị trí trong không gian 3D.",
+  notPlaced: "Chưa thêm vào 3D.",
+  manualPlaced: "Đã thêm thủ công vào 3D.",
+  replaceHint: "Thay bằng sản phẩm cùng loại.",
+};
 const TV_STAND_KEYS = [
   "tv stand",
   "tv cabinet",
@@ -1509,7 +1518,11 @@ const getLayoutReasonFromAiResults = (product, aiResults) => {
   return formatOptionalReasonText(matchedLayoutItem?.layoutReasoning);
 };
 
-const getProductDetailReason = (product, topLevelReason = "", aiResults = null) => {
+const getProductDetailReason = (
+  product,
+  topLevelReason = "",
+  aiResults = null,
+) => {
   const placementReason =
     getProductPlacementReason(product) ||
     getLayoutReasonFromAiResults(product, aiResults);
@@ -1534,14 +1547,11 @@ const getProductDetailReason = (product, topLevelReason = "", aiResults = null) 
     return fallbackReason;
   }
 
-  return (
-    "Sản phẩm phù hợp với cấu hình phòng đã chọn."
-  );
+  return "Sản phẩm phù hợp với cấu hình phòng đã chọn.";
 };
 
 const _getReplacementGroupLabel = (product) =>
-  String(product?.category || product?.type || "Nội thất").trim() ||
-  "Nội thất";
+  String(product?.category || product?.type || "Nội thất").trim() || "Nội thất";
 
 const _getReplacementGroupKey = (product) =>
   normalizeText(_getReplacementGroupLabel(product));
@@ -1577,7 +1587,12 @@ const buildCatalogProductOption = (product) => {
 };
 
 const buildCurrentProductOption = (productItem) => {
-  const productId = String(productItem?.catalogProductId || "");
+  const productId = String(
+    productItem?.catalogProductId ||
+      productItem?.productId ||
+      productItem?.id ||
+      "",
+  );
 
   if (!productId) {
     return null;
@@ -1648,7 +1663,10 @@ const buildReplacementProduct = (currentProduct, replacementOption, slotId) => {
       currentProduct?.productId ||
       null,
     viewerSlotId: String(slotId),
-    name: replacementOption?.name || replacementSource?.name || currentProduct?.name,
+    name:
+      replacementOption?.name ||
+      replacementSource?.name ||
+      currentProduct?.name,
     category:
       replacementOption?.category ||
       replacementSource?.category ||
@@ -1672,7 +1690,8 @@ const buildReplacementProduct = (currentProduct, replacementOption, slotId) => {
       replacementSource?.material ||
       currentProduct?.materials ||
       "Chưa có dữ liệu",
-    dimensions: replacementOption?.dimensions || replacementSource?.dimensions || null,
+    dimensions:
+      replacementOption?.dimensions || replacementSource?.dimensions || null,
     modelUrl,
     productReason:
       getProductSpecificReason(replacementOption) ||
@@ -1687,6 +1706,26 @@ const buildReplacementProduct = (currentProduct, replacementOption, slotId) => {
     layoutPlacement,
   };
 };
+
+const getProduct3DStatusLabel = ({
+  inScene = false,
+  isManualPlaced = false,
+}) =>
+  isManualPlaced
+    ? PRODUCT_3D_TEXT.manual3D
+    : inScene
+      ? PRODUCT_3D_TEXT.in3D
+      : PRODUCT_3D_TEXT.notIn3D;
+
+const getProduct3DStatusDescription = ({
+  inScene = false,
+  isManualPlaced = false,
+}) =>
+  isManualPlaced
+    ? PRODUCT_3D_TEXT.manualPlaced
+    : inScene
+      ? PRODUCT_3D_TEXT.aiPlaced
+      : PRODUCT_3D_TEXT.notPlaced;
 
 const sourceTextOf = (product) =>
   normalizeText(`${product?.category || ""} ${product?.name || ""}`);
@@ -2483,7 +2522,14 @@ const formatItemDimensionsText = (item) => {
     return item?.dimensionsText || "Chưa có dữ liệu";
   }
 
-  return `${raw.width || 0} x ${raw.depth || 0} x ${raw.height || 0} ${raw.unit || "m"}`;
+  const numericValues = [raw.width, raw.depth, raw.height].filter(
+    (value) => Number.isFinite(value) && value > 0,
+  );
+  const maxValue = numericValues.length ? Math.max(...numericValues) : 0;
+  const displayUnit =
+    (raw.unit || "m") === "m" && maxValue >= 10 ? "cm" : raw.unit || "m";
+
+  return `${raw.width || 0} x ${raw.depth || 0} x ${raw.height || 0} ${displayUnit}`;
 };
 
 const clampFurnitureSize = (size, room) => ({
@@ -3046,25 +3092,28 @@ const createCompactPayload = (value) => {
     return value;
   }
 
-  const compactedEntries = Object.entries(value).reduce((acc, [key, entryValue]) => {
-    const nextValue = createCompactPayload(entryValue);
+  const compactedEntries = Object.entries(value).reduce(
+    (acc, [key, entryValue]) => {
+      const nextValue = createCompactPayload(entryValue);
 
-    if (nextValue === undefined) {
+      if (nextValue === undefined) {
+        return acc;
+      }
+
+      if (
+        typeof nextValue === "object" &&
+        !Array.isArray(nextValue) &&
+        nextValue !== null &&
+        !Object.keys(nextValue).length
+      ) {
+        return acc;
+      }
+
+      acc.push([key, nextValue]);
       return acc;
-    }
-
-    if (
-      typeof nextValue === "object" &&
-      !Array.isArray(nextValue) &&
-      nextValue !== null &&
-      !Object.keys(nextValue).length
-    ) {
-      return acc;
-    }
-
-    acc.push([key, nextValue]);
-    return acc;
-  }, []);
+    },
+    [],
+  );
 
   return Object.fromEntries(compactedEntries);
 };
@@ -3155,7 +3204,10 @@ const buildProject3DAiResultsSnapshot = (aiResults) => {
           colors: Array.isArray(product?.colors) ? product.colors : [],
           styles: Array.isArray(product?.styles) ? product.styles : [],
           materials:
-            product?.materials || product?.material || product?.description || "",
+            product?.materials ||
+            product?.material ||
+            product?.description ||
+            "",
           reasoning:
             product?.reasoning ||
             product?.productReason ||
@@ -3174,7 +3226,10 @@ const buildProject3DAiResultsSnapshot = (aiResults) => {
     id: aiResults?.id || aiResults?.requestMeta?.id || null,
     requestId: aiResults?.requestId || aiResults?.requestMeta?.id || null,
     designRequestId:
-      aiResults?.designRequestId || aiResults?.id || aiResults?.requestMeta?.id || null,
+      aiResults?.designRequestId ||
+      aiResults?.id ||
+      aiResults?.requestMeta?.id ||
+      null,
     roomType: aiResults?.roomType || "",
     style: aiResults?.style || "",
     furnitureDensity: aiResults?.furnitureDensity || "",
@@ -3182,7 +3237,8 @@ const buildProject3DAiResultsSnapshot = (aiResults) => {
     age: toOptionalNumber(aiResults?.age),
     imageUrl: aiResults?.imageUrl || "",
     reasoning: aiResults?.reasoning || "",
-    createdAt: aiResults?.createdAt || aiResults?.requestMeta?.createdAt || null,
+    createdAt:
+      aiResults?.createdAt || aiResults?.requestMeta?.createdAt || null,
     roomAnalysis: aiResults?.roomAnalysis || null,
     colorPalette: aiResults?.colorPalette || null,
     totalPrice: Number(aiResults?.totalPrice) || 0,
@@ -3190,7 +3246,8 @@ const buildProject3DAiResultsSnapshot = (aiResults) => {
       id: aiResults?.requestMeta?.id || aiResults?.id || null,
       status: aiResults?.requestMeta?.status || null,
       message: aiResults?.requestMeta?.message || null,
-      createdAt: aiResults?.requestMeta?.createdAt || aiResults?.createdAt || null,
+      createdAt:
+        aiResults?.requestMeta?.createdAt || aiResults?.createdAt || null,
     },
     layout: aiResults?.layout || null,
     products: snapshotProducts,
@@ -3214,7 +3271,10 @@ const buildEditedProductsSnapshot = (productItems, sceneItems, viewerEdits) => {
     normalizedEdits.hiddenItemIds.map((id) => String(id)),
   );
   const manualSceneEntryById = new Map(
-    normalizedEdits.manualSceneEntries.map((entry) => [String(entry.id), entry]),
+    normalizedEdits.manualSceneEntries.map((entry) => [
+      String(entry.id),
+      entry,
+    ]),
   );
   const manualPositionById = new Map(
     Object.entries(normalizedEdits.manualPositions || {}).map(([id, value]) => [
@@ -3276,9 +3336,7 @@ const buildEditedProductsSnapshot = (productItems, sceneItems, viewerEdits) => {
 };
 
 const toProject3DVectorPayload = (value, fallback) => {
-  const vector = Array.isArray(value)
-    ? value
-    : [value?.x, value?.y, value?.z];
+  const vector = Array.isArray(value) ? value : [value?.x, value?.y, value?.z];
 
   return {
     x: formatMeasureValue(
@@ -3304,7 +3362,10 @@ const buildProject3DSceneData = (
 
   return {
     camera: {
-      position: toProject3DVectorPayload(cameraPosition, DEFAULT_CAMERA_POSITION),
+      position: toProject3DVectorPayload(
+        cameraPosition,
+        DEFAULT_CAMERA_POSITION,
+      ),
       target: toProject3DVectorPayload(cameraTarget, DEFAULT_CAMERA_TARGET),
     },
     room: {
@@ -3314,19 +3375,22 @@ const buildProject3DSceneData = (
       type:
         sceneMeta?.roomType ||
         roomAnalysis?.type ||
-        roomAnalysis?.roomType ||
-        undefined,
-      style: sceneMeta?.style || roomAnalysis?.style || undefined,
+        roomAnalysis?.roomType,
+      style: sceneMeta?.style || roomAnalysis?.style,
     },
+    colorPalette: sceneMeta?.colorPalette || [],
+    imageUrl: sceneMeta?.imageUrl || "",
   };
 };
 
 const getEditedProductPosition = (item) =>
-  clonePositionArray(item?.position || {
-    x: item?.x,
-    y: item?.y,
-    z: item?.z,
-  });
+  clonePositionArray(
+    item?.position || {
+      x: item?.x,
+      y: item?.y,
+      z: item?.z,
+    },
+  );
 
 const getEditedProductRotationY = (item) => {
   const rotationY = Number(
@@ -3339,10 +3403,7 @@ const getEditedProductRotationY = (item) => {
   return Number.isFinite(rotationY) ? rotationY : 0;
 };
 
-const buildProject3DEditedProductPayload = (
-  item,
-  roomAnalysis = null,
-) => {
+const buildProject3DEditedProductPayload = (item, roomAnalysis = null) => {
   const dimensions = getItemDimensions(item, roomAnalysis);
   const position = clonePositionArray(item?.position) || [0, 0, 0];
   const layoutPlacement = item?.layoutPlacement || {};
@@ -3395,7 +3456,8 @@ const buildProject3DEditedProductPayload = (
 };
 
 const buildProject3DCreatePayload = (aiResults, orbitControls = null) => {
-  const sourceDesignRequestId = getSourceDesignRequestIdFromAiResults(aiResults);
+  const sourceDesignRequestId =
+    getSourceDesignRequestIdFromAiResults(aiResults);
   const emptyEdits = createEmptyViewerEdits();
 
   return createCompactPayload({
@@ -3407,6 +3469,8 @@ const buildProject3DCreatePayload = (aiResults, orbitControls = null) => {
     sceneData: buildProject3DSceneData(aiResults?.roomAnalysis, orbitControls, {
       roomType: aiResults?.roomType,
       style: aiResults?.style,
+      colorPalette: aiResults?.colorPalette,
+      imageUrl: aiResults?.imageUrl,
     }),
     editedProducts: [],
     viewerEdits: emptyEdits,
@@ -3436,6 +3500,8 @@ const buildProject3DEditedProductsPayload = (
     sceneData: buildProject3DSceneData(aiResults?.roomAnalysis, orbitControls, {
       roomType: aiResults?.roomType,
       style: aiResults?.style,
+      colorPalette: aiResults?.colorPalette,
+      imageUrl: aiResults?.imageUrl,
     }),
     editedProducts,
     viewerEdits: normalizedViewerEdits,
@@ -3464,8 +3530,7 @@ const buildViewerEditsFromEditedProducts = (editedProducts) => {
 
     if (!itemId) return;
 
-    const hidden =
-      Boolean(item?.hidden) || Boolean(item?.metadata?.hidden);
+    const hidden = Boolean(item?.hidden) || Boolean(item?.metadata?.hidden);
 
     if (hidden) {
       hiddenItemIds.push(itemId);
@@ -3473,8 +3538,7 @@ const buildViewerEditsFromEditedProducts = (editedProducts) => {
 
     const position = getEditedProductPosition(item);
     const rotation = getEditedProductRotationY(item);
-    const sceneMode =
-      item?.sceneMode || item?.metadata?.sceneMode || undefined;
+    const sceneMode = item?.sceneMode || item?.metadata?.sceneMode || undefined;
     const isManualPlaced =
       Boolean(item?.isManualPlaced) ||
       Boolean(item?.metadata?.isManualPlaced) ||
@@ -3484,10 +3548,7 @@ const buildViewerEditsFromEditedProducts = (editedProducts) => {
       clonePlacementConfig(item?.metadata?.placement);
 
     const manualSceneEntry =
-      item?.manualSceneEntry ||
-      item?.sceneEntry ||
-      item?.manualEntry ||
-      null;
+      item?.manualSceneEntry || item?.sceneEntry || item?.manualEntry || null;
 
     if (manualSceneEntry?.position) {
       manualSceneEntries.push({
@@ -3565,10 +3626,38 @@ const normalizeProject3DAiResults = (payload) => {
     baseAiResults &&
     !baseAiResults?.products?.some((item) => item?.layoutPlacement)
   ) {
-    return mergeAiLayoutResult(baseAiResults, payload.layout);
+    const mergedAiResults = mergeAiLayoutResult(baseAiResults, payload.layout);
+
+    return {
+      ...mergedAiResults,
+      colorPalette:
+        Array.isArray(mergedAiResults?.colorPalette) &&
+        mergedAiResults.colorPalette.length
+          ? mergedAiResults.colorPalette
+          : payload?.sceneData?.colorPalette ||
+            payload?.sceneData?.palette ||
+            [],
+      imageUrl:
+        mergedAiResults?.imageUrl ||
+        payload?.sceneData?.imageUrl ||
+        payload?.imageUrl ||
+        "",
+    };
   }
 
-  return baseAiResults;
+  return {
+    ...baseAiResults,
+    colorPalette:
+      Array.isArray(baseAiResults?.colorPalette) &&
+      baseAiResults.colorPalette.length
+        ? baseAiResults.colorPalette
+        : payload?.sceneData?.colorPalette || payload?.sceneData?.palette || [],
+    imageUrl:
+      baseAiResults?.imageUrl ||
+      payload?.sceneData?.imageUrl ||
+      payload?.imageUrl ||
+      "",
+  };
 };
 
 const normalizeProject3DViewerState = (payload) => {
@@ -7928,7 +8017,9 @@ function Viewer3DPage() {
     setReplacementSelections({});
     setResetToken((current) => current + 1);
     layoutRequestKeyRef.current = "";
-    latestViewerEditsRef.current = cloneViewerEdits(normalizedState.viewerEdits);
+    latestViewerEditsRef.current = cloneViewerEdits(
+      normalizedState.viewerEdits,
+    );
     setProject3DId(normalizedState.project3DId || "");
     saveAiViewerState(
       buildViewerStatePayload(
@@ -7970,14 +8061,16 @@ function Viewer3DPage() {
       return projectPayload;
     }
 
-    const designRequestId = getSourceDesignRequestIdFromProject3D(projectPayload);
+    const designRequestId =
+      getSourceDesignRequestIdFromProject3D(projectPayload);
 
     if (!designRequestId) {
       return projectPayload;
     }
 
     try {
-      const designRequestPayload = await getDesignRequestByIdApi(designRequestId);
+      const designRequestPayload =
+        await getDesignRequestByIdApi(designRequestId);
 
       return {
         ...projectPayload,
@@ -8001,7 +8094,11 @@ function Viewer3DPage() {
         location.state?.sourceDesignRequestId ||
         getSourceDesignRequestIdFromAiResults(location.state?.aiResults);
 
-      if (!explicitProjectId && !sourceDesignRequestId && hasIncomingAiResults) {
+      if (
+        !explicitProjectId &&
+        !sourceDesignRequestId &&
+        hasIncomingAiResults
+      ) {
         return;
       }
 
@@ -8039,7 +8136,8 @@ function Viewer3DPage() {
           return;
         }
 
-        const hydratedProjectPayload = await hydrateProject3DState(projectPayload);
+        const hydratedProjectPayload =
+          await hydrateProject3DState(projectPayload);
 
         if (cancelled) {
           return;
@@ -8283,7 +8381,11 @@ function Viewer3DPage() {
         canSupportItems: getCanSupportItems(itemDraft),
         layoutScore: aiPlacement?.score ?? product?.layoutScore,
         modelUrl: aiPlacement?.modelUrl || product?.modelUrl || "",
-        reason: getProductDetailReason(product, aiResults?.reasoning, aiResults),
+        reason: getProductDetailReason(
+          product,
+          aiResults?.reasoning,
+          aiResults,
+        ),
         hasAiPlacement,
         placement: placementConfig,
         position: aiPlacement?.position || fallbackPlacement.position,
@@ -8332,77 +8434,6 @@ function Viewer3DPage() {
       return next;
     });
   }, [productItems]);
-
-  const aiResultReplacementOptions = useMemo(() => {
-    const optionMap = new Map();
-
-    products
-      .map(buildCatalogProductOption)
-      .filter(Boolean)
-      .forEach((option) => {
-        optionMap.set(String(option.id), option);
-      });
-
-    return Array.from(optionMap.values());
-  }, [products]);
-
-  const replacementOptionsByGroup = useMemo(
-    () =>
-      aiResultReplacementOptions.reduce((acc, option) => {
-        const groupMeta = getReplacementGroupMeta(option.raw || option);
-        const next = { ...acc };
-
-        if (!next[groupMeta.key]) {
-          next[groupMeta.key] = [];
-        }
-
-        next[groupMeta.key].push(option);
-        return next;
-      }, {}),
-    [aiResultReplacementOptions],
-  );
-
-  const replacementOptionsByFamily = useMemo(
-    () =>
-      aiResultReplacementOptions.reduce((acc, option) => {
-        const groupMeta = getReplacementGroupMeta(option.raw || option);
-        const next = { ...acc };
-
-        if (!next[groupMeta.familyKey]) {
-          next[groupMeta.familyKey] = [];
-        }
-
-        next[groupMeta.familyKey].push(option);
-        return next;
-      }, {}),
-    [aiResultReplacementOptions],
-  );
-
-  const getReplacementOptionsForItem = useCallback(
-    (item) => {
-      const optionMap = new Map();
-      const currentOption = buildCurrentProductOption(item);
-      const groupMeta = getReplacementGroupMeta(item);
-      const exactGroupOptions = replacementOptionsByGroup[groupMeta.key] || [];
-      const familyGroupOptions =
-        replacementOptionsByFamily[groupMeta.familyKey] || [];
-      const replacementGroupOptions =
-        exactGroupOptions.length > 1 ? exactGroupOptions : familyGroupOptions;
-
-      [currentOption, ...replacementGroupOptions].forEach((option) => {
-        const optionId = String(option?.id || "");
-
-        if (!optionId || optionMap.has(optionId)) {
-          return;
-        }
-
-        optionMap.set(optionId, option);
-      });
-
-      return Array.from(optionMap.values());
-    },
-    [replacementOptionsByFamily, replacementOptionsByGroup],
-  );
 
   const manualSceneEntryById = useMemo(
     () => new Map(manualSceneEntries.map((entry) => [String(entry.id), entry])),
@@ -8505,6 +8536,16 @@ function Viewer3DPage() {
     () => new Map(sceneItems.map((item) => [String(item.id), item])),
     [sceneItems],
   );
+  const aiProductBySlotId = useMemo(
+    () =>
+      new Map(
+        products.map((product, index) => [
+          String(getViewerSlotId(product, index)),
+          product,
+        ]),
+      ),
+    [products],
+  );
 
   const renderedProducts = useMemo(
     () =>
@@ -8515,28 +8556,10 @@ function Viewer3DPage() {
         const isManualPlaced = Boolean(sceneItem?.isManualPlaced);
         const isAiPlaced = Boolean(item.hasAiPlacement && !isHidden);
         const inScene = Boolean(sceneItem) && !isHidden;
-
-        let statusKey = "pending";
-        let statusLabel = "Có trong AI result, chưa vào 3D";
-        let statusDescription =
-          "Sản phẩm này đang có trong danh sách AI nhưng chưa được thêm vào scene 3D.";
-
-        if (isHidden) {
-          statusKey = "removed";
-          statusLabel = "Đã xóa khỏi thiết kế";
-          statusDescription =
-            "Sản phẩm này không còn trong không gian 3D, nhưng vẫn được giữ trong danh sách đề xuất để bạn thêm lại.";
-        } else if (isManualPlaced) {
-          statusKey = "manual";
-          statusLabel = "Thêm thủ công";
-          statusDescription =
-            "Sản phẩm này chưa có vị trí AI và đang được bạn đặt thủ công trong scene.";
-        } else if (isAiPlaced) {
-          statusKey = "ai";
-          statusLabel = "AI đã đặt vị trí";
-          statusDescription =
-            "Sản phẩm này đang có vị trí do AI sinh trực tiếp trong không gian 3D.";
-        }
+        const statusDescription = getProduct3DStatusDescription({
+          inScene,
+          isManualPlaced,
+        });
 
         return {
           ...item,
@@ -8547,13 +8570,43 @@ function Viewer3DPage() {
           isAiPlaced,
           isManualPlaced,
           isHidden,
-          statusKey,
-          statusLabel,
           statusDescription,
         };
       }),
     [hiddenItemIdSet, productItems, sceneItemById],
   );
+
+  const groupedAiProducts = useMemo(() => {
+    const groups = new Map();
+
+    renderedProducts.forEach((product) => {
+      const category =
+        String(
+          product.category || getReplacementGroupMeta(product).label || "Khác",
+        ).trim() || "Khác";
+
+      if (!groups.has(category)) {
+        groups.set(category, []);
+      }
+
+      groups.get(category).push(product);
+    });
+
+    return Array.from(groups.entries()).map(([category, items]) => ({
+      category,
+      currentProduct: items[0],
+      replacementOptions: items
+        .map((item) => {
+          const rawProduct = aiProductBySlotId.get(String(item.id)) || item;
+
+          return (
+            buildCatalogProductOption(rawProduct) ||
+            buildCurrentProductOption(item)
+          );
+        })
+        .filter(Boolean),
+    }));
+  }, [aiProductBySlotId, renderedProducts]);
 
   const visibleProductItems = useMemo(
     () => renderedProducts.filter((item) => !item.isHidden),
@@ -8566,11 +8619,11 @@ function Viewer3DPage() {
   ).length;
   const hasLayoutResult = Boolean(aiResults?.layout);
   const manualMovedCount = Object.keys(manualPositions).length;
-  const canBootstrapProject3D = Boolean(aiResults) && (
-    !products.length ||
-    (!layoutLoading &&
-      (hasLayoutResult || Boolean(layoutRequestKeyRef.current)))
-  );
+  const canBootstrapProject3D =
+    Boolean(aiResults) &&
+    (!products.length ||
+      (!layoutLoading &&
+        (hasLayoutResult || Boolean(layoutRequestKeyRef.current))));
 
   useEffect(() => {
     let cancelled = false;
@@ -8661,11 +8714,11 @@ function Viewer3DPage() {
 
   const selectedSceneItem =
     sceneItems.find((item) => String(item.id) === String(selectedId)) || null;
-  const selectedItem =
-    selectedSceneItem ||
+  const selectedRenderedItem =
     renderedProducts.find((item) => String(item.id) === String(selectedId)) ||
     renderedProducts[0] ||
     null;
+  const selectedItem = selectedSceneItem || selectedRenderedItem || null;
 
   const totalPrice = visibleProductItems.reduce(
     (sum, item) => sum + (Number(item.price) || 0),
@@ -8678,12 +8731,14 @@ function Viewer3DPage() {
 
   const hasUnsavedChanges =
     JSON.stringify(currentViewerEdits) !== JSON.stringify(savedViewerEdits);
-  const canSaveDesign = Boolean(aiResults) && (!project3DId || hasUnsavedChanges);
-  const selectedItemHidden = Boolean(
-    selectedItem && hiddenItemIdSet.has(String(selectedItem.id)),
-  );
+  const canSaveDesign =
+    Boolean(aiResults) && (!project3DId || hasUnsavedChanges);
+  const selectedItemHidden = Boolean(selectedRenderedItem?.isHidden);
+  const selectedItemInScene = Boolean(selectedRenderedItem?.inScene);
   const selectedItemHasAiPlacement = Boolean(selectedItem?.hasAiPlacement);
-  const selectedItemIsManualPlaced = Boolean(selectedSceneItem?.isManualPlaced);
+  const selectedItemIsManualPlaced = Boolean(
+    selectedRenderedItem?.isManualPlaced,
+  );
   const selectedItemNeedsManualPlacement = Boolean(
     selectedItem && !selectedItemHasAiPlacement && !selectedItemHidden,
   );
@@ -8701,7 +8756,7 @@ function Viewer3DPage() {
     }));
   };
 
-  const handleReplaceProduct = (slotId) => {
+  const handleReplaceProduct = (slotId, replacementOptions = []) => {
     const normalizedSlotId = String(slotId);
     const currentItem = productItems.find(
       (item) => String(item.id) === normalizedSlotId,
@@ -8719,13 +8774,16 @@ function Viewer3DPage() {
       return;
     }
 
-    if (nextProductId === String(currentItem.catalogProductId || "")) {
+    if (
+      nextProductId ===
+      String(currentItem.catalogProductId || currentItem.productId || "")
+    ) {
       toast("Sản phẩm này đang được dùng trong bố cục.");
       return;
     }
 
-    const replacementOption = getReplacementOptionsForItem(currentItem).find(
-      (option) => String(option.id) === nextProductId,
+    const replacementOption = replacementOptions.find(
+      (option) => String(option?.id || "") === nextProductId,
     );
 
     if (!replacementOption) {
@@ -8927,7 +8985,9 @@ function Viewer3DPage() {
 
           nextProject3DId = getProject3DIdFromPayload(createdProject);
         } catch (createError) {
-          nextProject3DId = await findExistingProject3DId(sourceDesignRequestId);
+          nextProject3DId = await findExistingProject3DId(
+            sourceDesignRequestId,
+          );
 
           if (!nextProject3DId) {
             throw createError;
@@ -9073,8 +9133,8 @@ function Viewer3DPage() {
   };
 
   const handleAddAllToCart = async () => {
-    const realItems = visibleProductItems.filter(
-      (item) => Boolean(String(item.catalogProductId || "")),
+    const realItems = visibleProductItems.filter((item) =>
+      Boolean(String(item.catalogProductId || "")),
     );
 
     if (!realItems.length) {
@@ -9121,8 +9181,8 @@ function Viewer3DPage() {
               <Loader2 className={styles.spin} size={42} />
               <h1>Đang tải dự án 3D</h1>
               <p>
-                Viewer đang lấy dự án 3D gần nhất từ lịch sử backend để khôi phục
-                lại không gian đã lưu.
+                Viewer đang lấy dự án 3D gần nhất từ lịch sử backend để khôi
+                phục lại không gian đã lưu.
               </p>
             </>
           ) : (
@@ -9242,7 +9302,7 @@ function Viewer3DPage() {
           onContextMenu={(event) => event.preventDefault()}
           ref={canvasPanelRef}
         >
-          <Canvas shadows dpr={[1, 1.7]}>
+          <Canvas shadows={{ type: PCFShadowMap }} dpr={[1, 1.7]}>
             <Suspense fallback={null}>
               <Scene
                 controlsRef={controlsRef}
@@ -9319,13 +9379,10 @@ function Viewer3DPage() {
                           : styles.pendingPlacementChip
                   }
                 >
-                  {selectedItemHidden
-                    ? "Xóa khỏi thiết kế"
-                    : selectedItemHasAiPlacement
-                      ? "AI placed"
-                      : selectedItemIsManualPlaced
-                        ? "Manual placed"
-                        : "Chưa vào phòng"}
+                  {getProduct3DStatusLabel({
+                    inScene: selectedItemInScene,
+                    isManualPlaced: selectedItemIsManualPlaced,
+                  })}
                 </strong>
               </div>
               <h2>{selectedItem.name}</h2>
@@ -9338,14 +9395,12 @@ function Viewer3DPage() {
               </p>
               {selectedItemNeedsManualPlacement && (
                 <div className={styles.manualPlacementHint}>
-                  Sản phẩm này chưa có vị trí AI. Bạn có thể thêm vào phòng và
-                  kéo để đặt thủ công.
+                  {PRODUCT_3D_TEXT.notPlaced}
                 </div>
               )}
               {selectedItemHidden && (
                 <div className={styles.manualPlacementHint}>
-                  Sản phẩm này đã được xóa khỏi thiết kế 3D nhưng vẫn còn trong
-                  danh sách đề xuất. Bạn có thể thêm lại bất cứ lúc nào.
+                  {PRODUCT_3D_TEXT.notPlaced}
                 </div>
               )}
               <dl>
@@ -9426,110 +9481,109 @@ function Viewer3DPage() {
 
           <section className={styles.productList}>
             <h3>Thay thế sản phẩm</h3>
-            {renderedProducts.map((item) => {
-              const slotId = String(item.id);
-              const replacementGroupLabel = getReplacementGroupMeta(item).label;
-              const options = getReplacementOptionsForItem(item);
-              const selectedReplacementId =
-                replacementSelections[slotId] ??
-                String(item.catalogProductId || "");
-              const isCurrentItemSelected =
-                String(item.id) === String(selectedItem?.id);
-              const isHiddenItem = item.isHidden;
-              const canReplace =
-                Boolean(selectedReplacementId) &&
-                selectedReplacementId !== String(item.catalogProductId || "") &&
-                options.some(
-                  (option) => String(option.id) === selectedReplacementId,
-                );
-              const isLoadingOptions = false;
+            {groupedAiProducts.map(
+              ({ category, currentProduct, replacementOptions }, groupIndex) => {
+                const item = currentProduct;
+                const slotId = String(item.id);
+                const replacementGroupLabel =
+                  category || getReplacementGroupMeta(item).label;
+                const options = replacementOptions;
+                const selectedReplacementId =
+                  replacementSelections[slotId] ??
+                  String(item.catalogProductId || item.productId || "");
+                const isCurrentItemSelected =
+                  String(item.id) === String(selectedItem?.id);
+                const isHiddenItem = item.isHidden;
+                const canReplace =
+                  Boolean(selectedReplacementId) &&
+                  selectedReplacementId !==
+                    String(item.catalogProductId || item.productId || "") &&
+                  options.some(
+                    (option) => String(option.id) === selectedReplacementId,
+                  );
 
-              return (
-                <article
-                  className={[
-                    styles.productListItem,
-                    isCurrentItemSelected ? styles.productListItemActive : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  key={slotId}
-                >
-                  <button
-                className={
-                  [
-                    styles.productCurrentButton,
-                    isCurrentItemSelected ? styles.activeItem : "",
-                    isHiddenItem ? styles.hiddenItem : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                }
-                key={item.id}
-                onClick={() => handleSelect(item)}
-                type="button"
-              >
-                <span className={styles.productCurrentLabel}>
-                  {isHiddenItem ? "Đã xóa khỏi thiết kế" : "Đang có trong thiết kế"}
-                </span>
-                <strong>{item.name}</strong>
-                <small>{formatPrice(item.price)}</small>
-              </button>
-
-                  <p className={styles.productStatusDescription}>
-                    {item.statusDescription}
-                  </p>
-
-                  <div className={styles.productReplacementControls}>
-                    <span className={styles.productTypeLabel}>
-                      {replacementGroupLabel}
-                    </span>
-                    <select
-                      onChange={(event) =>
-                        handleReplacementSelectionChange(
-                          slotId,
-                          event.target.value,
-                        )
-                      }
-                      value={selectedReplacementId}
-                    >
-                      {!String(item.catalogProductId || "") && (
-                        <option value="">Chọn sản phẩm cùng loại</option>
-                      )}
-                      {isLoadingOptions && !options.length ? (
-                        <option value={selectedReplacementId}>
-                          Đang tải sản phẩm cùng loại...
-                        </option>
-                      ) : options.length ? (
-                        options.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.name} - {formatPrice(option.price)}
-                          </option>
-                        ))
-                      ) : (
-                        <option value="">
-                          Chưa có sản phẩm cùng loại để thay
-                        </option>
-                      )}
-                    </select>
-
+                return (
+                  <article
+                    className={[
+                      styles.productListItem,
+                      isCurrentItemSelected ? styles.productListItemActive : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    key={`${slotId}-${groupIndex}`}
+                  >
                     <button
-                      className={`${styles.secondaryButton} ${styles.replaceButton}`}
-                      disabled={!canReplace}
-                      onClick={() => handleReplaceProduct(slotId)}
+                      className={[
+                        styles.productCurrentButton,
+                        isCurrentItemSelected ? styles.activeItem : "",
+                        isHiddenItem ? styles.hiddenItem : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      onClick={() => handleSelect(item)}
                       type="button"
                     >
-                      Thay thế
+                      <span className={styles.productCurrentLabel}>
+                        {getProduct3DStatusLabel({
+                          inScene: item.inScene,
+                          isManualPlaced: item.isManualPlaced,
+                        })}
+                      </span>
+                      <strong>{item.name}</strong>
+                      <small>{formatPrice(item.price)}</small>
                     </button>
-                  </div>
 
-                  <p className={styles.productReplacementHint}>
-                    {options.length > 1
-                      ? "Đổi sản phẩm cùng loại và giữ nguyên vị trí đã sắp xếp trong scene."
-                      : "Chưa có thêm lựa chọn khác cùng loại cho vị trí này."}
-                  </p>
-                </article>
-              );
-            })}
+                    <div className={styles.productReplacementControls}>
+                      <span className={styles.productTypeLabel}>
+                        {replacementGroupLabel}
+                      </span>
+                      <select
+                        onChange={(event) =>
+                          handleReplacementSelectionChange(
+                            slotId,
+                            event.target.value,
+                          )
+                        }
+                        value={selectedReplacementId}
+                      >
+                        {!String(
+                          item.catalogProductId || item.productId || "",
+                        ) && <option value="">Chọn sản phẩm cùng loại</option>}
+                        {options.length ? (
+                          options.map((option, optionIndex) => (
+                            <option
+                              key={`${slotId}-${option.id}-${optionIndex}`}
+                              value={option.id}
+                            >
+                              {option.name} - {formatPrice(option.price)}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="">
+                            Chưa có sản phẩm cùng loại để thay
+                          </option>
+                        )}
+                      </select>
+
+                      <button
+                        className={`${styles.secondaryButton} ${styles.replaceButton}`}
+                        disabled={!canReplace}
+                        onClick={() => handleReplaceProduct(slotId, options)}
+                        type="button"
+                      >
+                        Thay thế
+                      </button>
+                    </div>
+
+                    <p className={styles.productReplacementHint}>
+                      {options.length > 1
+                        ? PRODUCT_3D_TEXT.replaceHint
+                        : "Chưa có lựa chọn cùng loại khác."}
+                    </p>
+                  </article>
+                );
+              },
+            )}
           </section>
         </aside>
       </main>
