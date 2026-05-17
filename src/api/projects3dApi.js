@@ -42,59 +42,6 @@ const stripEmptyFields = (value) => {
   return Object.fromEntries(entries);
 };
 
-const buildUniquePayloads = (payloads) => {
-  const seen = new Set();
-
-  return payloads.filter((payload) => {
-    if (payload === undefined) {
-      return false;
-    }
-
-    const signature = JSON.stringify(payload);
-
-    if (seen.has(signature)) {
-      return false;
-    }
-
-    seen.add(signature);
-    return true;
-  });
-};
-
-const shouldRetryWithAlternatePayload = (error) => {
-  const status = Number(error?.response?.status || 0);
-  const code = Number(error?.response?.data?.code || 0);
-
-  return [400, 415, 422, 500].includes(status) || code === 9999;
-};
-
-const postWithPayloadFallback = async (url, payloads) => {
-  let lastError = null;
-
-  for (const payload of buildUniquePayloads(payloads)) {
-    try {
-      console.log("[PROJECTS 3D API] POST", url, payload);
-      const response = await apiClient.post(url, payload);
-      console.log("[PROJECTS 3D API] RESPONSE", url, response?.data);
-      return extractApiData(response);
-    } catch (error) {
-      console.error("[PROJECTS 3D API] ERROR", url, {
-        payload,
-        status: error?.response?.status,
-        data: error?.response?.data,
-      });
-
-      lastError = error;
-
-      if (!shouldRetryWithAlternatePayload(error)) {
-        throw error;
-      }
-    }
-  }
-
-  throw lastError;
-};
-
 const extractPagedContent = (payload) => {
   if (Array.isArray(payload)) {
     return {
@@ -189,31 +136,29 @@ export async function saveProject3DEditedProductsApi(projectId, payload) {
           ? payload.items
           : [];
 
-  return postWithPayloadFallback(
+  const finalPayload = stripEmptyFields({
+    sceneData: payload?.sceneData,
+    editedProducts,
+  });
+
+  console.log(
+    "[PROJECTS 3D API] POST",
     `${PROJECTS_3D_ENDPOINT}/${projectId}/edited-products`,
-    [
-      stripEmptyFields(payload),
-      stripEmptyFields({
-        sceneData: payload?.sceneData,
-        editedProducts,
-      }),
-      stripEmptyFields({
-        editedProducts,
-      }),
-      editedProducts,
-      stripEmptyFields({
-        products: editedProducts,
-      }),
-      stripEmptyFields({
-        items: editedProducts,
-      }),
-      stripEmptyFields({
-        viewerEdits: payload?.viewerEdits,
-        snapshot: payload?.snapshot,
-        editedProducts,
-      }),
-    ],
+    finalPayload,
   );
+
+  const response = await apiClient.post(
+    `${PROJECTS_3D_ENDPOINT}/${projectId}/edited-products`,
+    finalPayload,
+  );
+
+  console.log(
+    "[PROJECTS 3D API] RESPONSE",
+    `${PROJECTS_3D_ENDPOINT}/${projectId}/edited-products`,
+    response?.data,
+  );
+
+  return extractApiData(response);
 }
 
 export async function getMyProjects3DApi({

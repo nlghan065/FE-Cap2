@@ -1,6 +1,7 @@
 import {
   ChevronRight,
   Eye,
+  History,
   Palette,
   ShoppingCart,
   Sparkles,
@@ -20,7 +21,8 @@ function AIDesignerResultsPanel({
   results,
   formatPrice,
   onReset,
-  onView3D,
+  onCreate3D,
+  onView3DHistory,
   onAddAllToCart,
   onViewProduct,
 }) {
@@ -372,11 +374,11 @@ function AIDesignerResultsPanel({
           <>
             <button
               className={styles.resultActionPrimary}
-              onClick={onView3D}
+              onClick={onCreate3D}
               type="button"
             >
               <Eye size={18} />
-              <span>Xem không gian 3D</span>
+              <span>Tạo không gian 3D</span>
               <ChevronRight size={16} />
             </button>
             <button
@@ -386,6 +388,14 @@ function AIDesignerResultsPanel({
             >
               <ShoppingCart size={18} />
               <span>Thêm tất cả vào giỏ</span>
+            </button>
+            <button
+              className={styles.resultActionGhost}
+              onClick={onView3DHistory}
+              type="button"
+            >
+              <History size={18} />
+              <span>Xem lại lịch sử 3D</span>
             </button>
           </>
         )}

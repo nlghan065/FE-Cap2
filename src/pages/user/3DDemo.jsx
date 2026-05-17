@@ -183,7 +183,7 @@ function formatPrice(price) {
 }
 
 function formatDimensions(size) {
-  return `${size[0].toFixed(2)} x ${size[2].toFixed(2)} x ${size[1].toFixed(2)} cm`;
+  return `${size[0].toFixed(2)} x ${size[2].toFixed(2)} x ${size[1].toFixed(2)} m`;
 }
 
 function RoomObject({ item, onSelect, selected }) {
@@ -453,32 +453,48 @@ function ViewerDemo() {
 
           <section className={styles.productList}>
             <h3>Phòng mẫu</h3>
-            {Object.values(ROOM_PRESETS).map((preset) => (
-              <button
-                key={preset.id}
-                className={preset.id === roomKey ? styles.activeItem : ""}
-                onClick={() => handleRoomChange(preset.id)}
-                type="button"
-              >
-                <span>{preset.label}</span>
-                <strong>Demo</strong>
-              </button>
-            ))}
+            <div className={styles.demoList}>
+              {Object.values(ROOM_PRESETS).map((preset) => (
+                <button
+                  key={preset.id}
+                  className={[
+                    styles.demoListButton,
+                    preset.id === roomKey ? styles.activeItem : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onClick={() => handleRoomChange(preset.id)}
+                  type="button"
+                >
+                  <span>{preset.label}</span>
+                  <small>{preset.roomType}</small>
+                  <strong>Demo</strong>
+                </button>
+              ))}
+            </div>
           </section>
 
           <section className={styles.productList}>
             <h3>Danh sách sản phẩm</h3>
-            {room.items.map((item) => (
-              <button
-                key={item.id}
-                className={item.id === selectedId ? styles.activeItem : ""}
-                onClick={() => setSelectedId(item.id)}
-                type="button"
-              >
-                <span>{item.name}</span>
-                <strong>AI placed</strong>
-              </button>
-            ))}
+            <div className={styles.demoList}>
+              {room.items.map((item) => (
+                <button
+                  key={item.id}
+                  className={[
+                    styles.demoListButton,
+                    item.id === selectedId ? styles.activeItem : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onClick={() => setSelectedId(item.id)}
+                  type="button"
+                >
+                  <span>{item.name}</span>
+                  <small>{item.category}</small>
+                  <strong>AI placed</strong>
+                </button>
+              ))}
+            </div>
           </section>
         </aside>
       </main>

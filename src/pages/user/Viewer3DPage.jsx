@@ -1448,6 +1448,16 @@ const formatOptionalReasonText = (value) => {
   return String(value).trim();
 };
 
+const isMeaningfulReasoningText = (value) => {
+  const normalized = normalizeText(formatOptionalReasonText(value));
+
+  return Boolean(
+    normalized &&
+      normalized !== "chua co du lieu" &&
+      normalized !== "khong co du lieu",
+  );
+};
+
 const getProductSpecificReason = (product) =>
   [
     product?.productReason,
@@ -3043,6 +3053,50 @@ const cloneViewerEdits = (snapshot = null) => {
   };
 };
 
+const mergeViewerEditsSnapshots = (...snapshots) => {
+  const hiddenItemIds = new Set();
+  const manualPositions = {};
+  const manualSceneEntriesById = new Map();
+
+  snapshots.forEach((snapshot) => {
+    const normalized = cloneViewerEdits(snapshot);
+
+    normalized.hiddenItemIds.forEach((id) => {
+      if (id) {
+        hiddenItemIds.add(String(id));
+      }
+    });
+
+    Object.entries(normalized.manualPositions).forEach(([id, value]) => {
+      manualPositions[String(id)] = {
+        ...value,
+        placement: clonePlacementConfig(value?.placement),
+        position: clonePositionArray(value?.position),
+      };
+    });
+
+    normalized.manualSceneEntries.forEach((entry) => {
+      const entryId = String(entry?.id || "");
+
+      if (!entryId) {
+        return;
+      }
+
+      manualSceneEntriesById.set(entryId, {
+        ...entry,
+        placement: clonePlacementConfig(entry?.placement),
+        position: clonePositionArray(entry?.position),
+      });
+    });
+  });
+
+  return cloneViewerEdits({
+    hiddenItemIds: Array.from(hiddenItemIds),
+    manualPositions,
+    manualSceneEntries: Array.from(manualSceneEntriesById.values()),
+  });
+};
+
 const normalizeViewerStatePayload = (state) => {
   if (!state || typeof state !== "object") {
     return {
@@ -3372,10 +3426,7 @@ const buildProject3DSceneData = (
       widthM: formatMeasureValue(room.width),
       lengthM: formatMeasureValue(room.length),
       heightM: formatMeasureValue(room.height),
-      type:
-        sceneMeta?.roomType ||
-        roomAnalysis?.type ||
-        roomAnalysis?.roomType,
+      type: sceneMeta?.roomType || roomAnalysis?.type || roomAnalysis?.roomType,
       style: sceneMeta?.style || roomAnalysis?.style,
     },
     colorPalette: sceneMeta?.colorPalette || [],
@@ -3593,10 +3644,191 @@ const buildViewerEditsFromEditedProducts = (editedProducts) => {
   });
 };
 
+const mapEditedProjectProductToAiProduct = (item, index = 0) => {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
+  const viewerSlotId = normalizeLinkId(
+    item?.metadata?.viewerSlotId ||
+      item?.viewerSlotId ||
+      item?.id ||
+      item?.productId,
+  );
+  const productId = normalizeLinkId(
+    item?.productId || item?.sourceProductId || item?.metadata?.sourceProductId,
+  );
+  const fallbackId =
+    viewerSlotId || productId || `history-product-${index + 1}`;
+  const position = getEditedProductPosition(item);
+  const rotationY = getEditedProductRotationY(item);
+  const placement =
+    clonePlacementConfig(item?.placement) ||
+    clonePlacementConfig(item?.metadata?.placement) ||
+    undefined;
+  const sceneMode = item?.sceneMode || item?.metadata?.sceneMode || "";
+  const hasAiPlacement = Boolean(
+    item?.hasAiPlacement || item?.metadata?.hasAiPlacement,
+  );
+  const isManualPlaced = Boolean(
+    item?.isManualPlaced ||
+    item?.metadata?.isManualPlaced ||
+    sceneMode === "manual",
+  );
+  const dimensions = createCompactPayload({
+    width: Number(item?.width) || undefined,
+    depth: Number(item?.depth) || undefined,
+    height: Number(item?.height) || undefined,
+    unit: "m",
+  });
+
+  return createCompactPayload({
+    id: productId || fallbackId,
+    _id: productId || null,
+    productId: productId || fallbackId,
+    viewerSlotId: viewerSlotId || fallbackId,
+    sourceProductId:
+      normalizeLinkId(
+        item?.sourceProductId || item?.metadata?.sourceProductId,
+      ) || undefined,
+    name: item?.name || `San pham ${index + 1}`,
+    category: item?.category || "Noi that",
+    price: Number(item?.price) || 0,
+    imageUrl: item?.imageUrl || item?.metadata?.imageUrl || "",
+    image: item?.imageUrl || item?.metadata?.imageUrl || "",
+    modelUrl: item?.modelUrl || "",
+    dimensions,
+    hidden: Boolean(item?.hidden || item?.metadata?.hidden),
+    hasAiPlacement,
+    isManualPlaced,
+    layoutReasoning:
+      item?.layoutReasoning || item?.metadata?.layoutReasoning || "",
+    reason:
+      item?.layoutReasoning ||
+      item?.metadata?.layoutReasoning ||
+      "Khoi phuc tu project 3D da luu.",
+    layoutPlacement:
+      hasAiPlacement &&
+      (position || (placement?.mode === "on_top_of" && placement?.targetId))
+        ? createCompactPayload({
+            productId: productId || fallbackId,
+            modelUrl: item?.modelUrl || "",
+            position,
+            rotation: rotationY,
+            rotationY,
+            layoutReasoning:
+              item?.layoutReasoning || item?.metadata?.layoutReasoning || "",
+            placement,
+            supportSurface:
+              item?.supportSurface ||
+              item?.metadata?.supportSurface ||
+              undefined,
+            layer: item?.metadata?.layer || undefined,
+            anchorWall: item?.metadata?.anchorWall || undefined,
+            facingDirection: item?.metadata?.facingDirection || undefined,
+          })
+        : null,
+  });
+};
+
 const normalizeProject3DAiResults = (payload) => {
   if (!payload || typeof payload !== "object") {
     return null;
   }
+
+  const projectSceneRoom =
+    payload?.sceneData?.room ||
+    payload?.sceneData?.dimensions ||
+    payload?.project?.sceneData?.room ||
+    payload?.project?.sceneData?.dimensions ||
+    {};
+  const projectScenePalette =
+    payload?.sceneData?.colorPalette ||
+    payload?.sceneData?.palette ||
+    payload?.project?.sceneData?.colorPalette ||
+    payload?.project?.sceneData?.palette ||
+    [];
+  const rawEditedProjectProducts = Array.isArray(payload?.editedProducts)
+    ? payload.editedProducts
+    : Array.isArray(payload?.project?.editedProducts)
+      ? payload.project.editedProducts
+      : [];
+  const normalizedEditedProjectProducts = rawEditedProjectProducts
+    .map((item, index) => mapEditedProjectProductToAiProduct(item, index))
+    .filter(Boolean);
+  const projectHistoryProducts = Array.isArray(payload?.recommendedProducts)
+    ? payload.recommendedProducts
+    : Array.isArray(payload?.products)
+      ? payload.products
+      : Array.isArray(payload?.objects)
+        ? payload.objects
+        : normalizedEditedProjectProducts.length
+          ? normalizedEditedProjectProducts
+          : Array.isArray(payload?.project?.recommendedProducts)
+            ? payload.project.recommendedProducts
+            : Array.isArray(payload?.project?.products)
+              ? payload.project.products
+              : Array.isArray(payload?.project?.objects)
+                ? payload.project.objects
+                : [];
+  const projectHistoryRoomAnalysis = createCompactPayload({
+    ...projectSceneRoom,
+    roomType:
+      projectSceneRoom?.roomType ||
+      projectSceneRoom?.type ||
+      payload?.roomType ||
+      payload?.project?.roomType ||
+      payload?.designRequest?.roomType,
+    type:
+      projectSceneRoom?.type ||
+      projectSceneRoom?.roomType ||
+      payload?.roomType ||
+      payload?.project?.roomType ||
+      payload?.designRequest?.roomType,
+    style:
+      projectSceneRoom?.style ||
+      payload?.style ||
+      payload?.project?.style ||
+      payload?.designRequest?.style,
+  });
+  const projectHistoryCandidate =
+    projectHistoryProducts.length ||
+    payload?.layout ||
+    payload?.snapshot ||
+    payload?.sceneData
+      ? {
+          ...payload,
+          products: projectHistoryProducts,
+          recommendedProducts: projectHistoryProducts,
+          roomAnalysis: projectHistoryRoomAnalysis,
+          roomType:
+            payload?.roomType ||
+            projectHistoryRoomAnalysis?.roomType ||
+            projectHistoryRoomAnalysis?.type ||
+            "",
+          style: payload?.style || projectHistoryRoomAnalysis?.style || "",
+          reasoning:
+            payload?.reasoning ||
+            payload?.snapshot?.aiResults?.reasoning ||
+            payload?.viewerState?.aiResults?.reasoning ||
+            payload?.project?.aiResults?.reasoning ||
+            payload?.designRequest?.reasoning ||
+            payload?.designRequest?.result?.reasoning ||
+            "",
+          room: payload?.room || projectSceneRoom,
+          dimensions: payload?.dimensions || projectSceneRoom,
+          colorPalette:
+            payload?.colorPalette ||
+            payload?.palette ||
+            projectScenePalette ||
+            [],
+          imageUrl:
+            payload?.imageUrl ||
+            payload?.sceneData?.imageUrl ||
+            payload?.project?.sceneData?.imageUrl ||
+            "",
+        }
+      : null;
 
   const candidate =
     payload?.aiResults ||
@@ -3610,6 +3842,7 @@ const normalizeProject3DAiResults = (payload) => {
     payload?.project?.result ||
     payload?.designRequest?.result ||
     payload?.designRequest ||
+    projectHistoryCandidate ||
     null;
 
   if (!candidate || typeof candidate !== "object") {
@@ -3620,6 +3853,17 @@ const normalizeProject3DAiResults = (payload) => {
     Array.isArray(candidate?.products) && candidate?.roomAnalysis
       ? candidate
       : normalizeAiRecommendResult(candidate);
+  const fallbackReasoning =
+    [
+      payload?.reasoning,
+      payload?.designRequest?.reasoning,
+      payload?.designRequest?.result?.reasoning,
+      payload?.project?.aiResults?.reasoning,
+      payload?.project?.result?.reasoning,
+      payload?.viewerState?.aiResults?.reasoning,
+      payload?.snapshot?.aiResults?.reasoning,
+      candidate?.reasoning,
+    ].find((value) => isMeaningfulReasoningText(value)) || "";
 
   if (
     payload?.layout &&
@@ -3630,6 +3874,9 @@ const normalizeProject3DAiResults = (payload) => {
 
     return {
       ...mergedAiResults,
+      reasoning: isMeaningfulReasoningText(mergedAiResults?.reasoning)
+        ? mergedAiResults.reasoning
+        : fallbackReasoning || mergedAiResults?.reasoning || "",
       colorPalette:
         Array.isArray(mergedAiResults?.colorPalette) &&
         mergedAiResults.colorPalette.length
@@ -3647,6 +3894,9 @@ const normalizeProject3DAiResults = (payload) => {
 
   return {
     ...baseAiResults,
+    reasoning: isMeaningfulReasoningText(baseAiResults?.reasoning)
+      ? baseAiResults.reasoning
+      : fallbackReasoning || baseAiResults?.reasoning || "",
     colorPalette:
       Array.isArray(baseAiResults?.colorPalette) &&
       baseAiResults.colorPalette.length
@@ -3660,6 +3910,14 @@ const normalizeProject3DAiResults = (payload) => {
   };
 };
 
+const hasRenderableProject3DAiResults = (value) =>
+  Boolean(
+    value &&
+    typeof value === "object" &&
+    Array.isArray(value?.products) &&
+    value.products.length,
+  );
+
 const normalizeProject3DViewerState = (payload) => {
   const snapshotSource =
     payload?.snapshot ||
@@ -3670,20 +3928,55 @@ const normalizeProject3DViewerState = (payload) => {
     payload?.data?.snapshot ||
     null;
   const snapshot = normalizeViewerStatePayload(snapshotSource);
-  const aiResults = snapshot.aiResults || normalizeProject3DAiResults(payload);
-  const viewerEdits = !isViewerEditsEmpty(snapshot.viewerEdits)
-    ? snapshot.viewerEdits
-    : cloneViewerEdits(
-        payload?.viewerEdits ||
-          payload?.edits ||
-          payload?.project?.viewerEdits ||
-          buildViewerEditsFromEditedProducts(
-            payload?.editedProducts ||
-              payload?.items ||
-              payload?.products ||
-              payload?.project?.editedProducts,
-          ),
-      );
+  const normalizedAiResults = normalizeProject3DAiResults(payload);
+  const snapshotAiResults = hasRenderableProject3DAiResults(snapshot.aiResults)
+    ? snapshot.aiResults
+    : null;
+  const aiResults = snapshotAiResults
+    ? {
+        ...(normalizedAiResults || {}),
+        ...snapshotAiResults,
+        products:
+          Array.isArray(snapshotAiResults?.products) &&
+          snapshotAiResults.products.length
+            ? snapshotAiResults.products
+            : normalizedAiResults?.products || [],
+        roomAnalysis:
+          snapshotAiResults?.roomAnalysis ||
+          normalizedAiResults?.roomAnalysis ||
+          null,
+        colorPalette:
+          Array.isArray(snapshotAiResults?.colorPalette) &&
+          snapshotAiResults.colorPalette.length
+            ? snapshotAiResults.colorPalette
+            : normalizedAiResults?.colorPalette || [],
+        imageUrl:
+          snapshotAiResults?.imageUrl || normalizedAiResults?.imageUrl || "",
+        layout: snapshotAiResults?.layout || normalizedAiResults?.layout || null,
+        reasoning: isMeaningfulReasoningText(snapshotAiResults?.reasoning)
+          ? snapshotAiResults.reasoning
+          : normalizedAiResults?.reasoning || snapshotAiResults?.reasoning || "",
+      }
+    : normalizedAiResults || snapshot.aiResults || null;
+  const payloadViewerEdits = cloneViewerEdits(
+    payload?.viewerEdits || payload?.edits || payload?.project?.viewerEdits,
+  );
+  const editedProductViewerEdits = buildViewerEditsFromEditedProducts(
+    payload?.editedProducts ||
+      payload?.objects ||
+      payload?.items ||
+      payload?.products ||
+      payload?.project?.editedProducts ||
+      payload?.project?.objects,
+  );
+  const mergedViewerEdits = mergeViewerEditsSnapshots(
+    editedProductViewerEdits,
+    payloadViewerEdits,
+    snapshot.viewerEdits,
+  );
+  const viewerEdits = isViewerEditsEmpty(mergedViewerEdits)
+    ? createEmptyViewerEdits()
+    : mergedViewerEdits;
 
   return {
     project3DId: getProject3DIdFromPayload(payload) || snapshot.project3DId,
@@ -7914,16 +8207,80 @@ function Viewer3DPage() {
     () => normalizeViewerStatePayload(getSavedAiViewerState()),
     [],
   );
+  const hasIncomingAiResults = Boolean(location.state?.aiResults);
+  const forceCreate3DProject = Boolean(location.state?.forceCreate3DProject);
+  const incomingHistoryProjectDetail = location.state?.projectDetail || null;
   const routeProject3DId = normalizeProject3DId(
     routeProjectIdParam || location.state?.project3DId,
   );
-  const initialViewerEdits = useMemo(
-    () =>
-      location.state?.aiResults
-        ? createEmptyViewerEdits()
-        : cloneViewerEdits(savedViewerState.viewerEdits),
-    [location.state?.aiResults, savedViewerState.viewerEdits],
+  const incomingHistoryState = useMemo(
+    () => normalizeProject3DViewerState(incomingHistoryProjectDetail),
+    [incomingHistoryProjectDetail],
   );
+  const historyProjectId = useMemo(
+    () =>
+      routeProject3DId ||
+      getProject3DIdFromPayload(incomingHistoryProjectDetail),
+    [incomingHistoryProjectDetail, routeProject3DId],
+  );
+  const historyDesignRequestId = useMemo(
+    () =>
+      normalizeProject3DId(
+        (!forceCreate3DProject &&
+          (location.state?.designRequestId ||
+            location.state?.sourceDesignRequestId)) ||
+          getSourceDesignRequestIdFromProject3D(incomingHistoryProjectDetail),
+      ),
+    [
+      forceCreate3DProject,
+      incomingHistoryProjectDetail,
+      location.state?.designRequestId,
+      location.state?.sourceDesignRequestId,
+    ],
+  );
+  const isHistoryMode = Boolean(
+    !forceCreate3DProject &&
+    (historyProjectId ||
+      historyDesignRequestId ||
+      incomingHistoryProjectDetail),
+  );
+  const initialViewerEdits = useMemo(() => {
+    if (isHistoryMode) {
+      return !isViewerEditsEmpty(incomingHistoryState.viewerEdits)
+        ? cloneViewerEdits(incomingHistoryState.viewerEdits)
+        : createEmptyViewerEdits();
+    }
+
+    return hasIncomingAiResults
+      ? createEmptyViewerEdits()
+      : cloneViewerEdits(savedViewerState.viewerEdits);
+  }, [
+    hasIncomingAiResults,
+    incomingHistoryState.viewerEdits,
+    isHistoryMode,
+    savedViewerState.viewerEdits,
+  ]);
+  const initialProject3DId = useMemo(() => {
+    if (forceCreate3DProject) {
+      return "";
+    }
+
+    if (historyProjectId) {
+      return historyProjectId;
+    }
+
+    if (incomingHistoryState.project3DId) {
+      return incomingHistoryState.project3DId;
+    }
+
+    return hasIncomingAiResults ? "" : savedViewerState.project3DId || "";
+  }, [
+    forceCreate3DProject,
+    hasIncomingAiResults,
+    historyProjectId,
+    incomingHistoryState.project3DId,
+    savedViewerState.project3DId,
+  ]);
   const [manualSceneEntries, setManualSceneEntries] = useState(
     initialViewerEdits.manualSceneEntries,
   );
@@ -7941,19 +8298,27 @@ function Viewer3DPage() {
   const [layoutLoading, setLayoutLoading] = useState(false);
   const [projectBootLoading, setProjectBootLoading] = useState(false);
   const [projectSaving, setProjectSaving] = useState(false);
-  const [project3DId, setProject3DId] = useState(
-    routeProject3DId || savedViewerState.project3DId || "",
-  );
+  const [project3DId, setProject3DId] = useState(initialProject3DId);
   const [replacementSelections, setReplacementSelections] = useState({});
 
-  const initialAiResults = useMemo(
-    () => location.state?.aiResults || savedViewerState.aiResults || null,
-    [location.state?.aiResults, savedViewerState.aiResults],
-  );
+  const initialAiResults = useMemo(() => {
+    if (isHistoryMode) {
+      return incomingHistoryState.aiResults || null;
+    }
+
+    return location.state?.aiResults || savedViewerState.aiResults || null;
+  }, [
+    incomingHistoryState.aiResults,
+    isHistoryMode,
+    location.state?.aiResults,
+    savedViewerState.aiResults,
+  ]);
   const [aiResults, setAiResults] = useState(initialAiResults);
   const sourceDesignRequestId = useMemo(
-    () => getSourceDesignRequestIdFromAiResults(aiResults),
-    [aiResults],
+    () =>
+      getSourceDesignRequestIdFromAiResults(aiResults) ||
+      (isHistoryMode ? historyDesignRequestId : ""),
+    [aiResults, historyDesignRequestId, isHistoryMode],
   );
 
   useEffect(() => {
@@ -7968,23 +8333,18 @@ function Viewer3DPage() {
     layoutRequestKeyRef.current = "";
     projectBootstrapStartedRef.current = false;
     latestViewerEditsRef.current = cloneViewerEdits(initialViewerEdits);
-    setProject3DId(routeProject3DId || savedViewerState.project3DId || "");
+    setProject3DId(initialProject3DId);
 
     if (initialAiResults) {
       saveAiViewerState(
         buildViewerStatePayload(
           initialAiResults,
           initialViewerEdits,
-          routeProject3DId || savedViewerState.project3DId || "",
+          initialProject3DId,
         ),
       );
     }
-  }, [
-    initialAiResults,
-    initialViewerEdits,
-    routeProject3DId,
-    savedViewerState.project3DId,
-  ]);
+  }, [initialAiResults, initialProject3DId, initialViewerEdits]);
 
   const currentViewerEdits = useMemo(
     () =>
@@ -8000,37 +8360,47 @@ function Viewer3DPage() {
     latestViewerEditsRef.current = currentViewerEdits;
   }, [currentViewerEdits]);
 
-  const applyProject3DViewerState = useCallback((projectState) => {
-    const normalizedState = normalizeProject3DViewerState(projectState);
+  const applyProject3DViewerState = useCallback(
+    (projectState, fallbackProject3DId = "") => {
+      const normalizedState = normalizeProject3DViewerState(projectState);
+      const resolvedProject3DId = normalizeProject3DId(
+        normalizedState.project3DId ||
+          getProject3DIdFromPayload(projectState) ||
+          fallbackProject3DId ||
+          historyProjectId ||
+          routeProject3DId,
+      );
 
-    if (!normalizedState.aiResults) {
-      return false;
-    }
+      if (!normalizedState.aiResults) {
+        return false;
+      }
 
-    setAiResults(normalizedState.aiResults);
-    setDraggingId(null);
-    setManualSceneEntries(normalizedState.viewerEdits.manualSceneEntries);
-    setManualPositions(normalizedState.viewerEdits.manualPositions);
-    setHiddenItemIds(normalizedState.viewerEdits.hiddenItemIds);
-    setSavedViewerEdits(normalizedState.viewerEdits);
-    setSelectedId(null);
-    setReplacementSelections({});
-    setResetToken((current) => current + 1);
-    layoutRequestKeyRef.current = "";
-    latestViewerEditsRef.current = cloneViewerEdits(
-      normalizedState.viewerEdits,
-    );
-    setProject3DId(normalizedState.project3DId || "");
-    saveAiViewerState(
-      buildViewerStatePayload(
-        normalizedState.aiResults,
+      setAiResults(normalizedState.aiResults);
+      setDraggingId(null);
+      setManualSceneEntries(normalizedState.viewerEdits.manualSceneEntries);
+      setManualPositions(normalizedState.viewerEdits.manualPositions);
+      setHiddenItemIds(normalizedState.viewerEdits.hiddenItemIds);
+      setSavedViewerEdits(normalizedState.viewerEdits);
+      setSelectedId(null);
+      setReplacementSelections({});
+      setResetToken((current) => current + 1);
+      layoutRequestKeyRef.current = "";
+      latestViewerEditsRef.current = cloneViewerEdits(
         normalizedState.viewerEdits,
-        normalizedState.project3DId || "",
-      ),
-    );
+      );
+      setProject3DId(resolvedProject3DId || "");
+      saveAiViewerState(
+        buildViewerStatePayload(
+          normalizedState.aiResults,
+          normalizedState.viewerEdits,
+          resolvedProject3DId || "",
+        ),
+      );
 
-    return true;
-  }, []);
+      return true;
+    },
+    [historyProjectId, routeProject3DId],
+  );
 
   const findExistingProject3DId = useCallback(async (requestId) => {
     const normalizedRequestId = normalizeProject3DId(requestId);
@@ -8086,19 +8456,30 @@ function Viewer3DPage() {
     let cancelled = false;
 
     const loadProject3DHistory = async () => {
-      const hasIncomingAiResults = Boolean(location.state?.aiResults);
-      const explicitProjectId =
-        routeProject3DId ||
-        (!hasIncomingAiResults ? savedViewerState.project3DId : "");
-      const sourceDesignRequestId =
-        location.state?.sourceDesignRequestId ||
-        getSourceDesignRequestIdFromAiResults(location.state?.aiResults);
+      const explicitProjectId = forceCreate3DProject
+        ? ""
+        : historyProjectId ||
+          (!hasIncomingAiResults && !isHistoryMode
+            ? savedViewerState.project3DId
+            : "");
+      const historyRequestId = isHistoryMode
+        ? historyDesignRequestId
+        : location.state?.sourceDesignRequestId ||
+          getSourceDesignRequestIdFromAiResults(location.state?.aiResults);
 
-      if (
-        !explicitProjectId &&
-        !sourceDesignRequestId &&
-        hasIncomingAiResults
-      ) {
+      if (forceCreate3DProject && hasIncomingAiResults) {
+        return;
+      }
+
+      if (isHistoryMode && incomingHistoryProjectDetail && !explicitProjectId) {
+        applyProject3DViewerState(
+          incomingHistoryProjectDetail,
+          historyProjectId,
+        );
+        return;
+      }
+
+      if (!explicitProjectId && !historyRequestId && hasIncomingAiResults) {
         return;
       }
 
@@ -8106,6 +8487,7 @@ function Viewer3DPage() {
 
       try {
         let projectPayload = null;
+        let resolvedProjectId = explicitProjectId;
 
         if (explicitProjectId) {
           projectPayload = await getProject3DByIdApi(explicitProjectId);
@@ -8113,19 +8495,20 @@ function Viewer3DPage() {
         } else {
           const projectHistory = await getMyProjects3DApi({
             page: 0,
-            size: sourceDesignRequestId ? 50 : 1,
+            size: historyRequestId ? 50 : 1,
             sort: "createdAt,desc",
           });
           const historyItems = projectHistory?.content || [];
-          const matchedProject = sourceDesignRequestId
+          const matchedProject = historyRequestId
             ? findMatchingProject3DBySourceRequestId(
                 historyItems,
-                sourceDesignRequestId,
+                historyRequestId,
               )
             : historyItems[0] || null;
           const matchedProjectId = getProject3DIdFromPayload(matchedProject);
 
           if (matchedProjectId) {
+            resolvedProjectId = matchedProjectId;
             projectPayload = await getProject3DByIdApi(matchedProjectId);
           } else if (matchedProject) {
             projectPayload = matchedProject;
@@ -8143,7 +8526,7 @@ function Viewer3DPage() {
           return;
         }
 
-        applyProject3DViewerState(hydratedProjectPayload);
+        applyProject3DViewerState(hydratedProjectPayload, resolvedProjectId);
       } catch (error) {
         if (explicitProjectId) {
           console.error("Load 3D project detail error:", error);
@@ -8164,10 +8547,15 @@ function Viewer3DPage() {
     };
   }, [
     applyProject3DViewerState,
+    forceCreate3DProject,
+    historyDesignRequestId,
+    historyProjectId,
     hydrateProject3DState,
+    hasIncomingAiResults,
+    incomingHistoryProjectDetail,
+    isHistoryMode,
     location.state?.aiResults,
     location.state?.sourceDesignRequestId,
-    routeProject3DId,
     savedViewerState.project3DId,
   ]);
 
@@ -8189,7 +8577,7 @@ function Viewer3DPage() {
   );
 
   useEffect(() => {
-    if (!aiResults || !products.length) return;
+    if (isHistoryMode || !aiResults || !products.length) return;
 
     const hasLayoutPlacement =
       aiResults?.layout?.requestVersion === LAYOUT_REQUEST_VERSION &&
@@ -8270,7 +8658,7 @@ function Viewer3DPage() {
     return () => {
       cancelled = true;
     };
-  }, [aiResults, products]);
+  }, [aiResults, isHistoryMode, products, project3DId]);
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -8630,6 +9018,7 @@ function Viewer3DPage() {
 
     const bootstrapProject3D = async () => {
       if (
+        isHistoryMode ||
         !aiResults ||
         project3DId ||
         projectBootLoading ||
@@ -8661,28 +9050,30 @@ function Viewer3DPage() {
           buildViewerStatePayload(aiResults, currentViewerEdits, nextProjectId),
         );
       } catch (error) {
-        try {
-          const existingProjectId = await findExistingProject3DId(
-            sourceDesignRequestId,
-          );
-
-          if (cancelled) {
-            return;
-          }
-
-          if (existingProjectId) {
-            setProject3DId(existingProjectId);
-            saveAiViewerState(
-              buildViewerStatePayload(
-                aiResults,
-                currentViewerEdits,
-                existingProjectId,
-              ),
+        if (!forceCreate3DProject) {
+          try {
+            const existingProjectId = await findExistingProject3DId(
+              sourceDesignRequestId,
             );
-            return;
+
+            if (cancelled) {
+              return;
+            }
+
+            if (existingProjectId) {
+              setProject3DId(existingProjectId);
+              saveAiViewerState(
+                buildViewerStatePayload(
+                  aiResults,
+                  currentViewerEdits,
+                  existingProjectId,
+                ),
+              );
+              return;
+            }
+          } catch (lookupError) {
+            console.error("Lookup existing 3D project error:", lookupError);
           }
-        } catch (lookupError) {
-          console.error("Lookup existing 3D project error:", lookupError);
         }
 
         console.error("Create 3D project error:", error);
@@ -8705,6 +9096,8 @@ function Viewer3DPage() {
     canBootstrapProject3D,
     currentViewerEdits,
     findExistingProject3DId,
+    forceCreate3DProject,
+    isHistoryMode,
     project3DId,
     productItems,
     projectBootLoading,
@@ -8728,11 +9121,19 @@ function Viewer3DPage() {
     () => getRoomSurfacePalette(aiResults?.colorPalette),
     [aiResults?.colorPalette],
   );
+  const summaryReasoning = isMeaningfulReasoningText(aiResults?.reasoning)
+    ? formatOptionalReasonText(aiResults?.reasoning)
+    : isHistoryMode
+      ? "Dang khoi phuc du lieu tu project 3D da luu."
+      : "Viewer dang dung danh sach san pham tu ket qua AI recommend.";
 
   const hasUnsavedChanges =
     JSON.stringify(currentViewerEdits) !== JSON.stringify(savedViewerEdits);
   const canSaveDesign =
-    Boolean(aiResults) && (!project3DId || hasUnsavedChanges);
+    Boolean(aiResults) &&
+    (isHistoryMode
+      ? Boolean(project3DId) && hasUnsavedChanges
+      : !project3DId || hasUnsavedChanges);
   const selectedItemHidden = Boolean(selectedRenderedItem?.isHidden);
   const selectedItemInScene = Boolean(selectedRenderedItem?.inScene);
   const selectedItemHasAiPlacement = Boolean(selectedItem?.hasAiPlacement);
@@ -8968,12 +9369,19 @@ function Viewer3DPage() {
     if (!aiResults) return;
 
     const nextViewerEdits = cloneViewerEdits(currentViewerEdits);
-    let nextProject3DId = project3DId;
+    let nextProject3DId =
+      project3DId || (isHistoryMode ? historyProjectId : "");
 
     setProjectSaving(true);
 
     try {
       if (!nextProject3DId) {
+        if (isHistoryMode) {
+          throw new Error(
+            "KhÃ´ng tÃ¬m tháº¥y project 3D lá»‹ch sá»­ Ä‘á»ƒ lÆ°u. HÃ£y má»Ÿ láº¡i project tá»« lá»‹ch sá»­.",
+          );
+        }
+
         if (!sourceDesignRequestId) {
           throw new Error("Không tìm thấy design request gốc để tạo dự án 3D.");
         }
@@ -9001,6 +9409,10 @@ function Viewer3DPage() {
       }
 
       if (nextProject3DId) {
+        if (nextProject3DId !== project3DId) {
+          setProject3DId(nextProject3DId);
+        }
+
         console.log("[3D SAVE] projectId:", nextProject3DId);
         console.log("[3D SAVE] viewerEdits:", nextViewerEdits);
         console.log("[3D SAVE] sceneItems:", sceneItems);
@@ -9326,11 +9738,15 @@ function Viewer3DPage() {
               <span>{aiResults?.roomType || "Không gian AI"}</span>
             </div>
             <div className={styles.sceneStatsMeta}>
-              <span className={styles.sceneStatsLabel}>AI layout</span>
+              <span className={styles.sceneStatsLabel}>
+                {isHistoryMode ? "Saved layout" : "AI layout"}
+              </span>
               <strong>
-                {layoutLoading
-                  ? "Dang xep vi tri AI..."
-                  : `${aiPlacedCount}/${productItems.length} vị trí AI`}
+                {isHistoryMode
+                  ? `${sceneItems.length}/${productItems.length} mon trong layout`
+                  : layoutLoading
+                    ? "Dang xep vi tri AI..."
+                    : `${aiPlacedCount}/${productItems.length} vị trí AI`}
               </strong>
               {manualPlacedCount > 0 && (
                 <small className={styles.sceneStatsHint}>
@@ -9355,10 +9771,7 @@ function Viewer3DPage() {
           <section className={styles.summaryBlock}>
             <span>Tổng giá trị</span>
             <strong>{formatPrice(totalPrice)}</strong>
-            <p>
-              {aiResults?.reasoning ||
-                "Viewer đang dùng danh sách sản phẩm từ kết quả AI recommend."}
-            </p>
+            <p>{summaryReasoning}</p>
           </section>
 
           {selectedItem && (
@@ -9482,7 +9895,10 @@ function Viewer3DPage() {
           <section className={styles.productList}>
             <h3>Thay thế sản phẩm</h3>
             {groupedAiProducts.map(
-              ({ category, currentProduct, replacementOptions }, groupIndex) => {
+              (
+                { category, currentProduct, replacementOptions },
+                groupIndex,
+              ) => {
                 const item = currentProduct;
                 const slotId = String(item.id);
                 const replacementGroupLabel =

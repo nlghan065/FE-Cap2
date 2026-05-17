@@ -702,7 +702,27 @@ function AIDesignerPage() {
     });
   };
 
-  const handleView3D = async () => {
+  const findLatestProject3DIdByRequest = useCallback(async (requestId) => {
+    const normalizedRequestId = normalizeProjectLinkId(requestId);
+
+    if (!normalizedRequestId) {
+      return "";
+    }
+
+    const projectHistory = await getMyProjects3DApi({
+      page: 0,
+      size: 100,
+      sort: "createdAt,desc",
+    });
+    const matchedProject = (projectHistory?.content || []).find(
+      (project) =>
+        getProject3DDesignRequestId(project) === normalizedRequestId,
+    );
+
+    return getProject3DLinkId(matchedProject);
+  }, []);
+
+  const handleCreate3D = () => {
     if (!aiResults?.products?.length) {
       toast.error("Chưa có danh sách sản phẩm để dựng không gian 3D.");
       return;
@@ -710,40 +730,44 @@ function AIDesignerPage() {
 
     const sourceDesignRequestId = getAiDesignRequestId(aiResults);
 
-    if (sourceDesignRequestId) {
-      try {
-        const projectHistory = await getMyProjects3DApi({
-          page: 0,
-          size: 100,
-          sort: "createdAt,desc",
-        });
-        const matchedProject = (projectHistory?.content || []).find(
-          (project) =>
-            getProject3DDesignRequestId(project) === sourceDesignRequestId,
-        );
-        const matchedProjectId = getProject3DLinkId(matchedProject);
-
-        if (matchedProjectId) {
-          navigate(`/viewer/${matchedProjectId}`, {
-            state: {
-              project3DId: matchedProjectId,
-              sourceDesignRequestId,
-            },
-          });
-          return;
-        }
-      } catch (error) {
-        console.error("Find 3D project before opening viewer error:", error);
-      }
-    }
-
     navigate("/viewer", {
       state: {
         aiResults,
         sourceDesignRequestId,
+        forceCreate3DProject: true,
       },
     });
   };
+
+  const handleView3DHistory = useCallback(async () => {
+    const sourceDesignRequestId = getAiDesignRequestId(aiResults);
+
+    if (!sourceDesignRequestId) {
+      toast("Thiết kế này chưa có lịch sử 3D.");
+      return;
+    }
+
+    try {
+      const matchedProjectId = await findLatestProject3DIdByRequest(
+        sourceDesignRequestId,
+      );
+
+      if (!matchedProjectId) {
+        toast("Chưa có lịch sử 3D cho thiết kế này.");
+        return;
+      }
+
+      navigate(`/viewer/${matchedProjectId}`, {
+        state: {
+          project3DId: matchedProjectId,
+          sourceDesignRequestId,
+        },
+      });
+    } catch (error) {
+      console.error("Open 3D history error:", error);
+      toast.error("Không tải được lịch sử 3D.");
+    }
+  }, [aiResults, findLatestProject3DIdByRequest, navigate]);
 
   const handleAddAllToCart = () => {
     toast("Chưa nối giỏ hàng hàng loạt cho AI recommendation.");
@@ -816,8 +840,9 @@ function AIDesignerPage() {
           <AIDesignerResultsPanel
             formatPrice={formatPrice}
             onAddAllToCart={handleAddAllToCart}
+            onCreate3D={handleCreate3D}
             onReset={handleReset}
-            onView3D={handleView3D}
+            onView3DHistory={handleView3DHistory}
             onViewProduct={handleViewProduct}
             results={aiResults}
           />
