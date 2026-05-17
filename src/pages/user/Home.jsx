@@ -974,14 +974,6 @@ function Home() {
 
   const stats = [
     {
-      key: PANEL_KEYS.PROJECTS,
-      label: "Dự án đang thực hiện",
-      value: errors.projects ? "--" : padCount(activeProjectsCount),
-      icon: FolderKanban,
-      tone: "blue",
-      helper: "Mở panel dự án AI",
-    },
-    {
       key: PANEL_KEYS.ORDERS,
       label: "Đơn hàng đang giao",
       value: errors.orders ? "--" : padCount(shippingOrders.length),
