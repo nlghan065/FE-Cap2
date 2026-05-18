@@ -29,11 +29,7 @@ export const AI_STYLE_OPTIONS = [
     name: "Scandinavian",
     desc: "Ấm áp, sáng màu, gần gũi.",
   },
-  {
-    id: "Industrial",
-    name: "Industrial",
-    desc: "Mạnh mẽ, vật liệu thô, cá tính.",
-  },
+
   {
     id: "Classic",
     name: "Classic",
@@ -112,7 +108,9 @@ export const getAiGenderLabel = (value, fallback = "") =>
 export const getAiRequestStatusLabel = (value, fallback = "Đã tạo yêu cầu") => {
   if (!value) return fallback;
 
-  const normalizedValue = String(value || "").trim().toUpperCase();
+  const normalizedValue = String(value || "")
+    .trim()
+    .toUpperCase();
 
   return AI_REQUEST_STATUS_LABELS[normalizedValue] || value;
 };
